@@ -13,6 +13,8 @@ RUN install-php-extensions \
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
+COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+
 # Run php-fpm as root in dev (matches root-owned files from Windows bind-mounts).
 # Not for production.
 RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' /usr/local/etc/php-fpm.d/www.conf
