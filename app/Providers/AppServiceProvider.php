@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\PersonPermission;
+use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Observers\PersonPermissionObserver;
+use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -25,5 +29,8 @@ class AppServiceProvider extends ServiceProvider
 
             return null;
         });
+
+        RoleAssignment::observe(RoleAssignmentObserver::class);
+        PersonPermission::observe(PersonPermissionObserver::class);
     }
 }
