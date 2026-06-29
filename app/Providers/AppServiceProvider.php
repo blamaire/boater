@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Observers\PersonPermissionObserver;
 use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
+use App\Services\Proposals\ProposalHandlerRegistry;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -15,7 +16,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(ProposalHandlerRegistry::class);
     }
 
     public function boot(): void
