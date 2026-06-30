@@ -1,3 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+@source '../views';
+@source '../../app/View/Components';
+@source '../../app/Http/Controllers';
+
+@theme {
+    --color-rzvg-50: #fdecec;
+    --color-rzvg-100: #fbd0d1;
+    --color-rzvg-200: #f6a1a3;
+    --color-rzvg-300: #f17376;
+    --color-rzvg-400: #ec4c4f;
+    --color-rzvg-500: #e12628;
+    --color-rzvg-600: #b51e20;
+    --color-rzvg-700: #871618;
+    --color-rzvg-800: #5a0f10;
+    --color-rzvg-900: #2c0808;
+
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Alike', Georgia, ui-serif, serif;
+}

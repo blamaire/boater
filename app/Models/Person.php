@@ -41,6 +41,7 @@ class Person extends Model
         return $this->belongsTo(User::class, 'account_id');
     }
 
+    /** @return HasMany<RoleAssignment, $this> */
     public function roleAssignments(): HasMany
     {
         return $this->hasMany(RoleAssignment::class);

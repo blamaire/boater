@@ -15,7 +15,7 @@ class PermissionSeeder extends Seeder
                 [
                     'module' => $entry['module'],
                     'action' => $entry['action'],
-                    'description' => $entry['description'] ?? null,
+                    'description' => $entry['description'] ?? $this->defaultDescription($entry['module'], $entry['action']),
                     'is_sensitive' => $entry['is_sensitive'] ?? false,
                 ],
             );
@@ -85,5 +85,41 @@ class PermissionSeeder extends Seeder
         ];
 
         return $entries;
+    }
+
+    private function defaultDescription(string $module, string $action): string
+    {
+        $moduleLabel = match ($module) {
+            'persons' => 'Personen',
+            'roles' => 'Rollen',
+            'activities' => 'Activiteiten',
+            'reservations' => 'Reserveringen',
+            'damage_reports' => 'Schademeldingen',
+            'pages' => 'Pagina\'s',
+            'invoices' => 'Facturen',
+            'ledger' => 'Grootboek',
+            'mailings' => 'Mailings',
+            'documents' => 'Documenten',
+            'imports' => 'Imports',
+            'volunteer_tasks' => 'Vrijwilligerstaken',
+            'communication_log' => 'Communicatielogboek',
+            'audit_trail' => 'Auditlogboek',
+            'review_settings' => 'Reviewinstellingen',
+            default => ucfirst($module),
+        };
+
+        return match ($action) {
+            'view' => "{$moduleLabel} bekijken",
+            'create' => "{$moduleLabel} aanmaken",
+            'update' => "{$moduleLabel} wijzigen",
+            'delete' => "{$moduleLabel} verwijderen",
+            'publish' => "{$moduleLabel} publiceren",
+            'approve' => "{$moduleLabel} goedkeuren",
+            'resolve' => "{$moduleLabel} afhandelen",
+            'send' => "{$moduleLabel} versturen",
+            'run' => "{$moduleLabel} uitvoeren",
+            'sign_up' => "Inschrijven op {$moduleLabel}",
+            default => "{$action} op {$moduleLabel}",
+        };
     }
 }
