@@ -32,7 +32,7 @@ services:
       - db-data:/var/lib/mysql
 
   node:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: rzvg-node
     working_dir: /var/www/html
     volumes:

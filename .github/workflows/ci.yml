@@ -37,10 +37,10 @@ jobs:
       - name: Bekende kwetsbaarheden (composer audit)
         run: composer audit
 
-      - name: Setup Node 20
+      - name: Setup Node 22
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Node dependencies
