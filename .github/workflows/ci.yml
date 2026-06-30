@@ -10,6 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Geheimen-scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -27,6 +34,9 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Bekende kwetsbaarheden (composer audit)
+        run: composer audit
+
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
@@ -35,6 +45,9 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Bekende kwetsbaarheden (npm audit)
+        run: npm audit --audit-level=high
 
       - name: Build assets
         run: npm run build
