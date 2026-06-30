@@ -62,11 +62,11 @@ class ProposalEngine
                     'bypass_permission' => $policy->bypass_permission,
                 ]);
 
-                return $this->applyApproved($proposal->fresh());
+                return $this->applyApproved($proposal->refresh());
             }
 
             if ($policy && $policy->auto_apply) {
-                return $this->applyApproved($proposal->fresh());
+                return $this->applyApproved($proposal->refresh());
             }
 
             $this->createSteps($proposal, $policy);
@@ -76,7 +76,9 @@ class ProposalEngine
                 'current_step' => 1,
             ]);
 
-            return $proposal->fresh('steps');
+            $proposal->load('steps');
+
+            return $proposal;
         });
     }
 
@@ -86,7 +88,7 @@ class ProposalEngine
     public function approveStep(ReviewStep $step, Person $decider, ?string $reason = null): Proposal
     {
         return DB::transaction(function () use ($step, $decider, $reason) {
-            $proposal = $step->proposal()->lockForUpdate()->first();
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($step->proposal_id);
 
             $this->guardOpen($proposal);
             $this->guardStepIsCurrent($proposal, $step);
@@ -117,8 +119,9 @@ class ProposalEngine
 
             if ($next) {
                 $proposal->update(['current_step' => $next->sequence]);
+                $proposal->load('steps');
 
-                return $proposal->fresh('steps');
+                return $proposal;
             }
 
             return $this->applyApproved($proposal);
@@ -128,7 +131,7 @@ class ProposalEngine
     public function reject(ReviewStep $step, Person $decider, string $reason): Proposal
     {
         return DB::transaction(function () use ($step, $decider, $reason) {
-            $proposal = $step->proposal()->lockForUpdate()->first();
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($step->proposal_id);
 
             $this->guardOpen($proposal);
             $this->guardStepIsCurrent($proposal, $step);
@@ -158,14 +161,16 @@ class ProposalEngine
                 'reason' => $reason,
             ]);
 
-            return $proposal->fresh('steps');
+            $proposal->load('steps');
+
+            return $proposal;
         });
     }
 
     public function returnToSubmitter(ReviewStep $step, Person $decider, string $reason): Proposal
     {
         return DB::transaction(function () use ($step, $decider, $reason) {
-            $proposal = $step->proposal()->lockForUpdate()->first();
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($step->proposal_id);
 
             $this->guardOpen($proposal);
             $this->guardStepIsCurrent($proposal, $step);
@@ -193,7 +198,9 @@ class ProposalEngine
                 'reason' => $reason,
             ]);
 
-            return $proposal->fresh('steps');
+            $proposal->load('steps');
+
+            return $proposal;
         });
     }
 
@@ -204,12 +211,13 @@ class ProposalEngine
     public function resubmit(Proposal $proposal, array $payload): Proposal
     {
         return DB::transaction(function () use ($proposal, $payload) {
-            $proposal = Proposal::lockForUpdate()->findOrFail($proposal->id);
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($proposal->id);
 
             if ($proposal->status !== ProposalStatus::Returned) {
                 throw new ProposalStateException('Alleen teruggestuurde voorstellen kunnen opnieuw worden ingediend.');
             }
 
+            // @phpstan-ignore nullsafe.neverNull (Larastan ziet niet dat policy_id nullable is)
             $behavior = $proposal->policy?->resubmit_behavior ?? ResubmitBehavior::Restart;
 
             $proposal->update([
@@ -244,14 +252,16 @@ class ProposalEngine
                 'behavior' => $behavior->value,
             ]);
 
-            return $proposal->fresh('steps');
+            $proposal->load('steps');
+
+            return $proposal;
         });
     }
 
     public function withdraw(Proposal $proposal, Person $actor): Proposal
     {
         return DB::transaction(function () use ($proposal, $actor) {
-            $proposal = Proposal::lockForUpdate()->findOrFail($proposal->id);
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($proposal->id);
 
             $this->guardOpen($proposal);
 
@@ -265,7 +275,9 @@ class ProposalEngine
 
             $this->audit->log('proposal.withdrawn', $proposal, context: ['actor_id' => $actor->id]);
 
-            return $proposal->fresh('steps');
+            $proposal->load('steps');
+
+            return $proposal;
         });
     }
 
@@ -288,8 +300,9 @@ class ProposalEngine
                 'decision_reason' => $e->getMessage(),
             ]);
             $this->audit->log('proposal.conflicted', $proposal, context: ['message' => $e->getMessage()]);
+            $proposal->load('steps');
 
-            return $proposal->fresh('steps');
+            return $proposal;
         }
 
         $handler->apply($proposal);
@@ -300,8 +313,9 @@ class ProposalEngine
         ]);
 
         $this->audit->log('proposal.applied', $proposal);
+        $proposal->load('steps');
 
-        return $proposal->fresh('steps');
+        return $proposal;
     }
 
     private function resolvePolicy(string $subjectType): ?ReviewPolicy
@@ -311,16 +325,18 @@ class ProposalEngine
 
     private function createSteps(Proposal $proposal, ?ReviewPolicy $policy): void
     {
-        $stepConfigs = $policy?->steps ?? [];
+        if ($policy === null) {
+            return;
+        }
 
-        foreach ($stepConfigs as $index => $config) {
+        foreach ($policy->steps as $index => $config) {
             ReviewStep::create([
                 'proposal_id' => $proposal->id,
                 'sequence' => $index + 1,
                 'assignee_type' => AssigneeType::from($config['assignee_type']),
                 'assignee_id' => (int) $config['assignee_id'],
                 'status' => ReviewStepStatus::Pending,
-                'due_at' => $policy?->reminder_after_days
+                'due_at' => $policy->reminder_after_days
                     ? Carbon::now()->addDays($policy->reminder_after_days)
                     : null,
             ]);
