@@ -3,6 +3,12 @@
 .env
 .env.backup
 .env.production
+.env.dusk.local
+/.claude
+/database/dusk.sqlite
+/tests/Browser/screenshots
+/tests/Browser/console
+/tests/Browser/source
 .phpactor.json
 .phpunit.result.cache
 /phpstan.neon
