@@ -107,7 +107,7 @@ function makePerson(): Person
 
 function makeRoleWith(array $permissionKeys): Role
 {
-    $role = Role::create(['name' => 'Test-' . uniqid()]);
+    $role = Role::create(['name' => 'Test-'.uniqid()]);
     foreach ($permissionKeys as $key) {
         $permission = Permission::firstOrCreate(
             ['key' => $key],
@@ -115,6 +115,7 @@ function makeRoleWith(array $permissionKeys): Role
         );
         $role->permissions()->attach($permission->id);
     }
+
     return $role;
 }
 
