@@ -47,5 +47,14 @@ services:
     shm_size: 2gb
     profiles: ["dusk"]
 
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: rzvg-mailpit
+    ports:
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+
 volumes:
   db-data:
