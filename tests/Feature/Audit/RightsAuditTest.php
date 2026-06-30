@@ -7,6 +7,7 @@ use App\Models\PersonPermission;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 it('logs an audit entry when a role assignment is created', function () {
     $person = Person::create(['first_name' => 'Test', 'last_name' => 'Persoon']);
@@ -50,7 +51,7 @@ it('does not log when an unrelated field changes on a role assignment', function
         'assigned_at' => Carbon::now(),
     ]);
 
-    \Illuminate\Support\Facades\DB::table('audit_entries')->truncate();
+    DB::table('audit_entries')->truncate();
 
     $assignment->update(['ends_at' => Carbon::now()->addYear()]);
 

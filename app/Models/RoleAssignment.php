@@ -4,7 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $assigned_at
+ * @property Carbon|null $ends_at
+ * @property Carbon|null $deactivated_at
+ */
 class RoleAssignment extends Model
 {
     protected $fillable = [

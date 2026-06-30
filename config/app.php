@@ -94,7 +94,7 @@ return [
     | are secure. You should do this prior to deploying the application.
     |
     */
-    //TODO: vervangen door echte sleutel
+    // TODO: vervangen door echte sleutel
     'cipher' => 'AES-256-CBC',
 
     'key' => env('APP_KEY'),

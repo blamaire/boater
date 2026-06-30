@@ -1,0 +1,10 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/mrpunyapal/peststan/extension.neon
+
+parameters:
+    level: 5
+    paths:
+        - app
+        - database
+        - tests

@@ -7,9 +7,7 @@ use App\Services\Audit\AuditLogger;
 
 class RoleAssignmentObserver
 {
-    public function __construct(private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly AuditLogger $audit) {}
 
     public function created(RoleAssignment $assignment): void
     {
