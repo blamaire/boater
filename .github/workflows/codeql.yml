@@ -25,7 +25,7 @@ jobs:
         # uitbreidbaar door 'php' toe te voegen wanneer nodig.
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Initialiseer CodeQL
         uses: github/codeql-action/init@v4
