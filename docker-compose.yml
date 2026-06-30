@@ -41,5 +41,11 @@ services:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
+  selenium:
+    image: selenium/standalone-chromium:latest
+    container_name: rzvg-selenium
+    shm_size: 2gb
+    profiles: ["dusk"]
+
 volumes:
   db-data:
