@@ -30,7 +30,8 @@ De applicatie draait volledig via Docker — geen lokale PHP- of Composer-instal
    docker compose exec app php artisan migrate
    ```
 
-De applicatie is bereikbaar op http://localhost:8080.
+De applicatie is bereikbaar op http://localhost:8000.
+Uitgaande mail (registratie-verificatie, herinneringen, …) vangt **Mailpit** af op http://localhost:8025 — geen mails verlaten je machine tijdens dev.
 
 **Daarna:**
 
@@ -38,3 +39,5 @@ De applicatie is bereikbaar op http://localhost:8080.
 docker compose up -d
 docker compose down
 ```
+
+> **Upgrade je bestaande `.env`?** Wijzig `MAIL_MAILER=log` naar `MAIL_MAILER=smtp`, `MAIL_HOST=mailpit`, `MAIL_PORT=1025` zoals in `.env.example` staat.
