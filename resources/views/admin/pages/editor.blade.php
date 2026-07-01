@@ -18,5 +18,6 @@
         @endif
 
         <livewire:admin.page-editor :version-id="$version->id" />
+        <livewire:admin.media-library />
     </div>
 </x-app-layout>

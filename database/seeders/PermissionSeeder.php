@@ -49,6 +49,7 @@ class PermissionSeeder extends Seeder
             'communication_log' => ['view', 'create'],
             'audit_trail' => ['view'],
             'review_settings' => ['update'],
+            'media' => ['view', 'upload', 'delete'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -105,6 +106,7 @@ class PermissionSeeder extends Seeder
             'communication_log' => 'Communicatielogboek',
             'audit_trail' => 'Auditlogboek',
             'review_settings' => 'Reviewinstellingen',
+            'media' => 'Media',
             default => ucfirst($module),
         };
 
@@ -119,6 +121,7 @@ class PermissionSeeder extends Seeder
             'send' => "{$moduleLabel} versturen",
             'run' => "{$moduleLabel} uitvoeren",
             'sign_up' => "Inschrijven op {$moduleLabel}",
+            'upload' => "{$moduleLabel} uploaden",
             default => "{$action} op {$moduleLabel}",
         };
     }

@@ -60,6 +60,30 @@ return [
             'report' => false,
         ],
 
+        'media' => match (env('MEDIA_DISK', 'local')) {
+            's3' => [
+                'driver' => 's3',
+                'key' => env('MEDIA_S3_KEY') ?? env('AWS_ACCESS_KEY_ID'),
+                'secret' => env('MEDIA_S3_SECRET') ?? env('AWS_SECRET_ACCESS_KEY'),
+                'region' => env('MEDIA_S3_REGION') ?? env('AWS_DEFAULT_REGION'),
+                'bucket' => env('MEDIA_S3_BUCKET') ?? env('AWS_BUCKET'),
+                'url' => env('MEDIA_S3_URL') ?? env('AWS_URL'),
+                'endpoint' => env('MEDIA_S3_ENDPOINT') ?? env('AWS_ENDPOINT'),
+                'use_path_style_endpoint' => env('MEDIA_S3_USE_PATH_STYLE', false),
+                'visibility' => 'public',
+                'throw' => false,
+                'report' => false,
+            ],
+            default => [
+                'driver' => 'local',
+                'root' => storage_path('app/public/media'),
+                'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage/media',
+                'visibility' => 'public',
+                'throw' => false,
+                'report' => false,
+            ],
+        },
+
     ],
 
     /*

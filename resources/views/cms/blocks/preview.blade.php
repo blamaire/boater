@@ -9,15 +9,16 @@
         <{{ $tag }} class="font-display text-{{ ['1' => '2xl', '2' => 'xl', '3' => 'lg'][$tag[1]] ?? 'xl' }}">{{ $c['text'] ?? '' ?: '—' }}</{{ $tag }}>
         @break
     @case('afbeelding')
-        @if (! empty($c['url']))
+        @php($imageUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, $c['url'] ?? null))
+        @if ($imageUrl)
             <figure>
-                <img src="{{ $c['url'] }}" alt="{{ $c['alt'] ?? '' }}" class="max-w-full rounded">
+                <img src="{{ $imageUrl }}" alt="{{ $c['alt'] ?? '' }}" class="max-w-full rounded">
                 @if (! empty($c['caption']))
                     <figcaption class="text-xs text-gray-500 mt-1">{{ $c['caption'] }}</figcaption>
                 @endif
             </figure>
         @else
-            <span class="text-gray-400 italic">— geen URL —</span>
+            <span class="text-gray-400 italic">— geen afbeelding —</span>
         @endif
         @break
     @case('knop')
@@ -34,9 +35,10 @@
         @endif
         @break
     @case('kaart')
+        @php($cardImageUrl = \App\Models\MediaAsset::resolveUrl($c['image_media_asset_id'] ?? null, $c['image_url'] ?? null))
         <div class="border border-gray-200 rounded p-3 space-y-2">
-            @if (! empty($c['image_url']))
-                <img src="{{ $c['image_url'] }}" alt="" class="w-full rounded">
+            @if ($cardImageUrl)
+                <img src="{{ $cardImageUrl }}" alt="" class="w-full rounded">
             @endif
             <h3 class="font-display text-lg">{{ $c['title'] ?? '' ?: '—' }}</h3>
             <p class="text-sm text-gray-600">{{ $c['body'] ?? '' }}</p>
@@ -93,16 +95,17 @@
         @endif
         @break
     @case('bestand')
-        @if (! empty($c['url']))
-            <a href="{{ $c['url'] }}" class="inline-flex items-center gap-2 text-rzvg-600 hover:text-rzvg-800">
+        @php($fileUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, $c['url'] ?? null))
+        @if ($fileUrl)
+            <a href="{{ $fileUrl }}" class="inline-flex items-center gap-2 text-rzvg-600 hover:text-rzvg-800">
                 <span>📄</span>
-                <span>{{ $c['label'] ?: $c['url'] }}</span>
+                <span>{{ $c['label'] ?: $fileUrl }}</span>
                 @if (! empty($c['size']))
                     <span class="text-xs text-gray-500">({{ $c['size'] }})</span>
                 @endif
             </a>
         @else
-            <span class="text-gray-400 italic">— geen bestand-URL —</span>
+            <span class="text-gray-400 italic">— geen bestand —</span>
         @endif
         @break
     @case('scheiding')
