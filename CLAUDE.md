@@ -33,6 +33,7 @@ Alles via `docker compose exec app …`:
 | Eén testbestand | `vendor/bin/pest tests/Feature/Proposals/ProposalEngineTest.php` |
 | Eén test op naam | `vendor/bin/pest --filter="approves stap voor stap"` |
 | Migrate (lokaal MySQL) | `php artisan migrate` |
+| Een user tot Beheerder maken (alle permissies) | `php artisan rzvg:make-admin <email>` — vereist bestaande user; maakt zo nodig een Person aan en koppelt de rol `Beheerder`. |
 
 Tests draaien op een **in-memory SQLite** (`phpunit.xml`), dus PHPStan en Pest werken zonder dat de MySQL-container draait — alleen migraties tegen echte data hebben `db` nodig.
 
