@@ -10,35 +10,12 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $lid = Role::updateOrCreate(
-            ['name' => 'Lid'],
-            [
-                'description' => 'Standaardrol voor actieve leden',
-                'is_system' => true,
-            ],
-        );
-
-        $lidPermissions = Permission::query()
-            ->whereIn('key', [
-                'persons.search',
-                'activities.view',
-                'reservations.view',
-                'reservations.create',
-                'reservations.update',
-                'reservations.delete',
-                'damage_reports.view',
-                'damage_reports.create',
-                'damage_reports.update',
-                'documents.view',
-                'volunteer_tasks.view',
-                'volunteer_tasks.sign_up',
-            ])
-            ->pluck('id');
-
-        $lid->permissions()->sync($lidPermissions);
-
+        // De rol "Lid" hoort in Fase 2 (Lidmaatschap), per lidmaatschapstype. Zie §6-7.
+        Role::query()->where('name', 'Lid')->delete();
         Role::query()->where('name', 'Administrator')->delete();
 
+        // "Beheerder" is de enige systeem-rol: naam, description en permissie-set
+        // zijn vast, zodat er altijd een technische beheerdersrol bestaat.
         $beheerder = Role::updateOrCreate(
             ['name' => 'Beheerder'],
             [
