@@ -9,7 +9,9 @@ RUN install-php-extensions \
     intl \
     pcntl \
     opcache \
-    zip
+    zip \
+    gd \
+    exif
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 

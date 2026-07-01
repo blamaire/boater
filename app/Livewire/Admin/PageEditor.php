@@ -10,6 +10,7 @@ use App\Models\PageVersion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class PageEditor extends Component
@@ -214,6 +215,32 @@ class PageEditor extends Component
             })
             ->values()
             ->all();
+    }
+
+    #[On('media-selected')]
+    public function handleMediaSelected(string $contextId, int $assetId, string $url, ?string $thumbnailUrl = null, ?string $alt = null, ?string $originalName = null): void
+    {
+        if ($this->editingBlockId === null) {
+            return;
+        }
+
+        match ($contextId) {
+            'image' => $this->editingContent = array_merge($this->editingContent, [
+                'url' => $url,
+                'media_asset_id' => $assetId,
+                'alt' => $this->editingContent['alt'] ?? $alt ?? '',
+            ]),
+            'card-image' => $this->editingContent = array_merge($this->editingContent, [
+                'image_url' => $url,
+                'image_media_asset_id' => $assetId,
+            ]),
+            'file' => $this->editingContent = array_merge($this->editingContent, [
+                'url' => $url,
+                'media_asset_id' => $assetId,
+                'label' => $this->editingContent['label'] ?? $originalName ?? '',
+            ]),
+            default => null,
+        };
     }
 
     public function moveBlock(int $blockId, string $direction): void

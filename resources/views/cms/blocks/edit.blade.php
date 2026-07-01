@@ -22,9 +22,15 @@
         @break
 
     @case('afbeelding')
-        <div>
-            <x-input-label for="block-url" value="Afbeeldings-URL" />
-            <x-text-input id="block-url" wire:model="editingContent.url" type="url" class="block mt-1 w-full" />
+        <div class="space-y-1">
+            <x-input-label value="Afbeelding" />
+            <div class="flex items-center gap-2">
+                <x-text-input wire:model="editingContent.url" type="url" placeholder="URL of kies uit bibliotheek" class="block w-full" />
+                <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'image' })" class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 whitespace-nowrap">Uit bibliotheek</button>
+            </div>
+            @if (! empty($editingContent['media_asset_id']))
+                <p class="text-xs text-gray-500">Gekozen uit bibliotheek (asset #{{ $editingContent['media_asset_id'] }})</p>
+            @endif
         </div>
         <div>
             <x-input-label for="block-alt" value="Alt-tekst (toegankelijkheid)" />
@@ -63,9 +69,12 @@
             <x-input-label for="block-body" value="Tekst" />
             <textarea id="block-body" wire:model="editingContent.body" rows="3" class="block mt-1 w-full border-gray-300 rounded-md"></textarea>
         </div>
-        <div>
-            <x-input-label for="block-image" value="Afbeeldings-URL (optioneel)" />
-            <x-text-input id="block-image" wire:model="editingContent.image_url" type="url" class="block mt-1 w-full" />
+        <div class="space-y-1">
+            <x-input-label value="Afbeelding (optioneel)" />
+            <div class="flex items-center gap-2">
+                <x-text-input wire:model="editingContent.image_url" type="url" placeholder="URL of kies uit bibliotheek" class="block w-full" />
+                <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'card-image' })" class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 whitespace-nowrap">Uit bibliotheek</button>
+            </div>
         </div>
         <div>
             <x-input-label for="block-href" value="Link-URL (optioneel)" />
@@ -133,9 +142,12 @@
         @break
 
     @case('bestand')
-        <div>
-            <x-input-label for="block-url" value="Bestand-URL" />
-            <x-text-input id="block-url" wire:model="editingContent.url" type="url" class="block mt-1 w-full" />
+        <div class="space-y-1">
+            <x-input-label value="Bestand" />
+            <div class="flex items-center gap-2">
+                <x-text-input wire:model="editingContent.url" type="url" placeholder="URL of kies uit bibliotheek" class="block w-full" />
+                <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'file' })" class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 whitespace-nowrap">Uit bibliotheek</button>
+            </div>
         </div>
         <div>
             <x-input-label for="block-label" value="Label" />
