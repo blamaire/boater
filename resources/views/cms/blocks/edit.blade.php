@@ -1,8 +1,20 @@
 @switch($type->value)
     @case('tekst')
-        <div>
-            <x-input-label for="block-html" value="Tekst (HTML toegestaan)" />
-            <textarea id="block-html" wire:model="editingContent.html" rows="6" class="block mt-1 w-full border-gray-300 rounded-md font-mono text-sm focus:border-rzvg-500 focus:ring-rzvg-500"></textarea>
+        <div
+            wire:ignore
+            x-data="{
+                value: @entangle('editingContent.html'),
+                init() {
+                    this.$refs.trixInput.value = this.value ?? '';
+                    this.$refs.editor.addEventListener('trix-change', () => {
+                        this.value = this.$refs.trixInput.value;
+                    });
+                }
+            }"
+        >
+            <x-input-label value="Tekst" />
+            <input type="hidden" x-ref="trixInput" id="trix-input-tekstblok">
+            <trix-editor x-ref="editor" input="trix-input-tekstblok" class="mt-1 border border-gray-300 rounded-md min-h-[10rem] bg-white"></trix-editor>
         </div>
         @break
 

@@ -53,6 +53,27 @@ it('inserts a new band at the requested position and shifts the rest', function 
         ->and($bands[1]->layout)->toBe(BandLayout::ThreeColumns);
 });
 
+it('stores a text block with rich html content (Trix-produced)', function () {
+    $band = Band::create([
+        'page_version_id' => $this->version->id,
+        'zone' => 'hoofd',
+        'layout' => BandLayout::OneColumn,
+        'sort_order' => 0,
+    ]);
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('addBlock', $band->id, 0, BlockType::Text->value);
+    $block = Block::where('band_id', $band->id)->firstOrFail();
+
+    $trixHtml = '<div><strong>Vet</strong> en <em>schuin</em>.</div><ul><li>Punt</li></ul>';
+
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('startEditBlock', $block->id)
+        ->set('editingContent.html', $trixHtml)
+        ->call('saveBlock');
+
+    expect($block->fresh()->content['html'])->toBe($trixHtml);
+});
+
 it('adds a block to a band via addBlock', function () {
     $band = Band::create([
         'page_version_id' => $this->version->id,
