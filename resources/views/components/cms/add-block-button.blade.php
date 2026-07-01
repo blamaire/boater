@@ -6,7 +6,7 @@
     </button>
     <div x-show="open" @click.outside="open = false" x-transition class="absolute z-20 mt-1 right-0 bg-white border border-gray-200 rounded-md shadow-lg p-1 grid grid-cols-2 gap-1 w-64 max-h-72 overflow-y-auto">
         @foreach ($blockTypes as $type)
-            <button type="button" wire:click="addBlock({{ $bandId }}, {{ $column }}, '{{ $type->value }}')" @click="open = false" class="text-left text-xs px-2 py-1.5 hover:bg-gray-50 rounded">
+            <button type="button" @click="$wire.addBlock({{ $bandId }}, {{ $column }}, '{{ $type->value }}'); open = false" class="text-left text-xs px-2 py-1.5 hover:bg-gray-50 rounded">
                 {{ $type->label() }}
             </button>
         @endforeach
