@@ -23,11 +23,11 @@
         @break
     @case('knop')
         @if (! empty($c['label']))
-            <a href="{{ $c['href'] ?: '#' }}" class="inline-flex items-center px-4 py-2 rounded-md
-                @class([
-                    'bg-rzvg-500 text-white hover:bg-rzvg-600' => ($c['style'] ?? 'primary') === 'primary',
-                    'bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50' => ($c['style'] ?? 'primary') === 'secondary',
-                ])">
+            <a href="{{ $c['href'] ?: '#' }}" @class([
+                'inline-flex items-center px-4 py-2 rounded-md',
+                'bg-rzvg-500 text-white hover:bg-rzvg-600' => ($c['style'] ?? 'primary') === 'primary',
+                'bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50' => ($c['style'] ?? 'primary') === 'secondary',
+            ])>
                 {{ $c['label'] }}
             </a>
         @else

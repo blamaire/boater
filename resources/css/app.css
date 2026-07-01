@@ -6,6 +6,10 @@
 @source '../../app/View/Components';
 @source '../../app/Http/Controllers';
 
+/* Responsive kolomklassen worden binnen @class([...])-blade-syntax gebruikt;
+   Tailwind's auto-detectie mist ze door de colon in de string-key. */
+@source inline("md:grid-cols-2 md:grid-cols-3");
+
 @theme {
     --color-rzvg-50: #fdecec;
     --color-rzvg-100: #fbd0d1;

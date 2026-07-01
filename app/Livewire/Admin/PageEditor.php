@@ -163,13 +163,13 @@ class PageEditor extends Component
 
         if ($block->type === BlockType::Gallery) {
             $content['images_raw'] = collect($content['images'] ?? [])
-                ->map(fn ($img) => trim(($img['url'] ?? '').' ‖ '.($img['alt'] ?? ''), ' ‖'))
+                ->map(fn ($img) => trim(($img['url'] ?? '').' || '.($img['alt'] ?? ''), ' |'))
                 ->implode("\n");
         }
 
         if ($block->type === BlockType::Accordion) {
             $content['items_raw'] = collect($content['items'] ?? [])
-                ->map(fn ($item) => trim(($item['question'] ?? '').' ‖ '.($item['answer'] ?? ''), ' ‖'))
+                ->map(fn ($item) => trim(($item['question'] ?? '').' || '.($item['answer'] ?? ''), ' |'))
                 ->implode("\n");
         }
 
@@ -205,7 +205,7 @@ class PageEditor extends Component
             ->map(fn ($line) => trim($line))
             ->filter()
             ->map(function ($line) use ($keys) {
-                $parts = array_map('trim', explode('‖', $line));
+                $parts = array_map('trim', preg_split('/\s*(?:\|\||‖)\s*/', $line) ?: [$line]);
                 $out = [];
                 foreach ($keys as $i => $key) {
                     $out[$key] = $parts[$i] ?? '';

@@ -1,13 +1,13 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
         <div class="flex items-center gap-3">
-            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
-                @class([
-                    'bg-yellow-50 text-yellow-700 border border-yellow-200' => $version->status->value === 'concept',
-                    'bg-blue-50 text-blue-700 border border-blue-200' => $version->status->value === 'in_review',
-                    'bg-green-50 text-green-700 border border-green-200' => $version->status->value === 'gepubliceerd',
-                    'bg-gray-100 text-gray-600' => $version->status->value === 'gearchiveerd',
-                ])">
+            <span @class([
+                'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                'bg-yellow-50 text-yellow-700 border border-yellow-200' => $version->status->value === 'concept',
+                'bg-blue-50 text-blue-700 border border-blue-200' => $version->status->value === 'in_review',
+                'bg-green-50 text-green-700 border border-green-200' => $version->status->value === 'gepubliceerd',
+                'bg-gray-100 text-gray-600' => $version->status->value === 'gearchiveerd',
+            ])>
                 {{ ucfirst(str_replace('_', ' ', $version->status->value)) }} · v{{ $version->version_no }}
             </span>
         </div>
@@ -52,11 +52,12 @@
                 </div>
             @endif
 
-            <div class="grid gap-3 @class([
+            <div @class([
+                'grid gap-3',
                 'grid-cols-1' => $band->layout->value === 1,
                 'md:grid-cols-2' => $band->layout->value === 2,
                 'md:grid-cols-3' => $band->layout->value === 3,
-            ])">
+            ])>
                 @for ($col = 0; $col < $band->layout->columnCount(); $col++)
                     <div class="space-y-2 min-h-[80px] border border-dashed border-gray-200 rounded p-2" wire:key="band-{{ $band->id }}-col-{{ $col }}">
                         @foreach ($band->blocks->where('column_index', $col)->sortBy('sort_order') as $block)
