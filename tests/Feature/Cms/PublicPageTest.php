@@ -107,3 +107,28 @@ it('lists public root pages in the menu via the view composer', function () {
         ->assertOk()
         ->assertSeeText('Over ons');
 });
+
+it('renders responsive grid classes for a multi-column band', function () {
+    $page = Page::create([
+        'slug' => 'kolommen',
+        'title' => 'Kolommen',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Published,
+    ]);
+    Band::create([
+        'page_version_id' => $version->id,
+        'zone' => 'hoofd',
+        'layout' => BandLayout::TwoColumns,
+        'sort_order' => 0,
+    ]);
+    $page->update(['published_version_id' => $version->id]);
+
+    $response = $this->get('/kolommen')->assertOk();
+
+    $response->assertSee('md:grid-cols-2', false);
+    $response->assertDontSee('@class(', false);
+});
