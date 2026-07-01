@@ -1,0 +1,22 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex items-baseline justify-between">
+            <div>
+                <h1 class="font-display text-2xl text-gray-900">{{ $page->title }}</h1>
+                <p class="text-sm text-gray-500">Concept · v{{ $version->version_no }}</p>
+            </div>
+            <a href="{{ route('admin.pages.edit', $page) }}" class="text-sm text-gray-600 hover:text-gray-800">Instellingen</a>
+        </div>
+    </x-slot>
+
+    <div class="py-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        @if (session('status'))
+            <div class="mb-4 rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">{{ session('status') }}</div>
+        @endif
+        @if (session('error'))
+            <div class="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">{{ session('error') }}</div>
+        @endif
+
+        <livewire:admin.page-editor :version-id="$version->id" />
+    </div>
+</x-app-layout>

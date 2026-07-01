@@ -16,7 +16,11 @@
                     <x-nav-section soon>Voorstellen</x-nav-section>
                     <x-nav-section soon>Lidmaatschap</x-nav-section>
                     <x-nav-section soon>Activiteiten &amp; Reserveren</x-nav-section>
-                    <x-nav-section soon>Content</x-nav-section>
+                    @can('pages.view')
+                        <x-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-nav-section>
+                    @else
+                        <x-nav-section soon>Content</x-nav-section>
+                    @endcan
                     <x-nav-section soon>Beheer</x-nav-section>
                 </div>
             </div>
@@ -67,7 +71,11 @@
             <x-responsive-nav-section soon>Voorstellen</x-responsive-nav-section>
             <x-responsive-nav-section soon>Lidmaatschap</x-responsive-nav-section>
             <x-responsive-nav-section soon>Activiteiten &amp; Reserveren</x-responsive-nav-section>
-            <x-responsive-nav-section soon>Content</x-responsive-nav-section>
+            @can('pages.view')
+                <x-responsive-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-responsive-nav-section>
+            @else
+                <x-responsive-nav-section soon>Content</x-responsive-nav-section>
+            @endcan
             <x-responsive-nav-section soon>Beheer</x-responsive-nav-section>
         </div>
 
