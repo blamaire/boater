@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
+use App\Http\Controllers\Admin\PageHistoryController;
 use App\Http\Controllers\Admin\PersonRoleController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
@@ -33,6 +35,14 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.update')->name('editor');
         Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.update')->name('versions.store');
         Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.update')->name('versions.submit');
+
+        Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
+            ->middleware('can:pages.update')
+            ->name('conflict.show');
+
+        Route::get('/{page}/historie', [PageHistoryController::class, 'index'])->middleware('can:pages.view')->name('history');
+        Route::get('/{page}/historie/{version}/diff/{other}', [PageHistoryController::class, 'diff'])->middleware('can:pages.view')->name('history.diff');
+        Route::post('/{page}/historie/{version}/herstellen', [PageHistoryController::class, 'restore'])->middleware('can:pages.update')->name('history.restore');
     });
 
 Route::middleware(['auth', 'verified'])

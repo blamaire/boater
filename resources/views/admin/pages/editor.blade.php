@@ -5,7 +5,10 @@
                 <h1 class="font-display text-2xl text-gray-900">{{ $page->title }}</h1>
                 <p class="text-sm text-gray-500">Concept · v{{ $version->version_no }}</p>
             </div>
-            <a href="{{ route('admin.pages.edit', $page) }}" class="text-sm text-gray-600 hover:text-gray-800">Instellingen</a>
+            <div class="flex items-center gap-3 text-sm">
+                <a href="{{ route('admin.pages.history', $page) }}" class="text-gray-600 hover:text-gray-800">Historie</a>
+                <a href="{{ route('admin.pages.edit', $page) }}" class="text-gray-600 hover:text-gray-800">Instellingen</a>
+            </div>
         </div>
     </x-slot>
 
