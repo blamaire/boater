@@ -38,7 +38,7 @@
                                     <span class="ms-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">systeem</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-2 text-sm text-gray-500">/{{ $page->path() }}</td>
+                            <td class="px-4 py-2 text-sm text-gray-500 font-mono">{{ $page->publicUrl() }}</td>
                             <td class="px-4 py-2 text-sm">
                                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
                                     {{ $page->visibility->value }}
