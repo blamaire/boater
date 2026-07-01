@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
 
 @source '../views';
 @source '../../app/View/Components';

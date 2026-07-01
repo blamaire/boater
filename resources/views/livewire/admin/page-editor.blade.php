@@ -100,7 +100,11 @@
 
     @if ($editingBlock !== null)
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" wire:click.self="cancelEditBlock">
-            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div @class([
+                'bg-white rounded-lg shadow-xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto',
+                'max-w-4xl' => $editingBlock->type->value === 'tekst',
+                'max-w-2xl' => $editingBlock->type->value !== 'tekst',
+            ])>
                 <div class="flex items-baseline justify-between">
                     <h2 class="font-display text-xl">{{ $editingBlock->type->label() }} bewerken</h2>
                     <button wire:click="cancelEditBlock" class="text-gray-400 hover:text-gray-700">✕</button>

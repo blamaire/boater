@@ -14,7 +14,7 @@
         >
             <x-input-label value="Tekst" />
             <input type="hidden" x-ref="trixInput" id="trix-input-tekstblok">
-            <trix-editor x-ref="editor" input="trix-input-tekstblok" class="mt-1 border border-gray-300 rounded-md min-h-[10rem] bg-white"></trix-editor>
+            <trix-editor x-ref="editor" input="trix-input-tekstblok" class="prose max-w-none mt-1 border border-gray-300 rounded-md min-h-[50rem] bg-white p-3"></trix-editor>
         </div>
         @break
 
