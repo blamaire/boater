@@ -8,8 +8,11 @@ use App\Models\User;
 use App\Observers\PersonPermissionObserver;
 use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
+use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
+use App\View\Composers\PublicNavComposer;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -33,5 +36,12 @@ class AppServiceProvider extends ServiceProvider
 
         RoleAssignment::observe(RoleAssignmentObserver::class);
         PersonPermission::observe(PersonPermissionObserver::class);
+
+        app(ProposalHandlerRegistry::class)->register(
+            PageVersionProposalHandler::SUBJECT_TYPE,
+            app(PageVersionProposalHandler::class),
+        );
+
+        View::composer('public._nav', PublicNavComposer::class);
     }
 }

@@ -1,12 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\PageController as AdminPageController;
+use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PublicPageController;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
@@ -18,4 +17,23 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::middleware(['auth', 'verified'])
+    ->prefix('beheer/paginas')
+    ->name('admin.pages.')
+    ->group(function () {
+        Route::get('/', [AdminPageController::class, 'index'])->middleware('can:pages.view')->name('index');
+        Route::get('/nieuw', [AdminPageController::class, 'create'])->middleware('can:pages.create')->name('create');
+        Route::post('/', [AdminPageController::class, 'store'])->middleware('can:pages.create')->name('store');
+        Route::get('/{page}/instellingen', [AdminPageController::class, 'edit'])->middleware('can:pages.update')->name('edit');
+        Route::patch('/{page}/instellingen', [AdminPageController::class, 'update'])->middleware('can:pages.update')->name('update');
+        Route::delete('/{page}', [AdminPageController::class, 'destroy'])->middleware('can:pages.delete')->name('destroy');
+        Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.update')->name('editor');
+        Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.update')->name('versions.store');
+        Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.update')->name('versions.submit');
+    });
+
 require __DIR__.'/auth.php';
+
+Route::get('/{path?}', PublicPageController::class)
+    ->where('path', '.*')
+    ->name('public.page');
