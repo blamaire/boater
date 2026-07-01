@@ -9,20 +9,34 @@ use Illuminate\Http\Request;
 
 class PublicPageController extends Controller
 {
-    public function __invoke(Request $request, ?string $path = null): View
+    public function __invoke(Request $request, string $path): View
     {
-        $segments = collect(explode('/', trim($path ?? '', '/')))
+        $segments = collect(explode('/', trim($path, '/')))
             ->filter(fn ($s) => $s !== '')
             ->values();
 
         $page = $this->resolvePage($segments->all());
+        abort_unless($page !== null, 404);
 
-        if ($page === null && $segments->isEmpty()) {
+        return $this->renderPage($page, $request);
+    }
+
+    public function home(Request $request): View
+    {
+        $home = Page::query()
+            ->whereNull('parent_id')
+            ->where('slug', 'home')
+            ->first();
+
+        if ($home === null || $home->published_version_id === null) {
             return view('welcome');
         }
 
-        abort_unless($page !== null, 404);
+        return $this->renderPage($home, $request);
+    }
 
+    private function renderPage(Page $page, Request $request): View
+    {
         $this->guardVisibility($page, $request);
 
         $version = $page->publishedVersion;
@@ -42,10 +56,7 @@ class PublicPageController extends Controller
     private function resolvePage(array $segments): ?Page
     {
         if ($segments === []) {
-            return Page::query()
-                ->whereNull('parent_id')
-                ->where('slug', 'home')
-                ->first();
+            return null;
         }
 
         $parentId = null;

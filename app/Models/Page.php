@@ -88,4 +88,17 @@ class Page extends Model
 
         return $segments->implode('/');
     }
+
+    /**
+     * Publieke URL waaronder deze pagina bereikbaar is. De root-level pagina met
+     * slug 'home' is bereikbaar op '/', alle andere pagina's op '/pagina/<path>'.
+     */
+    public function publicUrl(): string
+    {
+        if ($this->parent_id === null && $this->slug === 'home') {
+            return '/';
+        }
+
+        return '/pagina/'.$this->path();
+    }
 }

@@ -39,6 +39,7 @@ Route::get('/media/{asset}/download', MediaDownloadController::class)
 
 require __DIR__.'/auth.php';
 
-Route::get('/{path?}', PublicPageController::class)
+Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
+Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')
     ->name('public.page');
