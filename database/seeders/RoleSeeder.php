@@ -37,14 +37,16 @@ class RoleSeeder extends Seeder
 
         $lid->permissions()->sync($lidPermissions);
 
-        $administrator = Role::updateOrCreate(
-            ['name' => 'Administrator'],
+        Role::query()->where('name', 'Administrator')->delete();
+
+        $beheerder = Role::updateOrCreate(
+            ['name' => 'Beheerder'],
             [
                 'description' => 'Alle permissies (technische beheerder)',
                 'is_system' => true,
             ],
         );
 
-        $administrator->permissions()->sync(Permission::query()->pluck('id'));
+        $beheerder->permissions()->sync(Permission::query()->pluck('id'));
     }
 }

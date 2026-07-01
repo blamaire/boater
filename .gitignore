@@ -1,9 +1,7 @@
 *.log
 .DS_Store
-.env
-.env.backup
-.env.production
-.env.dusk.local
+.env*
+!.env*.example
 /.claude
 /database/dusk.sqlite
 /tests/Browser/screenshots
