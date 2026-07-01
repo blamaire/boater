@@ -11,16 +11,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property int $page_version_id
+ * @property int|null $origin_band_id
  * @property string $zone
  * @property BandLayout $layout
  * @property int $sort_order
  * @property-read PageVersion $pageVersion
+ * @property-read Band|null $originBand
  * @property-read Collection<int, Block> $blocks
  */
 class Band extends Model
 {
     protected $fillable = [
         'page_version_id',
+        'origin_band_id',
         'zone',
         'layout',
         'sort_order',
@@ -38,6 +41,12 @@ class Band extends Model
     public function pageVersion(): BelongsTo
     {
         return $this->belongsTo(PageVersion::class);
+    }
+
+    /** @return BelongsTo<Band, $this> */
+    public function originBand(): BelongsTo
+    {
+        return $this->belongsTo(Band::class, 'origin_band_id');
     }
 
     /** @return HasMany<Block, $this> */
