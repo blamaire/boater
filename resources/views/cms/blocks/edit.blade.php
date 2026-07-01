@@ -99,18 +99,19 @@
 
     @case('gallerij')
         <div>
-            <x-input-label value="Afbeeldingen (één URL per regel, optioneel ‖ alt)" />
-            <textarea wire:model="editingContent.images_raw" rows="5" placeholder="https://… ‖ Alt-tekst&#10;https://…"
+            <x-input-label value="Afbeeldingen (één URL per regel, optioneel || alt)" />
+            <textarea wire:model="editingContent.images_raw" rows="5" placeholder="https://… || Alt-tekst&#10;https://…"
                 class="block mt-1 w-full border-gray-300 rounded-md font-mono text-sm"></textarea>
-            <p class="text-xs text-gray-500 mt-1">Voor v1: één URL per regel. Volledige mediabibliotheek volgt in PR 2.</p>
+            <p class="text-xs text-gray-500 mt-1">Eén URL per regel. Volledige mediabibliotheek-integratie voor gallerij volgt later.</p>
         </div>
         @break
 
     @case('accordeon')
         <div>
-            <x-input-label value="Items (Vraag ‖ Antwoord per regel)" />
-            <textarea wire:model="editingContent.items_raw" rows="6" placeholder="Wat is X? ‖ Het antwoord op X.&#10;Hoe doe ik Y? ‖ Zo doe je Y."
+            <x-input-label value="Items (Vraag || Antwoord per regel)" />
+            <textarea wire:model="editingContent.items_raw" rows="6" placeholder="Wat is X? || Het antwoord op X.&#10;Hoe doe ik Y? || Zo doe je Y."
                 class="block mt-1 w-full border-gray-300 rounded-md font-mono text-sm"></textarea>
+            <p class="text-xs text-gray-500 mt-1">Vraag en antwoord scheiden met <code>||</code>. Op de pagina wordt dit een uitklapbare FAQ-lijst.</p>
         </div>
         @break
 

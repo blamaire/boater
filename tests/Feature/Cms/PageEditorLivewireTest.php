@@ -75,3 +75,39 @@ it('refuses to mutate a version that is not in draft status', function () {
         ->call('addBand', 0, 1)
         ->assertStatus(403);
 });
+
+it('parses accordion items separated by || (double pipe) and ‖ (unicode)', function () {
+    $band = Band::create([
+        'page_version_id' => $this->version->id,
+        'zone' => 'hoofd',
+        'layout' => BandLayout::OneColumn,
+        'sort_order' => 0,
+    ]);
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('addBlock', $band->id, 0, BlockType::Accordion->value);
+    $block = Block::where('band_id', $band->id)->firstOrFail();
+
+    $rawWithDoublePipe = "Vraag 1 || Antwoord 1\nVraag 2 || Antwoord 2";
+
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('startEditBlock', $block->id)
+        ->set('editingContent.items_raw', $rawWithDoublePipe)
+        ->call('saveBlock');
+
+    $fresh = $block->fresh();
+    expect($fresh->content['items'])->toBe([
+        ['question' => 'Vraag 1', 'answer' => 'Antwoord 1'],
+        ['question' => 'Vraag 2', 'answer' => 'Antwoord 2'],
+    ]);
+
+    $rawWithUnicode = "V1 ‖ A1\nV2 ‖ A2";
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('startEditBlock', $block->id)
+        ->set('editingContent.items_raw', $rawWithUnicode)
+        ->call('saveBlock');
+
+    expect($block->fresh()->content['items'])->toBe([
+        ['question' => 'V1', 'answer' => 'A1'],
+        ['question' => 'V2', 'answer' => 'A2'],
+    ]);
+});
