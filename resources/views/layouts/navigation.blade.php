@@ -21,7 +21,11 @@
                     @else
                         <x-nav-section soon>Content</x-nav-section>
                     @endcan
-                    <x-nav-section soon>Beheer</x-nav-section>
+                    @can('roles.view')
+                        <x-nav-section :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')">Beheer</x-nav-section>
+                    @else
+                        <x-nav-section soon>Beheer</x-nav-section>
+                    @endcan
                 </div>
             </div>
 
@@ -76,7 +80,11 @@
             @else
                 <x-responsive-nav-section soon>Content</x-responsive-nav-section>
             @endcan
-            <x-responsive-nav-section soon>Beheer</x-responsive-nav-section>
+            @can('roles.view')
+                <x-responsive-nav-section :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')">Beheer</x-responsive-nav-section>
+            @else
+                <x-responsive-nav-section soon>Beheer</x-responsive-nav-section>
+            @endcan
         </div>
 
         <div class="pt-4 pb-1 border-t border-gray-200">

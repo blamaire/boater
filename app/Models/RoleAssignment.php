@@ -15,6 +15,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $assigned_at
  * @property Carbon|null $ends_at
  * @property Carbon|null $deactivated_at
+ * @property string|null $reason
  * @property-read Person $person
  * @property-read Role|null $role
  * @property-read Person|null $assignedBy
@@ -29,6 +30,7 @@ class RoleAssignment extends Model
         'assigned_at',
         'ends_at',
         'deactivated_at',
+        'reason',
     ];
 
     protected function casts(): array

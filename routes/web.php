@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
+use App\Http\Controllers\Admin\PersonRoleController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
@@ -31,6 +33,27 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.update')->name('editor');
         Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.update')->name('versions.store');
         Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.update')->name('versions.submit');
+    });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('beheer/rollen')
+    ->name('admin.roles.')
+    ->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->middleware('can:roles.view')->name('index');
+        Route::get('/nieuw', [RoleController::class, 'create'])->middleware('can:roles.create')->name('create');
+        Route::post('/', [RoleController::class, 'store'])->middleware('can:roles.create')->name('store');
+        Route::get('/{role}/bewerken', [RoleController::class, 'edit'])->middleware('can:roles.update')->name('edit');
+        Route::patch('/{role}', [RoleController::class, 'update'])->middleware('can:roles.update')->name('update');
+        Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.delete')->name('destroy');
+    });
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('beheer/personen/{person}/rollen')
+    ->name('admin.person-roles.')
+    ->group(function () {
+        Route::get('/', [PersonRoleController::class, 'index'])->middleware('can:roles.update')->name('index');
+        Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
+        Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
     });
 
 Route::get('/media/{asset}/download', MediaDownloadController::class)
