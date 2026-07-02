@@ -143,38 +143,38 @@
                         @php
                             $isChosen = $membership_type_key === $e->type->key;
                         @endphp
-                        <label class="flex gap-3 items-start rounded p-3 cursor-pointer transition {{
-                            $e->available
-                                ? ($isChosen
-                                    ? 'border-2 border-rzvg-600 bg-rzvg-50 shadow-sm'
-                                    : 'border-2 border-rzvg-500 bg-white hover:bg-rzvg-50')
-                                : 'border border-dashed border-gray-300 bg-gray-50 text-gray-500'
-                        }}">
-                            <input type="radio" wire:model.live="membership_type_key" value="{{ $e->type->key }}" class="mt-1 accent-rzvg-600">
-                            <div>
-                                <div class="font-medium {{ $e->available ? 'text-gray-900' : 'text-gray-600' }}">
-                                    {{ $e->type->name }}
-                                    @if ($e->available)
-                                        <span class="ml-2 text-xs uppercase tracking-wide text-rzvg-600">van toepassing</span>
+                        <div>
+                            <label class="flex gap-3 items-start rounded border border-gray-200 p-3 cursor-pointer transition {{
+                                $e->available
+                                    ? ($isChosen ? 'bg-white shadow-sm' : 'bg-white hover:bg-gray-50')
+                                    : 'bg-gray-100 text-gray-500'
+                            }}">
+                                <input type="radio" wire:model.live="membership_type_key" value="{{ $e->type->key }}" class="mt-1 accent-rzvg-600">
+                                <div>
+                                    <div class="font-medium {{ $e->available ? 'text-gray-900' : 'text-gray-600' }}">
+                                        {{ $e->type->name }}
+                                        @if ($e->available)
+                                            <span class="ml-2 text-xs uppercase tracking-wide text-rzvg-600">van toepassing</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-sm {{ $e->available ? 'text-gray-700' : 'text-gray-500' }}">{{ $e->type->description }}</div>
+                                    @if (! $e->available)
+                                        <div class="text-sm text-gray-600 mt-1"><strong>Niet standaard van toepassing:</strong> {{ $e->reason }}</div>
                                     @endif
                                 </div>
-                                <div class="text-sm {{ $e->available ? 'text-gray-700' : 'text-gray-500' }}">{{ $e->type->description }}</div>
-                                @if (! $e->available)
-                                    <div class="text-sm text-gray-600 mt-1"><strong>Niet standaard van toepassing:</strong> {{ $e->reason }}</div>
-                                @endif
-                            </div>
-                        </label>
+                            </label>
+
+                            @if ($isChosen && ! $e->available)
+                                <label class="block mt-2 ml-8">
+                                    <span class="block text-sm font-medium text-gray-700">Uitleg — waarom is deze vorm volgens jou toch van toepassing?</span>
+                                    <textarea wire:model="override_reason" rows="3" class="mt-1 block w-full rounded border-gray-300"></textarea>
+                                    @error('override_reason') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                                </label>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
                 @error('membership_type_key') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-
-                @if ($this->chosenEligibility && ! $this->chosenEligibility->available)
-                    <label class="block mt-3">
-                        <span class="block text-sm font-medium text-gray-700">Uitleg — waarom is deze vorm volgens jou toch van toepassing?</span>
-                        <textarea wire:model="override_reason" rows="3" class="mt-1 block w-full rounded border-gray-300"></textarea>
-                        @error('override_reason') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                @endif
             </fieldset>
 
             <fieldset class="space-y-3 rounded-lg border border-gray-200 bg-white p-6">
