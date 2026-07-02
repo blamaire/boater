@@ -53,6 +53,7 @@ class PermissionSeeder extends Seeder
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
             'menu' => ['manage'],
+            'ice_contacts' => ['view'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -113,6 +114,7 @@ class PermissionSeeder extends Seeder
             'media' => 'Media',
             'queue' => 'Queue',
             'menu' => 'Publiek menu',
+            'ice_contacts' => 'ICE-contacten',
             default => ucfirst($module),
         };
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\MembershipStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -106,5 +107,33 @@ class Person extends Model
     public function asGuardianGuardianships(): HasMany
     {
         return $this->hasMany(Guardianship::class, 'guardian_person_id');
+    }
+
+    /** @return HasMany<PersonFieldVisibility, $this> */
+    public function fieldVisibilities(): HasMany
+    {
+        return $this->hasMany(PersonFieldVisibility::class);
+    }
+
+    /** @return HasMany<IceContact, $this> */
+    public function iceContacts(): HasMany
+    {
+        return $this->hasMany(IceContact::class);
+    }
+
+    /**
+     * Het huidige lopende lidmaatschap (actief, en einddatum leeg of in de
+     * toekomst). Wordt gebruikt door "Mijn lidmaatschap" (§19.1).
+     */
+    public function currentMembership(): ?Membership
+    {
+        return $this->memberships()
+            ->where('status', MembershipStatus::Active->value)
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->orderByDesc('start_date')
+            ->first();
     }
 }

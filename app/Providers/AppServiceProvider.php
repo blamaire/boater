@@ -10,6 +10,7 @@ use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
+use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
 use App\View\Composers\PublicNavComposer;
 use Illuminate\Support\Facades\Gate;
@@ -46,6 +47,11 @@ class AppServiceProvider extends ServiceProvider
         app(ProposalHandlerRegistry::class)->register(
             MembershipApplicationHandler::SUBJECT_TYPE,
             app(MembershipApplicationHandler::class),
+        );
+
+        app(ProposalHandlerRegistry::class)->register(
+            PersonFieldUpdateHandler::SUBJECT_TYPE,
+            app(PersonFieldUpdateHandler::class),
         );
 
         View::composer('public._nav', PublicNavComposer::class);

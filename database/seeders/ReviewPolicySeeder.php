@@ -8,6 +8,7 @@ use App\Models\ReviewPolicy;
 use App\Models\Role;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
+use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use Illuminate\Database\Seeder;
 
 class ReviewPolicySeeder extends Seeder
@@ -37,6 +38,20 @@ class ReviewPolicySeeder extends Seeder
                     ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
                 ],
                 'bypass_permission' => 'memberships.approve',
+                'resubmit_behavior' => ResubmitBehavior::Restart,
+                'reminder_after_days' => 7,
+            ],
+        );
+
+        ReviewPolicy::updateOrCreate(
+            ['subject_type' => PersonFieldUpdateHandler::SUBJECT_TYPE],
+            [
+                'name' => 'Wijziging van een gevoelig persoonsgegeven',
+                'auto_apply' => false,
+                'steps' => [
+                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
+                ],
+                'bypass_permission' => 'persons.update',
                 'resubmit_behavior' => ResubmitBehavior::Restart,
                 'reminder_after_days' => 7,
             ],

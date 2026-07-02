@@ -14,7 +14,7 @@
                         Dashboard
                     </x-nav-section>
                     <x-nav-section soon>Voorstellen</x-nav-section>
-                    <x-nav-section soon>Lidmaatschap</x-nav-section>
+                    <x-nav-section :href="route('portal.mijn-lidmaatschap')" :active="request()->routeIs('portal.mijn-lidmaatschap')">Mijn lidmaatschap</x-nav-section>
                     <x-nav-section soon>Activiteiten &amp; Reserveren</x-nav-section>
                     @can('pages.view')
                         <x-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-nav-section>
@@ -76,7 +76,7 @@
                 Dashboard
             </x-responsive-nav-section>
             <x-responsive-nav-section soon>Voorstellen</x-responsive-nav-section>
-            <x-responsive-nav-section soon>Lidmaatschap</x-responsive-nav-section>
+            <x-responsive-nav-section :href="route('portal.mijn-lidmaatschap')" :active="request()->routeIs('portal.mijn-lidmaatschap')">Mijn lidmaatschap</x-responsive-nav-section>
             <x-responsive-nav-section soon>Activiteiten &amp; Reserveren</x-responsive-nav-section>
             @can('pages.view')
                 <x-responsive-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-responsive-nav-section>
