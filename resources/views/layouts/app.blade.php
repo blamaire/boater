@@ -11,6 +11,7 @@
         <link href="https://fonts.bunny.net/css?family=alike:400|inter:400,500,600,700&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
     </head>
     <body class="font-sans antialiased text-gray-900 bg-gray-50">
         <div class="min-h-screen flex flex-col">
@@ -35,5 +36,6 @@
                 </div>
             </footer>
         </div>
+        @livewireScripts
     </body>
 </html>
