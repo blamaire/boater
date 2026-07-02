@@ -6,6 +6,7 @@ use App\Enums\AssigneeType;
 use App\Enums\ResubmitBehavior;
 use App\Models\ReviewPolicy;
 use App\Models\Role;
+use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use Illuminate\Database\Seeder;
 
@@ -26,6 +27,20 @@ class ReviewPolicySeeder extends Seeder
                 'reminder_after_days' => 7,
             ],
         );
+
+        ReviewPolicy::updateOrCreate(
+            ['subject_type' => MembershipApplicationHandler::SUBJECT_TYPE],
+            [
+                'name' => 'Aanvraag lidmaatschap',
+                'auto_apply' => false,
+                'steps' => [
+                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
+                ],
+                'bypass_permission' => 'memberships.approve',
+                'resubmit_behavior' => ResubmitBehavior::Restart,
+                'reminder_after_days' => 7,
+            ],
+        );
     }
 
     private function editorRoleId(): int
@@ -36,5 +51,10 @@ class ReviewPolicySeeder extends Seeder
         }
 
         return Role::create(['name' => 'Redacteur'])->id;
+    }
+
+    private function beheerderRoleId(): int
+    {
+        return (int) Role::query()->where('name', 'Beheerder')->value('id');
     }
 }

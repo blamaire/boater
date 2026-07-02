@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Observers\PersonPermissionObserver;
 use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
+use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
 use App\View\Composers\PublicNavComposer;
@@ -40,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
         app(ProposalHandlerRegistry::class)->register(
             PageVersionProposalHandler::SUBJECT_TYPE,
             app(PageVersionProposalHandler::class),
+        );
+
+        app(ProposalHandlerRegistry::class)->register(
+            MembershipApplicationHandler::SUBJECT_TYPE,
+            app(MembershipApplicationHandler::class),
         );
 
         View::composer('public._nav', PublicNavComposer::class);

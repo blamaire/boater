@@ -20,6 +20,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $account_id
  * @property string|null $ecaptain_id
  * @property string|null $status
+ * @property-read Household|null $household
+ * @property-read User|null $account
  */
 class Person extends Model
 {
@@ -45,11 +47,13 @@ class Person extends Model
         ];
     }
 
+    /** @return BelongsTo<Household, $this> */
     public function household(): BelongsTo
     {
         return $this->belongsTo(Household::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function account(): BelongsTo
     {
         return $this->belongsTo(User::class, 'account_id');
@@ -84,5 +88,23 @@ class Person extends Model
     {
         return $this->belongsToMany(ApproverGroup::class, 'group_members', 'person_id', 'group_id')
             ->withTimestamps();
+    }
+
+    /** @return HasMany<Membership, $this> */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    /** @return HasMany<Guardianship, $this> */
+    public function asMinorGuardianships(): HasMany
+    {
+        return $this->hasMany(Guardianship::class, 'minor_person_id');
+    }
+
+    /** @return HasMany<Guardianship, $this> */
+    public function asGuardianGuardianships(): HasMany
+    {
+        return $this->hasMany(Guardianship::class, 'guardian_person_id');
     }
 }
