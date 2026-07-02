@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+# Pre-commit hook: scan staged changes op secrets via Gitleaks (in Docker).
+#
+# Activeer eenmalig per clone:  git config core.hooksPath .githooks
+# Ontsnappingsluik (alleen indien noodzakelijk): SKIP_GITLEAKS=1 git commit ...
+
+if [ "${SKIP_GITLEAKS:-0}" = "1" ]; then
+    echo "pre-commit: SKIP_GITLEAKS=1 gezet — gitleaks-scan overgeslagen." >&2
+    exit 0
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "pre-commit: docker niet gevonden — kan geen gitleaks-scan draaien." >&2
+    echo "Installeer Docker Desktop of zet SKIP_GITLEAKS=1 voor deze commit." >&2
+    exit 1
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# MSYS_NO_PATHCONV voorkomt dat Git-Bash op Windows /repo naar C:\Program Files\Git\repo vertaalt.
+MSYS_NO_PATHCONV=1 docker run --rm \
+    -v "${REPO_ROOT}:/repo" \
+    -w /repo \
+    zricethezav/gitleaks:latest \
+    protect --staged --redact --no-banner
+
+status=$?
+
+if [ $status -ne 0 ]; then
+    echo "" >&2
+    echo "pre-commit: gitleaks heeft mogelijk secrets gevonden in je staged wijzigingen." >&2
+    echo "Verwijder de secret uit je diff (of zet 'm in .env) en probeer opnieuw." >&2
+    echo "Overslaan (uitsluitend na review): SKIP_GITLEAKS=1 git commit ..." >&2
+fi
+
+exit $status
