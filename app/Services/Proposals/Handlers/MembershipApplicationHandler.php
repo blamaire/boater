@@ -53,6 +53,16 @@ class MembershipApplicationHandler implements ProposalHandler
         if (is_int($guardianId) && Person::query()->whereKey($guardianId)->doesntExist()) {
             throw new ProposalConflictException('De gekoppelde ouder/verzorger bestaat niet meer.');
         }
+
+        $applicantEmail = $payload['person']['email'] ?? null;
+        if (is_string($applicantEmail) && Person::query()->where('email', $applicantEmail)->exists()) {
+            throw new ProposalConflictException('Er bestaat inmiddels al een persoon met dit e-mailadres.');
+        }
+
+        $guardianEmail = $payload['guardian']['email'] ?? null;
+        if (is_string($guardianEmail) && Person::query()->where('email', $guardianEmail)->exists()) {
+            throw new ProposalConflictException('Er bestaat inmiddels al een persoon met dit e-mailadres voor de ouder/verzorger.');
+        }
     }
 
     public function apply(Proposal $proposal): void
@@ -171,6 +181,17 @@ class MembershipApplicationHandler implements ProposalHandler
                 'password' => bcrypt(Str::random(48)),
             ]
         );
+
+        $conflict = Person::query()
+            ->where('account_id', $user->id)
+            ->where('id', '!=', $person->id)
+            ->exists();
+
+        if ($conflict) {
+            throw new ProposalConflictException(
+                "Het gebruikersaccount voor {$user->email} is al gekoppeld aan een ander lid; koppeling niet uitgevoerd."
+            );
+        }
 
         $person->update(['account_id' => $user->id]);
 

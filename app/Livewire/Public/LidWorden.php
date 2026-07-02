@@ -138,7 +138,7 @@ class LidWorden extends Component
             'first_name' => 'required|string|max:100',
             'last_name' => 'required|string|max:100',
             'date_of_birth' => 'required|date|before:today',
-            'email' => 'required|email|max:200',
+            'email' => 'required|email|max:200|unique:persons,email',
             'phone' => 'nullable|string|max:30',
             'postal_code' => 'required|string|max:10',
             'house_number' => 'required|string|max:10',
@@ -149,6 +149,7 @@ class LidWorden extends Component
             'agree_house_rules' => 'accepted',
             'agree_privacy' => 'accepted',
         ], [
+            'email.unique' => 'Dit e-mailadres is al bekend bij ons — heb je al een account?',
             'agree_statutes.accepted' => 'Je moet akkoord gaan met de statuten.',
             'agree_house_rules.accepted' => 'Je moet akkoord gaan met het huishoudelijk reglement.',
             'agree_privacy.accepted' => 'Je moet akkoord gaan met het privacybeleid.',
@@ -176,8 +177,10 @@ class LidWorden extends Component
                 $this->validate([
                     'guardian_first_name' => 'required|string|max:100',
                     'guardian_last_name' => 'required|string|max:100',
-                    'guardian_email' => 'required|email|max:200',
+                    'guardian_email' => 'required|email|max:200|unique:persons,email',
                     'guardian_phone' => 'nullable|string|max:30',
+                ], [
+                    'guardian_email.unique' => 'Dit e-mailadres is al bekend bij ons — log in als ouder/verzorger of gebruik een ander adres.',
                 ]);
                 $guardianPayload = [
                     'first_name' => $this->guardian_first_name,
