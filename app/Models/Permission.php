@@ -5,6 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
+/**
+ * @property int $id
+ * @property string $key
+ * @property string $module
+ * @property string $action
+ * @property string|null $description
+ * @property bool $is_sensitive
+ */
 class Permission extends Model
 {
     protected $fillable = [

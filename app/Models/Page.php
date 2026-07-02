@@ -90,12 +90,14 @@ class Page extends Model
     }
 
     /**
-     * Publieke URL waaronder deze pagina bereikbaar is. De root-level pagina met
-     * slug 'home' is bereikbaar op '/', alle andere pagina's op '/pagina/<path>'.
+     * Publieke URL waaronder deze pagina bereikbaar is. De systeem-home
+     * (type=system, slug=home, root-level) is bereikbaar op '/'; alle andere
+     * pagina's op '/pagina/<path>' — inclusief een eventuele content-pagina
+     * die ook 'home' heet.
      */
     public function publicUrl(): string
     {
-        if ($this->parent_id === null && $this->slug === 'home') {
+        if ($this->parent_id === null && $this->slug === 'home' && $this->type === PageType::System) {
             return '/';
         }
 
