@@ -2,6 +2,7 @@
 
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
+use App\Enums\PageType;
 use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Models\Band;
@@ -18,11 +19,12 @@ beforeEach(function () {
     ]);
 });
 
-function publishedPage(Template $template, string $slug, string $title, ?int $parentId = null, PageVisibility $visibility = PageVisibility::Public): Page
+function publishedPage(Template $template, string $slug, string $title, ?int $parentId = null, PageVisibility $visibility = PageVisibility::Public, PageType $type = PageType::Content): Page
 {
     $page = Page::create([
         'slug' => $slug,
         'title' => $title,
+        'type' => $type,
         'visibility' => $visibility,
         'parent_id' => $parentId,
         'template_id' => $template->id,
@@ -100,12 +102,29 @@ it('renders welcome fallback when no home page exists', function () {
     $this->get('/')->assertOk();
 });
 
-it('renders the home page on / when a page with slug "home" is published', function () {
-    publishedPage($this->template, 'home', 'Welkom bij RZVG');
+it('renders the system home page on / when a system page with slug "home" is published', function () {
+    publishedPage($this->template, 'home', 'Welkom bij RZVG', type: PageType::System);
 
     $this->get('/')
         ->assertOk()
         ->assertSee('Welkom bij RZVG');
+});
+
+it('does NOT render a content home on / even if such a page exists', function () {
+    // Alleen een systeempagina claimt /; een content-pagina met slug "home" is
+    // bereikbaar op /pagina/home, niet op /.
+    publishedPage($this->template, 'home', 'Content Home', type: PageType::Content);
+
+    $this->get('/')->assertOk()->assertDontSee('Content Home');
+    $this->get('/pagina/home')->assertOk()->assertSee('Content Home');
+});
+
+it('serves system and content pages with slug "home" side by side', function () {
+    publishedPage($this->template, 'home', 'Systeem Welkom', type: PageType::System);
+    publishedPage($this->template, 'home', 'Content Welkom', type: PageType::Content);
+
+    $this->get('/')->assertOk()->assertSee('Systeem Welkom')->assertDontSee('Content Welkom');
+    $this->get('/pagina/home')->assertOk()->assertSee('Content Welkom')->assertDontSee('Systeem Welkom');
 });
 
 it('serves system routes untouched even when a CMS-page with the same slug exists', function () {
@@ -118,13 +137,15 @@ it('serves system routes untouched even when a CMS-page with the same slug exist
     $this->get('/pagina/login')->assertOk()->assertSee('Verwarrende pagina');
 });
 
-it('exposes Page::publicUrl() with prefix, except for the home page', function () {
-    $home = publishedPage($this->template, 'home', 'Home');
+it('exposes Page::publicUrl() with prefix, except for the system home page', function () {
+    $systemHome = publishedPage($this->template, 'home', 'Home', type: PageType::System);
+    $contentHome = publishedPage($this->template, 'home', 'Content Home', type: PageType::Content);
     $overOns = publishedPage($this->template, 'over-ons', 'Over ons');
     $vereniging = publishedPage($this->template, 'vereniging', 'Vereniging');
     $historie = publishedPage($this->template, 'historie', 'Historie', parentId: $vereniging->id);
 
-    expect($home->publicUrl())->toBe('/')
+    expect($systemHome->publicUrl())->toBe('/')
+        ->and($contentHome->publicUrl())->toBe('/pagina/home')
         ->and($overOns->publicUrl())->toBe('/pagina/over-ons')
         ->and($historie->publicUrl())->toBe('/pagina/vereniging/historie');
 });

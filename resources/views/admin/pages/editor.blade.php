@@ -20,6 +20,12 @@
             <div class="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-800">{{ session('error') }}</div>
         @endif
 
+        @if ($page->type->value === 'systeem')
+            <div class="mb-4 rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+                Dit is een systeempagina — bewerken mag, verwijderen niet.
+            </div>
+        @endif
+
         <livewire:admin.page-editor :version-id="$version->id" />
         <livewire:admin.media-library />
     </div>

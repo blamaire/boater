@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PageType;
 use App\Enums\PageVisibility;
 use App\Models\Page;
 use Illuminate\Contracts\View\View;
@@ -23,9 +24,12 @@ class PublicPageController extends Controller
 
     public function home(Request $request): View
     {
+        // "/" toont uitsluitend een systeempagina (type=system, slug=home).
+        // Een gewone content-pagina met slug=home hoort op /pagina/home.
         $home = Page::query()
             ->whereNull('parent_id')
             ->where('slug', 'home')
+            ->where('type', PageType::System->value)
             ->first();
 
         if ($home === null || $home->published_version_id === null) {
@@ -59,6 +63,8 @@ class PublicPageController extends Controller
             return null;
         }
 
+        // /pagina/{path} toont uitsluitend content-pagina's. Systeempagina's
+        // (bv. de home op /) zijn hier niet bereikbaar en botsen dus niet.
         $parentId = null;
         $current = null;
 
@@ -66,6 +72,7 @@ class PublicPageController extends Controller
             $current = Page::query()
                 ->where('slug', $slug)
                 ->where('parent_id', $parentId)
+                ->where('type', PageType::Content->value)
                 ->first();
 
             if ($current === null) {

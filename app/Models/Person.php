@@ -6,7 +6,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property int $id
+ * @property string $first_name
+ * @property string|null $last_name_prefix
+ * @property string $last_name
+ * @property Carbon|null $date_of_birth
+ * @property string|null $email
+ * @property string|null $phone
+ * @property int|null $household_id
+ * @property int|null $account_id
+ * @property string|null $ecaptain_id
+ * @property string|null $status
+ */
 class Person extends Model
 {
     protected $table = 'persons';
