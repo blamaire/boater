@@ -52,6 +52,7 @@ class PermissionSeeder extends Seeder
             'review_settings' => ['update'],
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
+            'field_definitions' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -111,6 +112,7 @@ class PermissionSeeder extends Seeder
             'review_settings' => 'Reviewinstellingen',
             'media' => 'Media',
             'queue' => 'Queue',
+            'field_definitions' => 'Veld-definities',
             default => ucfirst($module),
         };
 
