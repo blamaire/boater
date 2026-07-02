@@ -12,12 +12,14 @@ use App\Models\Person;
 use App\Models\Proposal;
 use App\Models\Role;
 use App\Models\User;
+use App\Notifications\MembershipApplicationReceived;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\ProposalEngine;
 use Database\Seeders\MembershipTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReviewPolicySeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
 
@@ -36,6 +38,8 @@ it('rendert het lid-worden formulier op /lid-worden', function () {
 });
 
 it('kan een aanvraag indienen als volwassene die een A-lid kiest', function () {
+    Notification::fake();
+
     Livewire::test(LidWorden::class)
         ->set('first_name', 'John')
         ->set('last_name', 'Doe')
@@ -60,6 +64,12 @@ it('kan een aanvraag indienen als volwassene die een A-lid kiest', function () {
         ->and($proposal->proposed_by_person_id)->toBeNull()
         ->and($proposal->payload['person']['first_name'])->toBe('John')
         ->and($proposal->payload['is_minor'])->toBeFalse();
+
+    Notification::assertSentOnDemand(MembershipApplicationReceived::class, function ($notification, $channels, $notifiable) {
+        return in_array('john@example.com', (array) $notifiable->routes['mail'], true)
+            && $notification->firstName === 'John'
+            && $notification->membershipTypeName === 'A-lid';
+    });
 });
 
 it('eist een uitleg bij het kiezen van een niet-passende vorm', function () {

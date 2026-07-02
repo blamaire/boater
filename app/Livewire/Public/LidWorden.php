@@ -3,6 +3,8 @@
 namespace App\Livewire\Public;
 
 use App\Enums\ChangeType;
+use App\Models\MembershipType;
+use App\Notifications\MembershipApplicationReceived;
 use App\Services\Membership\BagAddressLookup;
 use App\Services\Membership\MembershipEligibility;
 use App\Services\Membership\MembershipTypeEligibility;
@@ -11,6 +13,7 @@ use App\Services\Proposals\ProposalEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -223,6 +226,14 @@ class LidWorden extends Component
             ],
             proposer: auth()->user()?->person,
         );
+
+        $membershipTypeName = MembershipType::query()->where('key', $this->membership_type_key)->value('name') ?? 'onbekend';
+
+        Notification::route('mail', $this->email)
+            ->notify(new MembershipApplicationReceived(
+                firstName: $this->first_name,
+                membershipTypeName: (string) $membershipTypeName,
+            ));
 
         $this->submitted = true;
     }
