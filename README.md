@@ -17,14 +17,22 @@ De applicatie draait volledig via Docker — geen lokale PHP- of Composer-instal
 
 **Eerste keer:**
 
-1. Kopieer `.env.example` naar `.env` en vul `DB_DATABASE`, `DB_USERNAME` en `DB_PASSWORD` in (vrij te kiezen — deze waarden worden ook door Docker gebruikt om de MySQL-container te initialiseren).
-2. Bouw en start de containers:
+1. Kopieer `.env.example` naar `.env` en vul `DB_DATABASE`, `DB_USERNAME` en `DB_PASSWORD` in (vrij te kiezen — deze waarden worden ook door Docker gebruikt om de MySQL-container te initialiseren). Zonder deze env-variabelen weigert Laravel te booten — bewust, om te voorkomen dat we per ongeluk met defaults als `root`/`""` draaien.
+
+2. Zet de git pre-commit hook aan zodat Gitleaks je diff scant op secrets vóór elke commit:
+
+   ```sh
+   git config core.hooksPath .githooks
+   ```
+
+   De hook draait `zricethezav/gitleaks` via Docker en blokkeert commits met credentials in de diff. In noodgevallen kun je 'm eenmalig omzeilen met `SKIP_GITLEAKS=1 git commit ...` — doe dat alleen na review.
+3. Bouw en start de containers:
 
    ```sh
    docker compose up -d --build
    ```
 
-3. Draai de database-migraties:
+4. Draai de database-migraties:
 
    ```sh
    docker compose exec app php artisan migrate
