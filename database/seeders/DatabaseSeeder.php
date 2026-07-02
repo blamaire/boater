@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             TemplateSeeder::class,
             ReviewPolicySeeder::class,
+            MembershipTypeSeeder::class,
         ]);
     }
 }

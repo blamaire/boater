@@ -35,6 +35,7 @@ class PermissionSeeder extends Seeder
 
         $modules = [
             'persons' => $crud,
+            'memberships' => array_merge($crud, ['approve']),
             'roles' => $crud,
             'activities' => $contentLifecycle,
             'reservations' => $proposalLifecycle,
@@ -93,6 +94,7 @@ class PermissionSeeder extends Seeder
     {
         $moduleLabel = match ($module) {
             'persons' => 'Personen',
+            'memberships' => 'Lidmaatschappen',
             'roles' => 'Rollen',
             'activities' => 'Activiteiten',
             'reservations' => 'Reserveringen',

@@ -37,7 +37,7 @@ class ProposalEngine
         string $subjectType,
         ChangeType $changeType,
         array $payload,
-        Person $proposer,
+        ?Person $proposer = null,
         ?int $subjectId = null,
         ?ReviewPolicy $policy = null,
     ): Proposal {
@@ -49,7 +49,7 @@ class ProposalEngine
                 'subject_id' => $subjectId,
                 'change_type' => $changeType,
                 'payload' => $payload,
-                'proposed_by_person_id' => $proposer->id,
+                'proposed_by_person_id' => $proposer?->id,
                 'status' => ProposalStatus::Submitted,
                 'policy_id' => $policy?->id,
                 'current_step' => 0,
@@ -57,7 +57,7 @@ class ProposalEngine
 
             $this->audit->log('proposal.submitted', $proposal, after: $this->snapshot($proposal));
 
-            if ($policy && $policy->bypass_permission && $this->permissions->has($proposer, $policy->bypass_permission)) {
+            if ($policy && $proposer && $policy->bypass_permission && $this->permissions->has($proposer, $policy->bypass_permission)) {
                 $this->audit->log('proposal.bypassed', $proposal, context: [
                     'bypass_permission' => $policy->bypass_permission,
                 ]);
@@ -376,7 +376,9 @@ class ProposalEngine
 
     private function guardSeparationOfDuties(Proposal $proposal, Person $decider): void
     {
-        if ($decider->id === $proposal->proposed_by_person_id) {
+        // Bij anonieme (publieke) voorstellen is er geen indiener-persoon om
+        // tegen te vergelijken; functiescheiding is dan een non-issue.
+        if ($proposal->proposed_by_person_id !== null && $decider->id === $proposal->proposed_by_person_id) {
             throw new ProposalStateException('Functiescheiding: de indiener mag niet zelf beslissen.');
         }
     }

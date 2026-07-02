@@ -16,14 +16,14 @@ use Illuminate\Support\Carbon;
  * @property int|null $subject_id
  * @property ChangeType $change_type
  * @property array<string, mixed> $payload
- * @property int $proposed_by_person_id
+ * @property int|null $proposed_by_person_id
  * @property ProposalStatus $status
  * @property int|null $policy_id
  * @property int $current_step
  * @property string|null $decision_reason
  * @property Carbon|null $applied_at
  * @property ReviewPolicy|null $policy
- * @property-read Person $proposedBy
+ * @property-read Person|null $proposedBy
  * @property-read Collection<int, ReviewStep> $steps
  */
 class Proposal extends Model
