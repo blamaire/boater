@@ -33,6 +33,15 @@ De applicatie draait volledig via Docker — geen lokale PHP- of Composer-instal
 De applicatie is bereikbaar op http://localhost:8000.
 Uitgaande mail (registratie-verificatie, herinneringen, …) vangt **Mailpit** af op http://localhost:8025 — geen mails verlaten je machine tijdens dev.
 
+## Achtergrondtaken
+
+Twee dedicated services draaien mee met `docker compose up -d`:
+
+- **`queue`** — draait `php artisan queue:work database --tries=3 --sleep=3` en pakt gequeue'de jobs op (bv. registratie- en wachtwoord-reset-mails). Herstart met `docker compose restart queue` nadat je jobs-code hebt aangepast.
+- **`scheduler`** — draait `php artisan schedule:work` en voert periodieke taken uit uit `app/Console/Kernel.php`.
+
+Failed jobs zijn beheerbaar op `/beheer/failed-jobs` (permissie `queue.manage`): opnieuw uitvoeren of verwijderen.
+
 **Daarna:**
 
 ```sh

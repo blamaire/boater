@@ -50,6 +50,7 @@ class PermissionSeeder extends Seeder
             'audit_trail' => ['view'],
             'review_settings' => ['update'],
             'media' => ['view', 'upload', 'delete'],
+            'queue' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -107,6 +108,7 @@ class PermissionSeeder extends Seeder
             'audit_trail' => 'Auditlogboek',
             'review_settings' => 'Reviewinstellingen',
             'media' => 'Media',
+            'queue' => 'Queue',
             default => ucfirst($module),
         };
 
@@ -122,6 +124,7 @@ class PermissionSeeder extends Seeder
             'run' => "{$moduleLabel} uitvoeren",
             'sign_up' => "Inschrijven op {$moduleLabel}",
             'upload' => "{$moduleLabel} uploaden",
+            'manage' => "{$moduleLabel} beheren (failed jobs opnieuw uitvoeren of verwijderen)",
             default => "{$action} op {$moduleLabel}",
         };
     }
