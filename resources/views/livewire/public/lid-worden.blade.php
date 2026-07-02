@@ -140,13 +140,27 @@
 
                 <div class="space-y-2">
                     @foreach ($this->eligibility as $e)
-                        <label class="flex gap-3 items-start rounded border p-3 cursor-pointer {{ $e->available ? 'border-gray-300 hover:border-rzvg-600' : 'border-orange-300 bg-orange-50' }}">
-                            <input type="radio" wire:model.live="membership_type_key" value="{{ $e->type->key }}" class="mt-1">
+                        @php
+                            $isChosen = $membership_type_key === $e->type->key;
+                        @endphp
+                        <label class="flex gap-3 items-start rounded p-3 cursor-pointer transition {{
+                            $e->available
+                                ? ($isChosen
+                                    ? 'border-2 border-rzvg-600 bg-rzvg-50 shadow-sm'
+                                    : 'border-2 border-rzvg-500 bg-white hover:bg-rzvg-50')
+                                : 'border border-dashed border-gray-300 bg-gray-50 text-gray-500'
+                        }}">
+                            <input type="radio" wire:model.live="membership_type_key" value="{{ $e->type->key }}" class="mt-1 accent-rzvg-600">
                             <div>
-                                <div class="font-medium">{{ $e->type->name }}</div>
-                                <div class="text-sm text-gray-600">{{ $e->type->description }}</div>
+                                <div class="font-medium {{ $e->available ? 'text-gray-900' : 'text-gray-600' }}">
+                                    {{ $e->type->name }}
+                                    @if ($e->available)
+                                        <span class="ml-2 text-xs uppercase tracking-wide text-rzvg-600">van toepassing</span>
+                                    @endif
+                                </div>
+                                <div class="text-sm {{ $e->available ? 'text-gray-700' : 'text-gray-500' }}">{{ $e->type->description }}</div>
                                 @if (! $e->available)
-                                    <div class="text-sm text-orange-800 mt-1"><strong>Reden om niet te kiezen:</strong> {{ $e->reason }}</div>
+                                    <div class="text-sm text-gray-600 mt-1"><strong>Niet standaard van toepassing:</strong> {{ $e->reason }}</div>
                                 @endif
                             </div>
                         </label>
@@ -184,9 +198,11 @@
                 @error('agree_privacy') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
             </fieldset>
 
-            <div class="flex justify-end">
-                <button type="submit" class="rounded bg-rzvg-600 text-white px-6 py-3 font-medium hover:bg-rzvg-700">
+            <div class="flex items-center justify-between gap-4 pt-2">
+                <p class="text-sm text-gray-500">Na verzending ontvang je bericht per e-mail zodra de ledenadministratie beslist.</p>
+                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-rzvg-600 text-white px-8 py-3 text-base font-semibold shadow-lg ring-1 ring-rzvg-700 hover:bg-rzvg-700 focus:outline-none focus:ring-4 focus:ring-rzvg-300">
                     Aanvraag versturen
+                    <span aria-hidden="true">→</span>
                 </button>
             </div>
         </form>
