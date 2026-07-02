@@ -440,7 +440,7 @@ class MijnLidmaatschap extends Component
     #[Computed]
     public function membershipTypes(): Collection
     {
-        return MembershipType::query()->where('is_active', true)->orderBy('name')->get();
+        return MembershipType::query()->orderBy('sort_order')->orderBy('name')->get();
     }
 
     public function render(): View
