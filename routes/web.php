@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\FailedJobsController;
+use App\Http\Controllers\Admin\LedenController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
@@ -11,6 +12,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Livewire\Portal\LedenProfiel;
+use App\Livewire\Portal\LedenZoeken;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -66,6 +69,24 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', [PersonRoleController::class, 'index'])->middleware('can:roles.update')->name('index');
         Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
         Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
+    });
+
+// §19.2 — Ledenadministratie (beheer): overzicht + detail.
+Route::middleware(['auth', 'verified'])
+    ->prefix('beheer/leden')
+    ->name('admin.leden.')
+    ->group(function () {
+        Route::get('/', [LedenController::class, 'index'])->middleware('can:persons.view')->name('index');
+        Route::get('/{person}', [LedenController::class, 'show'])->middleware('can:persons.view')->name('show');
+    });
+
+// §21 — Leden zoeken (besloten portaal).
+Route::middleware(['auth', 'verified', 'can:persons.search'])
+    ->prefix('leden')
+    ->name('portal.leden.')
+    ->group(function () {
+        Route::get('/', LedenZoeken::class)->name('index');
+        Route::get('/{person}', LedenProfiel::class)->name('show');
     });
 
 Route::middleware(['auth', 'verified', 'can:queue.manage'])
