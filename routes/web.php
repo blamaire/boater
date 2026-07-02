@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\FailedJobsController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
@@ -64,6 +65,15 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', [PersonRoleController::class, 'index'])->middleware('can:roles.update')->name('index');
         Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
         Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
+    });
+
+Route::middleware(['auth', 'verified', 'can:queue.manage'])
+    ->prefix('beheer/failed-jobs')
+    ->name('admin.failed-jobs.')
+    ->group(function () {
+        Route::get('/', [FailedJobsController::class, 'index'])->name('index');
+        Route::post('/{uuid}/opnieuw', [FailedJobsController::class, 'retry'])->name('retry');
+        Route::delete('/{uuid}', [FailedJobsController::class, 'destroy'])->name('destroy');
     });
 
 Route::get('/media/{asset}/download', MediaDownloadController::class)
