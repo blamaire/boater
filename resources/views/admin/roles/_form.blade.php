@@ -71,11 +71,16 @@
             @php
                 $label = $moduleLabels[$module] ?? ucfirst($module);
                 $moduleIds = collect($permissions)->pluck('id')->all();
+                // Alpine's checkbox-x-model doet strikte === vergelijking; HTML value
+                // attributen zijn altijd strings, dus we casten hier ook naar string
+                // zodat de initiële 'checked'-state matcht en aangevinkte vakjes tonen.
+                $stringModuleIds = array_map('strval', $moduleIds);
+                $stringSelected = array_map('strval', array_values(array_intersect($moduleIds, old('permissions', $selectedPermissionIds) ?? [])));
             @endphp
             <div class="border border-gray-200 rounded-md p-4"
                  x-data="{
-                     ids: @js($moduleIds),
-                     checked: @js(array_values(array_intersect($moduleIds, old('permissions', $selectedPermissionIds) ?? []))),
+                     ids: @js($stringModuleIds),
+                     checked: @js($stringSelected),
                      get allSelected() { return this.ids.length > 0 && this.checked.length === this.ids.length; },
                      get someSelected() { return this.checked.length > 0 && this.checked.length < this.ids.length; },
                      toggleAll(event) {
@@ -102,7 +107,7 @@
                             <input type="checkbox"
                                    name="permissions[]"
                                    value="{{ $permission->id }}"
-                                   x-model.number="checked"
+                                   x-model="checked"
                                    class="mt-0.5 rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-500 disabled:bg-gray-100"
                                    @disabled($isSystem) />
                             <span>
