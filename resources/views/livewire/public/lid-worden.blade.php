@@ -74,6 +74,10 @@
 
                 @if ($bag_error)
                     <p class="text-sm text-red-600">{{ $bag_error }}</p>
+                @elseif ($postal_code !== '' && $house_number !== '' && (! $street || ! $city))
+                    <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                        Postcode en huisnummer zijn nog niet omgezet naar een adres. Klik op <strong>Adres opzoeken</strong> om je straat en woonplaats op te halen.
+                    </p>
                 @endif
 
                 @if ($street && $city)
