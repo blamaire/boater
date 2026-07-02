@@ -10,8 +10,10 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // De rol "Lid" hoort in Fase 2 (Lidmaatschap), per lidmaatschapstype. Zie §6-7.
-        Role::query()->where('name', 'Lid')->delete();
+        // De rol "Lid" hoort in Fase 2 (Lidmaatschap), per lidmaatschapstype (§6-7).
+        // Bestaande "Lid"-records blijven staan zodat lopende toewijzingen niet
+        // verloren gaan, maar worden ontsystemeerd zodat een beheerder ze kan wijzigen.
+        Role::query()->where('name', 'Lid')->update(['is_system' => false]);
         Role::query()->where('name', 'Administrator')->delete();
 
         // "Beheerder" is de enige systeem-rol: naam, description en permissie-set
