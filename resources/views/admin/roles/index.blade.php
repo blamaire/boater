@@ -41,11 +41,9 @@
                             <td class="px-4 py-2 text-sm text-gray-600">{{ $role->permissions->count() }}</td>
                             <td class="px-4 py-2 text-sm text-right space-x-2">
                                 @can('roles.update')
-                                    @if ($role->is_system)
-                                        <span class="text-gray-400" title="Systeem-rol — niet wijzigbaar">Bekijken</span>
-                                    @else
-                                        <a href="{{ route('admin.roles.edit', $role) }}" class="text-rzvg-600 hover:text-rzvg-800">Bewerken</a>
-                                    @endif
+                                    <a href="{{ route('admin.roles.edit', $role) }}" class="text-rzvg-600 hover:text-rzvg-800">
+                                        {{ $role->is_system ? 'Bekijken' : 'Bewerken' }}
+                                    </a>
                                 @endcan
                                 @can('roles.delete')
                                     @unless ($role->is_system)
