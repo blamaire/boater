@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +68,10 @@ Route::middleware(['auth', 'verified'])
         Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
         Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
     });
+
+Route::middleware(['auth', 'verified', 'can:menu.manage'])
+    ->get('/beheer/menu', MenuBeheer::class)
+    ->name('admin.menu');
 
 Route::middleware(['auth', 'verified', 'can:queue.manage'])
     ->prefix('beheer/failed-jobs')
