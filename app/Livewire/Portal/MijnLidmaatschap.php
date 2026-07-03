@@ -104,15 +104,25 @@ class MijnLidmaatschap extends Component
             'phone' => (string) ($person->phone ?? ''),
         ];
 
+        // Bij een openstaande wijziging tonen we de nieuwe waarde in het
+        // invoerveld — dan kan het lid 'm nog aanpassen en opnieuw indienen
+        // (waarbij submitSensitive de bestaande proposal intrekt).
+        $pending = $this->pendingByField();
+
         $this->name = [
-            'first_name' => (string) ($person->first_name ?? ''),
-            'last_name_prefix' => (string) ($person->last_name_prefix ?? ''),
-            'last_name' => (string) ($person->last_name ?? ''),
+            'first_name' => (string) ($pending['first_name']->payload['new_value'] ?? $person->first_name ?? ''),
+            'last_name_prefix' => (string) ($pending['last_name_prefix']->payload['new_value'] ?? $person->last_name_prefix ?? ''),
+            'last_name' => (string) ($pending['last_name']->payload['new_value'] ?? $person->last_name ?? ''),
         ];
 
-        $this->date_of_birth = $person->date_of_birth?->toDateString() ?? '';
+        $this->date_of_birth = (string) ($pending['date_of_birth']->payload['new_value'] ?? $person->date_of_birth?->toDateString() ?? '');
 
-        $this->membership_type_key = $person->currentMembership()?->type?->key;
+        if (isset($pending['membership_type_id'])) {
+            $pendingTypeId = $pending['membership_type_id']->payload['new_value'] ?? null;
+            $this->membership_type_key = MembershipType::query()->whereKey($pendingTypeId)->value('key');
+        } else {
+            $this->membership_type_key = $person->currentMembership()?->type?->key;
+        }
 
         $household = $person->household;
         $this->household = [

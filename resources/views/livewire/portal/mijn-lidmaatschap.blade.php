@@ -12,48 +12,6 @@
         </div>
     @endif
 
-    {{-- Openstaande wijzigingen ------------------------------------------ --}}
-    @if ($openProposals->isNotEmpty())
-        <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
-            <h2 class="font-display text-base text-amber-900">Openstaande wijzigingen</h2>
-            <p class="text-xs text-amber-800">
-                Deze wijzigingen wachten op beoordeling. Je kunt ze intrekken; opnieuw indienen met een nieuwe waarde overschrijft de vorige aanvraag.
-            </p>
-            <ul class="space-y-2 text-sm">
-                @foreach ($openProposals as $prop)
-                    @php
-                        $field = $prop->payload['field'] ?? 'onbekend';
-                        $newValue = $prop->payload['new_value'] ?? '—';
-                        $label = match ($field) {
-                            'first_name' => 'Voornaam',
-                            'last_name_prefix' => 'Tussenvoegsel',
-                            'last_name' => 'Achternaam',
-                            'date_of_birth' => 'Geboortedatum',
-                            'membership_type_id' => 'Lidmaatschapsvorm',
-                            default => $field,
-                        };
-                        if ($field === 'membership_type_id') {
-                            $typeName = \App\Models\MembershipType::query()->whereKey($newValue)->value('name');
-                            $newValueLabel = $typeName ?? '—';
-                        } else {
-                            $newValueLabel = (string) ($newValue ?? '—');
-                        }
-                    @endphp
-                    <li class="flex items-center justify-between bg-white border border-amber-200 rounded px-3 py-2">
-                        <div>
-                            <span class="font-medium text-gray-900">{{ $label }}</span>
-                            <span class="text-gray-600">→ {{ $newValueLabel }}</span>
-                            <span class="ml-2 text-xs uppercase tracking-wide text-amber-700">{{ $prop->status->value }}</span>
-                        </div>
-                        <button type="button" wire:click="withdrawProposal({{ $prop->id }})"
-                            class="text-xs px-2 py-1 rounded border border-amber-400 text-amber-800 hover:bg-amber-100">
-                            Intrekken
-                        </button>
-                    </li>
-                @endforeach
-            </ul>
-        </section>
-    @endif
 
     {{-- Persoonsgegevens ------------------------------------------------ --}}
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
@@ -62,12 +20,6 @@
         @if ($personModel)
             @php
                 $pending = $this->pendingByField;
-                $sensitiveFields = [
-                    'first_name' => ['label' => 'Voornaam', 'current' => $personModel->first_name, 'model' => 'name.first_name'],
-                    'last_name_prefix' => ['label' => 'Tussenvoegsel', 'current' => $personModel->last_name_prefix, 'model' => 'name.last_name_prefix'],
-                    'last_name' => ['label' => 'Achternaam', 'current' => $personModel->last_name, 'model' => 'name.last_name'],
-                    'date_of_birth' => ['label' => 'Geboortedatum', 'current' => $personModel->date_of_birth?->format('d-m-Y'), 'model' => 'date_of_birth', 'type' => 'date'],
-                ];
             @endphp
 
             <div class="space-y-6">
@@ -76,34 +28,55 @@
                     <p class="text-xs text-gray-600 italic">
                         Deze velden zijn wijzigbaar na goedkeuring door de ledenadministratie.
                     </p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        @foreach ($sensitiveFields as $key => $meta)
-                            <div>
-                                <x-input-label :for="'field-'.$key" :value="$meta['label']" />
-                                @if (isset($pending[$key]))
-                                    @php
-                                        $newRaw = $pending[$key]->payload['new_value'] ?? '';
-                                        $newDisp = $key === 'date_of_birth' && $newRaw ? \Carbon\Carbon::parse($newRaw)->format('d-m-Y') : $newRaw;
-                                    @endphp
-                                    <div class="mt-1 flex items-center gap-2 text-sm">
-                                        <span class="line-through text-gray-500">{{ $meta['current'] ?: '—' }}</span>
-                                        <span class="text-gray-400">→</span>
-                                        <span class="font-medium text-gray-900">{{ $newDisp ?: '—' }}</span>
-                                        <button type="button"
-                                            wire:click="withdrawProposal({{ $pending[$key]->id }})"
-                                            title="Wijziging intrekken"
-                                            class="ml-auto text-gray-500 hover:text-red-600" aria-label="Wijziging intrekken">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                                                <path fill-rule="evenodd" d="M7.72 12.03a.75.75 0 0 1-1.06 0L2.47 7.84a.75.75 0 0 1 0-1.06l4.19-4.19a.75.75 0 1 1 1.06 1.06L4.81 6.56h6.44a5.5 5.5 0 1 1 0 11h-3.5a.75.75 0 0 1 0-1.5h3.5a4 4 0 0 0 0-8H4.81l2.91 2.91a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                                            </svg>
-                                        </button>
+
+                    @php
+                        $renderField = function (string $key, string $label, ?string $currentDisplay, string $model, string $type = 'text') use ($pending) {
+                            return ['key' => $key, 'label' => $label, 'current' => $currentDisplay, 'model' => $model, 'type' => $type, 'pending' => $pending[$key] ?? null];
+                        };
+                        $rows = [
+                            [$renderField('first_name', 'Voornaam', $personModel->first_name, 'name.first_name')],
+                            [
+                                $renderField('last_name_prefix', 'Tussenvoegsel', $personModel->last_name_prefix, 'name.last_name_prefix'),
+                                $renderField('last_name', 'Achternaam', $personModel->last_name, 'name.last_name'),
+                            ],
+                            [$renderField('date_of_birth', 'Geboortedatum', $personModel->date_of_birth?->format('d-m-Y'), 'date_of_birth', 'date')],
+                        ];
+                    @endphp
+
+                    @foreach ($rows as $row)
+                        <div @class([
+                            'grid gap-3',
+                            'grid-cols-1' => count($row) === 1,
+                            'grid-cols-1 sm:grid-cols-2' => count($row) === 2,
+                        ])>
+                            @foreach ($row as $f)
+                                <div>
+                                    <x-input-label :for="'field-'.$f['key']" :value="$f['label']" />
+                                    <div class="mt-1 flex items-center rounded bg-white overflow-hidden">
+                                        @if ($f['pending'])
+                                            <span class="pl-3 py-2 text-gray-500 select-none whitespace-nowrap">
+                                                <span class="line-through">{{ $f['current'] ?: '—' }}</span>
+                                                <span class="text-gray-400 mx-1">→</span>
+                                            </span>
+                                        @endif
+                                        <input id="field-{{ $f['key'] }}" type="{{ $f['type'] }}" wire:model="{{ $f['model'] }}"
+                                            class="flex-1 border-transparent focus:border-transparent focus:ring-0 focus:outline-none py-2 pr-3 bg-transparent min-w-0 {{ $f['pending'] ? 'pl-1' : 'pl-3' }}">
+                                        @if ($f['pending'])
+                                            <button type="button"
+                                                wire:click="withdrawProposal({{ $f['pending']->id }})"
+                                                title="Wijziging intrekken"
+                                                class="px-2 text-gray-500 hover:text-red-600" aria-label="Wijziging intrekken">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                                    <path fill-rule="evenodd" d="M7.72 12.03a.75.75 0 0 1-1.06 0L2.47 7.84a.75.75 0 0 1 0-1.06l4.19-4.19a.75.75 0 1 1 1.06 1.06L4.81 6.56h6.44a5.5 5.5 0 1 1 0 11h-3.5a.75.75 0 0 1 0-1.5h3.5a4 4 0 0 0 0-8H4.81l2.91 2.91a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        @endif
                                     </div>
-                                @else
-                                    <x-text-input :id="'field-'.$key" :type="$meta['type'] ?? 'text'" wire:model="{{ $meta['model'] }}" class="mt-1 w-full bg-white" />
-                                @endif
-                            </div>
-                        @endforeach
-                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endforeach
+
                     <div class="flex justify-end">
                         <button type="button" wire:click="submitPersonalChanges"
                             class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
@@ -151,8 +124,9 @@
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
         <h2 class="font-display text-xl text-gray-900">Adres</h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div class="sm:col-span-2">
+        <div class="space-y-4 text-sm">
+            {{-- Regel 1: Land --}}
+            <div>
                 <x-input-label for="household-country" value="Land" />
                 <select id="household-country" wire:model.live="household.country"
                     class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600">
@@ -162,35 +136,40 @@
                 </select>
             </div>
 
-            <div>
-                <x-input-label for="household-postal_code" value="Postcode{{ $isNl ? '' : ' (optioneel)' }}" />
-                <x-text-input id="household-postal_code" wire:model="household.postal_code" :placeholder="$isNl ? '1234AB' : ''" class="mt-1 w-full" />
+            {{-- Regel 2: Postcode + Huisnummer + BAG-knop --}}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                <div>
+                    <x-input-label for="household-postal_code" value="Postcode{{ $isNl ? '' : ' (optioneel)' }}" />
+                    <x-text-input id="household-postal_code" wire:model="household.postal_code" :placeholder="$isNl ? '1234AB' : ''" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <x-input-label for="household-house_number" value="Huisnummer" />
+                    <x-text-input id="household-house_number" wire:model="household.house_number" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <button type="button" wire:click="lookupAddress"
+                        @if (! $isNl) disabled @endif
+                        class="w-full text-sm px-3 py-2 rounded text-white
+                            @if ($isNl) bg-rzvg-600 hover:bg-rzvg-700
+                            @else bg-gray-300 cursor-not-allowed @endif">
+                        Adres opzoeken (BAG)
+                    </button>
+                </div>
             </div>
-            <div>
-                <x-input-label for="household-house_number" value="Huisnummer" />
-                <x-text-input id="household-house_number" wire:model="household.house_number" class="mt-1 w-full" />
-            </div>
+            @if ($bag_error && $isNl)
+                <p class="text-sm text-red-600">{{ $bag_error }}</p>
+            @endif
 
-            <div class="sm:col-span-2">
-                <button type="button" wire:click="lookupAddress"
-                    @if (! $isNl) disabled @endif
-                    class="text-sm px-3 py-2 rounded text-white
-                        @if ($isNl) bg-rzvg-600 hover:bg-rzvg-700
-                        @else bg-gray-300 cursor-not-allowed @endif">
-                    Adres opzoeken (BAG)
-                </button>
-                @if ($bag_error && $isNl)
-                    <p class="mt-2 text-sm text-red-600">{{ $bag_error }}</p>
-                @endif
-            </div>
-
-            <div>
-                <x-input-label for="household-street" value="Straat" />
-                <x-text-input id="household-street" wire:model="household.street" class="mt-1 w-full" />
-            </div>
-            <div>
-                <x-input-label for="household-city" value="Plaats" />
-                <x-text-input id="household-city" wire:model="household.city" class="mt-1 w-full" />
+            {{-- Regel 3: Straat + Plaats --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <x-input-label for="household-street" value="Straat" />
+                    <x-text-input id="household-street" wire:model="household.street" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <x-input-label for="household-city" value="Plaats" />
+                    <x-text-input id="household-city" wire:model="household.city" class="mt-1 w-full" />
+                </div>
             </div>
         </div>
 
@@ -280,7 +259,7 @@
         @endif
 
         {{-- Vormkeuze: nieuwe aanvraag of wijziging --}}
-        <div class="pt-4 border-t border-gray-100 space-y-3">
+        <div class="bg-gray-100 rounded-md p-4 space-y-3">
             @php
                 $membershipPending = $this->pendingByField['membership_type_id'] ?? null;
                 if ($membershipPending) {
@@ -290,46 +269,43 @@
                 $currentTypeName = $currentMembership?->type?->name ?? 'Geen';
             @endphp
 
-            @if ($membershipPending)
-                <div class="flex items-center gap-2 text-sm bg-gray-100 rounded-md p-3">
-                    <span class="text-gray-500">Lidmaatschapsvorm:</span>
-                    <span class="line-through text-gray-500">{{ $currentTypeName }}</span>
-                    <span class="text-gray-400">→</span>
-                    <span class="font-medium text-gray-900">{{ $newTypeName ?? '—' }}</span>
-                    <button type="button"
-                        wire:click="withdrawProposal({{ $membershipPending->id }})"
-                        title="Wijziging intrekken"
-                        class="ml-auto text-gray-500 hover:text-red-600" aria-label="Wijziging intrekken">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                            <path fill-rule="evenodd" d="M7.72 12.03a.75.75 0 0 1-1.06 0L2.47 7.84a.75.75 0 0 1 0-1.06l4.19-4.19a.75.75 0 1 1 1.06 1.06L4.81 6.56h6.44a5.5 5.5 0 1 1 0 11h-3.5a.75.75 0 0 1 0-1.5h3.5a4 4 0 0 0 0-8H4.81l2.91 2.91a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
-            @else
-                <p class="text-sm text-gray-700">
-                    @if ($currentMembership)
-                        Wil je van lidmaatschapsvorm wisselen? Kies hieronder en dien de wijziging ter goedkeuring in.
-                    @else
-                        Vraag hieronder een lidmaatschap aan. De ledenadministratie beoordeelt je aanvraag.
+            <div>
+                <x-input-label for="membership-type" value="Lidmaatschapsvorm" />
+                <div class="mt-1 flex items-center rounded bg-white overflow-hidden">
+                    @if ($membershipPending)
+                        <span class="pl-3 py-2 text-gray-500 select-none whitespace-nowrap">
+                            <span class="line-through">{{ $currentTypeName }}</span>
+                            <span class="text-gray-400 mx-1">→</span>
+                        </span>
                     @endif
-                </p>
-                <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
-                    <div class="flex-1">
-                        <x-input-label for="membership-type" value="Lidmaatschapsvorm" />
-                        <select id="membership-type" wire:model="membership_type_key"
-                            class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600">
+                    <select id="membership-type" wire:model="membership_type_key"
+                        class="flex-1 border-transparent focus:border-transparent focus:ring-0 focus:outline-none py-2 pr-3 bg-transparent min-w-0 {{ $membershipPending ? 'pl-1' : 'pl-3' }}">
+                        @if (! $membershipPending && ! $currentMembership)
                             <option value="">— Kies een vorm —</option>
-                            @foreach ($membershipTypes as $type)
-                                <option value="{{ $type->key }}">{{ $type->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="button" wire:click="submitMembershipTypeChange"
-                        class="text-sm px-3 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
-                        {{ $currentMembership ? 'Wijziging indienen' : 'Aanvragen' }}
-                    </button>
+                        @endif
+                        @foreach ($membershipTypes as $type)
+                            <option value="{{ $type->key }}">{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                    @if ($membershipPending)
+                        <button type="button"
+                            wire:click="withdrawProposal({{ $membershipPending->id }})"
+                            title="Wijziging intrekken"
+                            class="px-2 text-gray-500 hover:text-red-600" aria-label="Wijziging intrekken">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                                <path fill-rule="evenodd" d="M7.72 12.03a.75.75 0 0 1-1.06 0L2.47 7.84a.75.75 0 0 1 0-1.06l4.19-4.19a.75.75 0 1 1 1.06 1.06L4.81 6.56h6.44a5.5 5.5 0 1 1 0 11h-3.5a.75.75 0 0 1 0-1.5h3.5a4 4 0 0 0 0-8H4.81l2.91 2.91a.75.75 0 0 1 0 1.06Z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    @endif
                 </div>
-            @endif
+            </div>
+
+            <div class="flex justify-end">
+                <button type="button" wire:click="submitMembershipTypeChange"
+                    class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                    {{ $currentMembership ? 'Wijziging indienen' : 'Aanvragen' }}
+                </button>
+            </div>
         </div>
     </section>
 
