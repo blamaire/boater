@@ -57,4 +57,34 @@ class NavItem extends Model
     {
         return $this->hasMany(NavItem::class, 'parent_id')->orderBy('sort_order');
     }
+
+    /**
+     * Uiteindelijk weergegeven label: eigen `label` als gezet, anders de
+     * titel van de gekoppelde pagina, anders '—'.
+     */
+    public function displayLabel(): string
+    {
+        if ($this->label !== null && trim($this->label) !== '') {
+            return $this->label;
+        }
+
+        if ($this->page === null) {
+            return '—';
+        }
+
+        return $this->page->title;
+    }
+
+    /**
+     * Uiteindelijke URL: eigen `href` als gezet, anders publicUrl van de
+     * gekoppelde pagina.
+     */
+    public function url(): ?string
+    {
+        if ($this->href !== null && trim($this->href) !== '') {
+            return $this->href;
+        }
+
+        return $this->page?->publicUrl();
+    }
 }
