@@ -12,12 +12,20 @@ use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\MenuBeheer;
+use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+Route::middleware(['auth', 'verified'])
+    ->prefix('mijn')
+    ->name('portal.')
+    ->group(function () {
+        Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
+    });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
