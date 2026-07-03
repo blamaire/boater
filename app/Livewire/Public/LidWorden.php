@@ -49,6 +49,10 @@ class LidWorden extends Component
 
     public ?string $city = null;
 
+    public string $country = 'NL';
+
+    public bool $abroad = false;
+
     public ?string $bag_error = null;
 
     public ?string $membership_type_key = null;
@@ -143,10 +147,11 @@ class LidWorden extends Component
             'date_of_birth' => 'required|date|before:today',
             'email' => 'required|email|max:200|unique:persons,email',
             'phone' => 'nullable|string|max:30',
-            'postal_code' => 'required|string|max:10',
+            'postal_code' => ($this->abroad ? 'nullable' : 'required').'|string|max:10',
             'house_number' => 'required|string|max:10',
             'street' => 'required|string|max:200',
             'city' => 'required|string|max:200',
+            'country' => 'required|string|size:2',
             'membership_type_key' => 'required|string|exists:membership_types,key',
             'agree_statutes' => 'accepted',
             'agree_house_rules' => 'accepted',
@@ -213,6 +218,7 @@ class LidWorden extends Component
                     'house_number_addition' => $this->house_number_addition,
                     'street' => $this->street,
                     'city' => $this->city,
+                    'country' => strtoupper($this->country),
                 ],
                 'membership_type_key' => $this->membership_type_key,
                 'membership_type_override_reason' => $chosen->available ? null : trim($this->override_reason),

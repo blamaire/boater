@@ -117,12 +117,18 @@ class MembershipApplicationHandler implements ProposalHandler
             return $existing;
         }
 
+        $country = strtoupper((string) ($address['country'] ?? 'NL'));
+        if ($country === '') {
+            $country = 'NL';
+        }
+
         return Household::create([
             'name' => trim((string) ($address['street'] ?? '').' '.$houseNumber),
             'street' => (string) ($address['street'] ?? ''),
             'house_number' => $addition !== '' ? $houseNumber.' '.$addition : $houseNumber,
             'postal_code' => $postalCode,
             'city' => (string) ($address['city'] ?? ''),
+            'country' => $country,
         ]);
     }
 

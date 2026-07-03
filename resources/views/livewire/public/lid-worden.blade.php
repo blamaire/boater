@@ -52,35 +52,69 @@
             <fieldset class="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
                 <legend class="px-2 font-display text-lg text-rzvg-600">2. Adres</legend>
 
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-4 items-end">
-                    <label class="block">
-                        <span class="block text-sm font-medium text-gray-700">Postcode</span>
-                        <input type="text" wire:model="postal_code" placeholder="1234AB" class="mt-1 block w-full rounded border-gray-300">
-                        @error('postal_code') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block">
-                        <span class="block text-sm font-medium text-gray-700">Huisnummer</span>
-                        <input type="text" wire:model="house_number" class="mt-1 block w-full rounded border-gray-300">
-                        @error('house_number') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="block">
-                        <span class="block text-sm font-medium text-gray-700">Toevoeging</span>
-                        <input type="text" wire:model="house_number_addition" class="mt-1 block w-full rounded border-gray-300">
-                    </label>
-                    <button type="button" wire:click="lookupAddress" class="rounded bg-rzvg-600 text-white px-4 py-2 hover:bg-rzvg-700">
-                        Adres opzoeken
-                    </button>
-                </div>
+                <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" wire:model.live="abroad" class="rounded border-gray-300 text-rzvg-600">
+                    <span>Ik woon in het buitenland (geen BAG-koppeling)</span>
+                </label>
 
-                @if ($bag_error)
-                    <p class="text-sm text-red-600">{{ $bag_error }}</p>
-                @elseif ($postal_code !== '' && $house_number !== '' && (! $street || ! $city))
-                    <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                        Postcode en huisnummer zijn nog niet omgezet naar een adres. Klik op <strong>Adres opzoeken</strong> om je straat en woonplaats op te halen.
-                    </p>
+                @if (! $abroad)
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-4 items-end">
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Postcode</span>
+                            <input type="text" wire:model="postal_code" placeholder="1234AB" class="mt-1 block w-full rounded border-gray-300">
+                            @error('postal_code') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Huisnummer</span>
+                            <input type="text" wire:model="house_number" class="mt-1 block w-full rounded border-gray-300">
+                            @error('house_number') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Toevoeging</span>
+                            <input type="text" wire:model="house_number_addition" class="mt-1 block w-full rounded border-gray-300">
+                        </label>
+                        <button type="button" wire:click="lookupAddress" class="rounded bg-rzvg-600 text-white px-4 py-2 hover:bg-rzvg-700">
+                            Adres opzoeken
+                        </button>
+                    </div>
+
+                    @if ($bag_error)
+                        <p class="text-sm text-red-600">{{ $bag_error }}</p>
+                    @elseif ($postal_code !== '' && $house_number !== '' && (! $street || ! $city))
+                        <p class="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                            Postcode en huisnummer zijn nog niet omgezet naar een adres. Klik op <strong>Adres opzoeken</strong> om je straat en woonplaats op te halen.
+                        </p>
+                    @endif
                 @endif
 
-                @if ($street && $city)
+                @if ($abroad)
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Straat</span>
+                            <input type="text" wire:model="street" class="mt-1 block w-full rounded border-gray-300">
+                            @error('street') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Huisnummer</span>
+                            <input type="text" wire:model="house_number" class="mt-1 block w-full rounded border-gray-300">
+                            @error('house_number') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Postcode (optioneel)</span>
+                            <input type="text" wire:model="postal_code" class="mt-1 block w-full rounded border-gray-300">
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Woonplaats</span>
+                            <input type="text" wire:model="city" class="mt-1 block w-full rounded border-gray-300">
+                            @error('city') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Land (ISO 2-letter, bv. DE, BE, FR)</span>
+                            <input type="text" wire:model="country" maxlength="2" class="mt-1 block w-full rounded border-gray-300">
+                            @error('country') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                    </div>
+                @elseif ($street && $city)
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <label class="block">
                             <span class="block text-sm font-medium text-gray-700">Straat</span>

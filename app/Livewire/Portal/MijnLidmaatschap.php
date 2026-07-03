@@ -4,13 +4,16 @@ namespace App\Livewire\Portal;
 
 use App\Enums\ChangeType;
 use App\Enums\MembershipStatus;
+use App\Enums\ProposalStatus;
 use App\Models\Household;
 use App\Models\IceContact;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\Person;
 use App\Models\PersonFieldVisibility;
+use App\Models\Proposal;
 use App\Services\Audit\AuditLogger;
+use App\Services\Membership\BagAddressLookup;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use App\Services\Proposals\ProposalEngine;
 use Illuminate\Database\Eloquent\Collection;
@@ -41,7 +44,7 @@ class MijnLidmaatschap extends Component
      */
     public const array PERSON_DIRECT_FIELDS = ['email', 'phone'];
 
-    public const array HOUSEHOLD_DIRECT_FIELDS = ['street', 'house_number', 'postal_code', 'city'];
+    public const array HOUSEHOLD_DIRECT_FIELDS = ['street', 'house_number', 'postal_code', 'city', 'country'];
 
     /**
      * Velden waarvoor een lid de zichtbaarheid naar andere leden kan
@@ -57,6 +60,17 @@ class MijnLidmaatschap extends Component
 
     /** @var array<string, string> */
     public array $household = [];
+
+    public bool $abroad = false;
+
+    public ?string $bag_error = null;
+
+    /** @var array<string, string> */
+    public array $name = [];
+
+    public string $date_of_birth = '';
+
+    public ?string $membership_type_key = null;
 
     /** @var array<string, bool> */
     public array $visibility = [];
@@ -90,13 +104,25 @@ class MijnLidmaatschap extends Component
             'phone' => (string) ($person->phone ?? ''),
         ];
 
+        $this->name = [
+            'first_name' => (string) ($person->first_name ?? ''),
+            'last_name_prefix' => (string) ($person->last_name_prefix ?? ''),
+            'last_name' => (string) ($person->last_name ?? ''),
+        ];
+
+        $this->date_of_birth = $person->date_of_birth?->toDateString() ?? '';
+
+        $this->membership_type_key = $person->currentMembership()?->type?->key;
+
         $household = $person->household;
         $this->household = [
             'street' => (string) ($household->street ?? ''),
             'house_number' => (string) ($household->house_number ?? ''),
             'postal_code' => (string) ($household->postal_code ?? ''),
             'city' => (string) ($household->city ?? ''),
+            'country' => (string) ($household->country ?? 'NL'),
         ];
+        $this->abroad = strtoupper($this->household['country']) !== 'NL';
 
         $storedVisibility = PersonFieldVisibility::query()
             ->where('person_id', $person->id)
@@ -210,6 +236,19 @@ class MijnLidmaatschap extends Component
             return;
         }
 
+        // Overschrijf een bestaande openstaande wijziging op hetzelfde veld
+        // door 'm eerst netjes in te trekken (§20.4 — één open voorstel per veld).
+        $existing = Proposal::query()
+            ->where('subject_type', PersonFieldUpdateHandler::SUBJECT_TYPE)
+            ->where('proposed_by_person_id', $person->id)
+            ->whereIn('status', [ProposalStatus::Submitted, ProposalStatus::InReview, ProposalStatus::Returned])
+            ->where('payload->field', $field)
+            ->first();
+
+        if ($existing !== null) {
+            $engine->withdraw($existing, $person);
+        }
+
         $engine->submit(
             subjectType: PersonFieldUpdateHandler::SUBJECT_TYPE,
             changeType: ChangeType::Update,
@@ -224,6 +263,121 @@ class MijnLidmaatschap extends Component
         );
 
         $this->statusMessage = 'Je wijziging is ingediend en wordt beoordeeld.';
+    }
+
+    /**
+     * Sla contactgegevens (email + phone) in één klik op.
+     */
+    public function saveContact(AuditLogger $audit): void
+    {
+        foreach (self::PERSON_DIRECT_FIELDS as $field) {
+            $this->saveDirect('person', $field, $audit);
+        }
+    }
+
+    /**
+     * Sla het volledige adres in één klik op.
+     */
+    public function saveAddress(AuditLogger $audit): void
+    {
+        // Buitenland → forceer country ≠ NL en laat postcode/BAG buiten
+        // beschouwing; NL → forceer country = 'NL'.
+        $this->household['country'] = $this->abroad
+            ? (trim($this->household['country'] ?? '') === '' || strtoupper($this->household['country']) === 'NL' ? '' : $this->household['country'])
+            : 'NL';
+
+        foreach (self::HOUSEHOLD_DIRECT_FIELDS as $field) {
+            $this->saveDirect('household', $field, $audit);
+        }
+    }
+
+    /**
+     * Zoek een NL-adres op via de BAG (PDOK LocatieServer) en vul straat +
+     * plaats in. Werkt alleen als de gebruiker niet in het buitenland woont.
+     */
+    public function lookupAddress(BagAddressLookup $lookup): void
+    {
+        $this->bag_error = null;
+
+        if ($this->abroad) {
+            $this->bag_error = 'BAG-zoeken werkt alleen voor Nederlandse adressen.';
+
+            return;
+        }
+
+        $address = $lookup->lookup(
+            $this->household['postal_code'] ?? '',
+            $this->household['house_number'] ?? '',
+        );
+
+        if ($address === null) {
+            $this->bag_error = 'Geen adres gevonden voor deze combinatie van postcode en huisnummer.';
+
+            return;
+        }
+
+        $this->household['postal_code'] = $address->postalCode;
+        $this->household['street'] = $address->street;
+        $this->household['city'] = $address->city;
+        $this->household['country'] = 'NL';
+    }
+
+    /**
+     * Trek een ingediende openstaande wijziging in.
+     */
+    public function withdrawProposal(int $proposalId, ProposalEngine $engine): void
+    {
+        $person = $this->requirePerson();
+
+        $proposal = Proposal::query()
+            ->where('id', $proposalId)
+            ->where('proposed_by_person_id', $person->id)
+            ->firstOrFail();
+
+        $engine->withdraw($proposal, $person);
+
+        $this->statusMessage = 'Je openstaande wijziging is ingetrokken.';
+    }
+
+    /**
+     * Dien wijzigingen aan naamvelden in als één of meer voorstellen.
+     */
+    public function submitNameChanges(ProposalEngine $engine): void
+    {
+        foreach (['first_name', 'last_name_prefix', 'last_name'] as $field) {
+            $this->submitSensitive($field, $this->name[$field] ?? '', $engine);
+        }
+    }
+
+    /**
+     * Dien een wijziging aan de geboortedatum in als voorstel.
+     */
+    public function submitDateOfBirth(ProposalEngine $engine): void
+    {
+        $this->submitSensitive('date_of_birth', $this->date_of_birth, $engine);
+    }
+
+    /**
+     * Dien een aanvraag voor een (nieuwe of andere) lidmaatschapsvorm in.
+     * Gaat via de goedkeuringsmotor; wordt bij goedkeuring omgezet naar een
+     * nieuw of aangepast Membership door PersonFieldUpdateHandler.
+     */
+    public function submitMembershipTypeChange(ProposalEngine $engine): void
+    {
+        if ($this->membership_type_key === null || $this->membership_type_key === '') {
+            $this->statusMessage = 'Kies eerst een lidmaatschapsvorm.';
+
+            return;
+        }
+
+        $typeId = MembershipType::query()->where('key', $this->membership_type_key)->value('id');
+        if ($typeId === null) {
+            $this->statusMessage = 'Deze lidmaatschapsvorm bestaat niet meer.';
+
+            return;
+        }
+
+        $this->submitSensitive('membership_type_id', $typeId, $engine);
     }
 
     /**
@@ -443,6 +597,28 @@ class MijnLidmaatschap extends Component
         return MembershipType::query()->orderBy('sort_order')->orderBy('name')->get();
     }
 
+    /**
+     * Ingediende wijzigingen die nog wachten op beoordeling — het lid kan ze
+     * intrekken of overschrijven door opnieuw in te dienen.
+     *
+     * @return \Illuminate\Support\Collection<int, Proposal>
+     */
+    #[Computed]
+    public function openProposals(): \Illuminate\Support\Collection
+    {
+        $person = $this->currentPerson();
+        if ($person === null) {
+            return collect();
+        }
+
+        return Proposal::query()
+            ->where('subject_type', PersonFieldUpdateHandler::SUBJECT_TYPE)
+            ->where('proposed_by_person_id', $person->id)
+            ->whereIn('status', [ProposalStatus::Submitted, ProposalStatus::InReview, ProposalStatus::Returned])
+            ->orderByDesc('created_at')
+            ->get();
+    }
+
     public function render(): View
     {
         $person = $this->currentPerson();
@@ -450,6 +626,7 @@ class MijnLidmaatschap extends Component
         return view('livewire.portal.mijn-lidmaatschap', [
             'personModel' => $person,
             'currentMembership' => $this->currentMembership(),
+            'openProposals' => $this->openProposals(),
             'iceContacts' => $this->iceContacts(),
             'membershipTypes' => $this->membershipTypes(),
         ]);

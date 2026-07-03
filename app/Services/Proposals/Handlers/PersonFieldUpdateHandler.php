@@ -2,6 +2,8 @@
 
 namespace App\Services\Proposals\Handlers;
 
+use App\Enums\MembershipStatus;
+use App\Models\Membership;
 use App\Models\Person;
 use App\Models\Proposal;
 use App\Services\Audit\AuditLogger;
@@ -90,10 +92,18 @@ class PersonFieldUpdateHandler implements ProposalHandler
         if ($field === 'membership_type_id') {
             $current = $person->currentMembership();
             if ($current === null) {
-                throw new ProposalConflictException('Geen lopend lidmaatschap om het type van te wijzigen.');
+                // Nog geen lopend lidmaatschap → nieuwe aanvraag effectueren.
+                Membership::create([
+                    'person_id' => $person->id,
+                    'membership_type_id' => (int) $payload['new_value'],
+                    'status' => MembershipStatus::Active,
+                    'start_date' => now()->toDateString(),
+                    'billing_person_id' => $person->id,
+                ]);
+            } else {
+                $current->membership_type_id = (int) $payload['new_value'];
+                $current->save();
             }
-            $current->membership_type_id = (int) $payload['new_value'];
-            $current->save();
         } else {
             $person->{$field} = $payload['new_value'] ?? null;
             $person->save();

@@ -12,70 +12,178 @@
         </div>
     @endif
 
+    {{-- Openstaande wijzigingen ------------------------------------------ --}}
+    @if ($openProposals->isNotEmpty())
+        <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+            <h2 class="font-display text-base text-amber-900">Openstaande wijzigingen</h2>
+            <p class="text-xs text-amber-800">
+                Deze wijzigingen wachten op beoordeling. Je kunt ze intrekken; opnieuw indienen met een nieuwe waarde overschrijft de vorige aanvraag.
+            </p>
+            <ul class="space-y-2 text-sm">
+                @foreach ($openProposals as $prop)
+                    @php
+                        $field = $prop->payload['field'] ?? 'onbekend';
+                        $newValue = $prop->payload['new_value'] ?? '—';
+                        $label = match ($field) {
+                            'first_name' => 'Voornaam',
+                            'last_name_prefix' => 'Tussenvoegsel',
+                            'last_name' => 'Achternaam',
+                            'date_of_birth' => 'Geboortedatum',
+                            'membership_type_id' => 'Lidmaatschapsvorm',
+                            default => $field,
+                        };
+                        if ($field === 'membership_type_id') {
+                            $typeName = \App\Models\MembershipType::query()->whereKey($newValue)->value('name');
+                            $newValueLabel = $typeName ?? '—';
+                        } else {
+                            $newValueLabel = (string) ($newValue ?? '—');
+                        }
+                    @endphp
+                    <li class="flex items-center justify-between bg-white border border-amber-200 rounded px-3 py-2">
+                        <div>
+                            <span class="font-medium text-gray-900">{{ $label }}</span>
+                            <span class="text-gray-600">→ {{ $newValueLabel }}</span>
+                            <span class="ml-2 text-xs uppercase tracking-wide text-amber-700">{{ $prop->status->value }}</span>
+                        </div>
+                        <button type="button" wire:click="withdrawProposal({{ $prop->id }})"
+                            class="text-xs px-2 py-1 rounded border border-amber-400 text-amber-800 hover:bg-amber-100">
+                            Intrekken
+                        </button>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
     {{-- Persoonsgegevens ------------------------------------------------ --}}
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
         <h2 class="font-display text-xl text-gray-900">Persoonlijke gegevens</h2>
 
         @if ($personModel)
-            <p class="text-xs text-gray-500 italic">
-                Wijzigingen aan naam en geboortedatum lopen via een goedkeuringsverzoek en zijn zichtbaar zodra ze zijn goedgekeurd.
-            </p>
-            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div>
-                    <dt class="text-gray-500">Naam</dt>
-                    <dd class="font-medium text-gray-900">
-                        {{ trim(($personModel->first_name).' '.($personModel->last_name_prefix ? $personModel->last_name_prefix.' ' : '').$personModel->last_name) }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500">Geboortedatum</dt>
-                    <dd class="font-medium text-gray-900">
-                        {{ $personModel->date_of_birth?->format('d-m-Y') ?? '—' }}
-                    </dd>
+            <div class="space-y-6">
+                {{-- Naam + geboortedatum → via goedkeuring --}}
+                <div class="border border-amber-100 bg-amber-50 rounded-md p-4 space-y-3">
+                    <p class="text-xs text-amber-800 italic">
+                        Wijzigingen aan naam en geboortedatum lopen via een goedkeuringsverzoek en zijn zichtbaar zodra ze zijn goedgekeurd.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <x-input-label for="name-first" value="Voornaam" />
+                            <x-text-input id="name-first" wire:model="name.first_name" class="mt-1 w-full" />
+                        </div>
+                        <div>
+                            <x-input-label for="name-prefix" value="Tussenvoegsel" />
+                            <x-text-input id="name-prefix" wire:model="name.last_name_prefix" class="mt-1 w-full" />
+                        </div>
+                        <div>
+                            <x-input-label for="name-last" value="Achternaam" />
+                            <x-text-input id="name-last" wire:model="name.last_name" class="mt-1 w-full" />
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" wire:click="submitNameChanges"
+                            class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                            Naam ter goedkeuring indienen
+                        </button>
+                    </div>
+
+                    <div class="pt-2 border-t border-amber-200">
+                        <x-input-label for="dob" value="Geboortedatum" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <x-text-input id="dob" type="date" wire:model="date_of_birth" class="flex-1" />
+                            <button type="button" wire:click="submitDateOfBirth"
+                                class="text-sm px-3 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                                Ter goedkeuring indienen
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <x-input-label for="person-email" value="E-mail" />
-                    <div class="flex items-center gap-2">
-                        <x-text-input id="person-email" type="email" wire:model="person.email"
-                            wire:blur="saveDirect('person','email')" class="mt-1 flex-1" />
+                {{-- Contactgegevens → direct --}}
+                <div class="space-y-3">
+                    <p class="text-xs text-gray-500 italic">E-mail en telefoon kun je zelf direct wijzigen.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <x-input-label for="person-email" value="E-mail" />
+                            <x-text-input id="person-email" type="email" wire:model="person.email" class="mt-1 w-full" />
+                        </div>
+                        <div>
+                            <x-input-label for="person-phone" value="Telefoon" />
+                            <x-text-input id="person-phone" type="tel" wire:model="person.phone" class="mt-1 w-full" />
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" wire:click="saveContact"
+                            class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                            Contactgegevens opslaan
+                        </button>
                     </div>
                 </div>
-                <div>
-                    <x-input-label for="person-phone" value="Telefoon" />
-                    <div class="flex items-center gap-2">
-                        <x-text-input id="person-phone" type="tel" wire:model="person.phone"
-                            wire:blur="saveDirect('person','phone')" class="mt-1 flex-1" />
-                    </div>
-                </div>
-            </dl>
+            </div>
         @endif
     </section>
 
     {{-- Adres ----------------------------------------------------------- --}}
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-5">
         <h2 class="font-display text-xl text-gray-900">Adres</h2>
+
+        <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" wire:model.live="abroad" class="rounded border-gray-300 text-rzvg-600">
+            <span>Ik woon in het buitenland (geen BAG-koppeling)</span>
+        </label>
+
+        @if (! $abroad)
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm items-end">
+                <div>
+                    <x-input-label for="household-postal_code" value="Postcode" />
+                    <x-text-input id="household-postal_code" wire:model="household.postal_code" placeholder="1234AB" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <x-input-label for="household-house_number" value="Huisnummer" />
+                    <x-text-input id="household-house_number" wire:model="household.house_number" class="mt-1 w-full" />
+                </div>
+                <div class="sm:col-span-2">
+                    <button type="button" wire:click="lookupAddress"
+                        class="text-sm px-3 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                        Adres opzoeken (BAG)
+                    </button>
+                </div>
+            </div>
+            @if ($bag_error)
+                <p class="text-sm text-red-600">{{ $bag_error }}</p>
+            @endif
+        @endif
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
                 <x-input-label for="household-street" value="Straat" />
-                <x-text-input id="household-street" wire:model="household.street"
-                    wire:blur="saveDirect('household','street')" class="mt-1 w-full" />
-            </div>
-            <div>
-                <x-input-label for="household-house_number" value="Huisnummer" />
-                <x-text-input id="household-house_number" wire:model="household.house_number"
-                    wire:blur="saveDirect('household','house_number')" class="mt-1 w-full" />
-            </div>
-            <div>
-                <x-input-label for="household-postal_code" value="Postcode" />
-                <x-text-input id="household-postal_code" wire:model="household.postal_code"
-                    wire:blur="saveDirect('household','postal_code')" class="mt-1 w-full" />
+                <x-text-input id="household-street" wire:model="household.street" class="mt-1 w-full" />
             </div>
             <div>
                 <x-input-label for="household-city" value="Plaats" />
-                <x-text-input id="household-city" wire:model="household.city"
-                    wire:blur="saveDirect('household','city')" class="mt-1 w-full" />
+                <x-text-input id="household-city" wire:model="household.city" class="mt-1 w-full" />
             </div>
+            @if ($abroad)
+                <div>
+                    <x-input-label for="household-house_number-abroad" value="Huisnummer" />
+                    <x-text-input id="household-house_number-abroad" wire:model="household.house_number" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <x-input-label for="household-postal_code-abroad" value="Postcode (optioneel)" />
+                    <x-text-input id="household-postal_code-abroad" wire:model="household.postal_code" class="mt-1 w-full" />
+                </div>
+                <div>
+                    <x-input-label for="household-country" value="Land (ISO 2-letter, bv. DE, BE, FR)" />
+                    <x-text-input id="household-country" wire:model="household.country" maxlength="2" class="mt-1 w-full" />
+                </div>
+            @endif
+        </div>
+
+        <div class="flex justify-end">
+            <button type="button" wire:click="saveAddress"
+                class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                Adres opslaan
+            </button>
         </div>
     </section>
 
@@ -155,6 +263,33 @@
         @else
             <p class="text-sm text-gray-600">Je hebt op dit moment geen lopend lidmaatschap.</p>
         @endif
+
+        {{-- Vormkeuze: nieuwe aanvraag of wijziging --}}
+        <div class="pt-4 border-t border-gray-100 space-y-3">
+            <p class="text-sm text-gray-700">
+                @if ($currentMembership)
+                    Wil je van lidmaatschapsvorm wisselen? Kies hieronder en dien de wijziging ter goedkeuring in.
+                @else
+                    Vraag hieronder een lidmaatschap aan. De ledenadministratie beoordeelt je aanvraag.
+                @endif
+            </p>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+                <div class="flex-1">
+                    <x-input-label for="membership-type" value="Lidmaatschapsvorm" />
+                    <select id="membership-type" wire:model="membership_type_key"
+                        class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600">
+                        <option value="">— Kies een vorm —</option>
+                        @foreach ($membershipTypes as $type)
+                            <option value="{{ $type->key }}">{{ $type->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="button" wire:click="submitMembershipTypeChange"
+                    class="text-sm px-3 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
+                    {{ $currentMembership ? 'Wijziging indienen' : 'Aanvragen' }}
+                </button>
+            </div>
+        </div>
     </section>
 
     {{-- ICE-contacten --------------------------------------------------- --}}
