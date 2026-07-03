@@ -53,6 +53,7 @@ class PermissionSeeder extends Seeder
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
             'menu' => ['manage'],
+            'site_settings' => ['manage'],
             'ice_contacts' => ['view'],
         ];
 
@@ -114,6 +115,7 @@ class PermissionSeeder extends Seeder
             'media' => 'Media',
             'queue' => 'Queue',
             'menu' => 'Publiek menu',
+            'site_settings' => 'Site-instellingen',
             'ice_contacts' => 'ICE-contacten',
             default => ucfirst($module),
         };

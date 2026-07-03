@@ -12,6 +12,7 @@ use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
+use App\View\Composers\PublicFooterComposer;
 use App\View\Composers\PublicNavComposer;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\View;
@@ -55,5 +56,6 @@ class AppServiceProvider extends ServiceProvider
         );
 
         View::composer('public._nav', PublicNavComposer::class);
+        View::composer('public._footer', PublicFooterComposer::class);
     }
 }

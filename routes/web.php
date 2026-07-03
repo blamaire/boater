@@ -12,6 +12,7 @@ use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\MenuBeheer;
+use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
@@ -80,6 +81,10 @@ Route::middleware(['auth', 'verified'])
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
     ->name('admin.menu');
+
+Route::middleware(['auth', 'verified', 'can:site_settings.manage'])
+    ->get('/beheer/instellingen', SiteInstellingen::class)
+    ->name('admin.site-settings');
 
 Route::middleware(['auth', 'verified', 'can:queue.manage'])
     ->prefix('beheer/failed-jobs')
