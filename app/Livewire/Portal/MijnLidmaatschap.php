@@ -340,20 +340,16 @@ class MijnLidmaatschap extends Component
     }
 
     /**
-     * Dien wijzigingen aan naamvelden in als één of meer voorstellen.
+     * Dien alle wijzigingen in het "persoonlijke gegevens"-blok in één klik in:
+     * voornaam, tussenvoegsel, achternaam en geboortedatum. Elk gewijzigd
+     * veld wordt een apart Proposal (per §20 — het veld is de kleinste
+     * beslis-eenheid).
      */
-    public function submitNameChanges(ProposalEngine $engine): void
+    public function submitPersonalChanges(ProposalEngine $engine): void
     {
         foreach (['first_name', 'last_name_prefix', 'last_name'] as $field) {
             $this->submitSensitive($field, $this->name[$field] ?? '', $engine);
         }
-    }
-
-    /**
-     * Dien een wijziging aan de geboortedatum in als voorstel.
-     */
-    public function submitDateOfBirth(ProposalEngine $engine): void
-    {
         $this->submitSensitive('date_of_birth', $this->date_of_birth, $engine);
     }
 
@@ -595,6 +591,25 @@ class MijnLidmaatschap extends Component
     public function membershipTypes(): Collection
     {
         return MembershipType::query()->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    /**
+     * Openstaande wijzigingen per veld — snel opzoekbaar in de blade.
+     *
+     * @return array<string, Proposal>
+     */
+    #[Computed]
+    public function pendingByField(): array
+    {
+        $out = [];
+        foreach ($this->openProposals() as $prop) {
+            $field = $prop->payload['field'] ?? null;
+            if (is_string($field)) {
+                $out[$field] = $prop;
+            }
+        }
+
+        return $out;
     }
 
     /**
