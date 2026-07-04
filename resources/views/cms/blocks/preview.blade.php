@@ -111,6 +111,80 @@
     @case('scheiding')
         <hr class="border-gray-200 my-2">
         @break
+    @case('hero')
+        @php($heroUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
+        <section class="relative -mx-4 sm:-mx-6 lg:-mx-8 h-screen min-h-[560px] flex items-center justify-center overflow-hidden bg-gray-300">
+            @if ($heroUrl)
+                <img src="{{ $heroUrl }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+            @else
+                <div class="absolute inset-0 flex items-center justify-center text-gray-500 text-lg">
+                    <span class="border-2 border-dashed border-gray-500 px-6 py-3 rounded">Foto ontbreekt — kies er een in de bibliotheek</span>
+                </div>
+            @endif
+            <div class="relative z-10 max-w-3xl text-center px-6 py-8 bg-white/70 backdrop-blur-sm rounded-lg">
+                <h1 class="font-display text-4xl md:text-6xl text-rzvg-700 leading-tight">{{ $c['title'] ?? '' }}</h1>
+                @if (! empty($c['subtitle']))
+                    <p class="mt-4 text-lg text-gray-700">{{ $c['subtitle'] }}</p>
+                @endif
+                <div class="mt-6 flex flex-wrap gap-3 justify-center">
+                    @if (! empty($c['cta_label']))
+                        <a href="{{ $c['cta_href'] ?: '#' }}" class="inline-flex items-center px-6 py-3 rounded bg-rzvg-600 text-white font-medium shadow hover:bg-rzvg-700">
+                            {{ $c['cta_label'] }}
+                        </a>
+                    @endif
+                    @if (! empty($c['cta2_label']))
+                        <a href="{{ $c['cta2_href'] ?: '#' }}" class="inline-flex items-center px-6 py-3 rounded border border-rzvg-600 text-rzvg-700 hover:bg-rzvg-50">
+                            {{ $c['cta2_label'] }}
+                        </a>
+                    @endif
+                </div>
+            </div>
+        </section>
+        @break
+    @case('video')
+        @php($videoUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
+        <section class="-mx-4 sm:-mx-6 lg:-mx-8 py-16 bg-gray-900">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                @if ($videoUrl)
+                    <video src="{{ $videoUrl }}" controls preload="metadata" class="w-full aspect-video rounded-lg bg-black"></video>
+                @else
+                    <div class="aspect-video bg-gray-700 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-500 text-gray-300">
+                        Video ontbreekt — kies er een in de bibliotheek
+                    </div>
+                @endif
+            </div>
+        </section>
+        @break
+    @case('feature_sectie')
+        @php($featUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
+        @php($side = ($c['image_side'] ?? 'left') === 'right' ? 'right' : 'left')
+        <section class="-mx-4 sm:-mx-6 lg:-mx-8 py-20 bg-white">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                <div @class(['aspect-[4/3] rounded-lg overflow-hidden bg-gray-200', 'md:order-2' => $side === 'right'])>
+                    @if ($featUrl)
+                        <img src="{{ $featUrl }}" alt="" class="w-full h-full object-cover">
+                    @else
+                        <div class="w-full h-full flex items-center justify-center border border-dashed border-gray-400 text-gray-500">
+                            Foto ontbreekt
+                        </div>
+                    @endif
+                </div>
+                <div @class(['md:order-1' => $side === 'right'])>
+                    <h2 class="font-display text-3xl md:text-4xl text-rzvg-700">{{ $c['title'] ?? '' }}</h2>
+                    @if (! empty($c['body']))
+                        <div class="mt-4 prose max-w-none text-gray-700">{!! $c['body'] !!}</div>
+                    @endif
+                    @if (! empty($c['cta_label']))
+                        <div class="mt-6">
+                            <a href="{{ $c['cta_href'] ?: '#' }}" class="inline-flex items-center px-5 py-2.5 rounded border border-rzvg-600 text-rzvg-700 hover:bg-rzvg-50">
+                                {{ $c['cta_label'] }} →
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </section>
+        @break
     @default
         <em class="text-gray-400">Onbekend bloktype.</em>
 @endswitch

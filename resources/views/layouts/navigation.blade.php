@@ -21,6 +21,9 @@
                     @else
                         <x-nav-section soon>Content</x-nav-section>
                     @endcan
+                    @can('media.view')
+                        <x-nav-section :href="route('admin.media')" :active="request()->routeIs('admin.media')">Media</x-nav-section>
+                    @endcan
                     @can('menu.manage')
                         <x-nav-section :href="route('admin.menu')" :active="request()->routeIs('admin.menu')">Menu</x-nav-section>
                     @endcan

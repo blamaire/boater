@@ -1,10 +1,20 @@
 <div>
     @if ($open)
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" wire:click.self="close" wire:key="media-lib-modal">
-            <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div @class([
+            'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50' => ! $standalone,
+        ])
+            @if (! $standalone) wire:click.self="close" @endif
+            wire:key="media-lib-modal">
+            <div @class([
+                'bg-white rounded-lg space-y-4 max-h-[90vh] overflow-y-auto',
+                'shadow-xl max-w-5xl w-full p-6' => ! $standalone,
+                'w-full p-6 border border-gray-200 shadow-sm' => $standalone,
+            ])>
                 <div class="flex items-baseline justify-between">
                     <h2 class="font-display text-xl">Mediabibliotheek</h2>
-                    <button wire:click="close" class="text-gray-400 hover:text-gray-700">✕</button>
+                    @if (! $standalone)
+                        <button wire:click="close" class="text-gray-400 hover:text-gray-700">✕</button>
+                    @endif
                 </div>
 
                 @can('media.upload')

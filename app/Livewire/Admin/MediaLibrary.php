@@ -24,6 +24,8 @@ class MediaLibrary extends Component
 
     public bool $open = false;
 
+    public bool $standalone = false;
+
     public string $contextId = '';
 
     public string $search = '';
@@ -42,6 +44,13 @@ class MediaLibrary extends Component
     public string $uploadVisibility = 'publiek';
 
     public ?string $uploadError = null;
+
+    public function mount(): void
+    {
+        if ($this->standalone) {
+            $this->open = true;
+        }
+    }
 
     #[On('open-media-library')]
     public function openLibrary(string $contextId = ''): void

@@ -16,6 +16,9 @@ enum BlockType: string
     case VideoEmbed = 'video_embed';
     case FileDownload = 'bestand';
     case Divider = 'scheiding';
+    case Hero = 'hero';
+    case Video = 'video';
+    case FeatureSection = 'feature_sectie';
 
     public function label(): string
     {
@@ -32,6 +35,9 @@ enum BlockType: string
             self::VideoEmbed => 'Video / embed',
             self::FileDownload => 'Bestand / download',
             self::Divider => 'Scheiding',
+            self::Hero => 'Hero (grote foto met tekst)',
+            self::Video => 'Video (uit bibliotheek)',
+            self::FeatureSection => 'Feature-sectie (foto + tekst + CTA)',
         };
     }
 
@@ -53,6 +59,24 @@ enum BlockType: string
             self::VideoEmbed => ['provider' => 'youtube', 'embed_url' => ''],
             self::FileDownload => ['url' => '', 'label' => '', 'size' => null],
             self::Divider => ['style' => 'line'],
+            self::Hero => [
+                'media_asset_id' => null,
+                'title' => '',
+                'subtitle' => '',
+                'cta_label' => '',
+                'cta_href' => '',
+                'cta2_label' => '',
+                'cta2_href' => '',
+            ],
+            self::Video => ['media_asset_id' => null],
+            self::FeatureSection => [
+                'media_asset_id' => null,
+                'title' => '',
+                'body' => '',
+                'cta_label' => '',
+                'cta_href' => '',
+                'image_side' => 'left',
+            ],
         };
     }
 }

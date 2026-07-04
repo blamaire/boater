@@ -175,4 +175,89 @@
     @case('scheiding')
         <p class="text-sm text-gray-500">Dit blok heeft geen instellingen — het toont een horizontale lijn.</p>
         @break
+
+    @case('hero')
+        <div class="space-y-1">
+            <x-input-label value="Foto (pagina-vullend)" />
+            <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'hero-image' })" class="mt-1 px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Kies uit bibliotheek</button>
+            @if (! empty($editingContent['media_asset_id']))
+                <p class="text-xs text-gray-500">Asset #{{ $editingContent['media_asset_id'] }} gekozen.</p>
+            @else
+                <p class="text-xs text-gray-500">Nog geen foto gekozen.</p>
+            @endif
+        </div>
+        <div>
+            <x-input-label for="hero-title" value="Titel" />
+            <x-text-input id="hero-title" wire:model="editingContent.title" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="hero-subtitle" value="Ondertitel / slogan" />
+            <x-text-input id="hero-subtitle" wire:model="editingContent.subtitle" class="block mt-1 w-full" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <x-input-label for="hero-cta-label" value="CTA-knop 1 label" />
+                <x-text-input id="hero-cta-label" wire:model="editingContent.cta_label" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="hero-cta-href" value="CTA-knop 1 URL" />
+                <x-text-input id="hero-cta-href" wire:model="editingContent.cta_href" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="hero-cta2-label" value="CTA-knop 2 label (optioneel)" />
+                <x-text-input id="hero-cta2-label" wire:model="editingContent.cta2_label" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="hero-cta2-href" value="CTA-knop 2 URL" />
+                <x-text-input id="hero-cta2-href" wire:model="editingContent.cta2_href" class="block mt-1 w-full" />
+            </div>
+        </div>
+        @break
+
+    @case('video')
+        <div class="space-y-1">
+            <x-input-label value="Video (uit mediabibliotheek)" />
+            <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'video-asset' })" class="mt-1 px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Kies uit bibliotheek</button>
+            @if (! empty($editingContent['media_asset_id']))
+                <p class="text-xs text-gray-500">Asset #{{ $editingContent['media_asset_id'] }} gekozen.</p>
+            @else
+                <p class="text-xs text-gray-500">Nog geen video gekozen.</p>
+            @endif
+        </div>
+        @break
+
+    @case('feature_sectie')
+        <div class="space-y-1">
+            <x-input-label value="Foto" />
+            <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'feature-image' })" class="mt-1 px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Kies uit bibliotheek</button>
+            @if (! empty($editingContent['media_asset_id']))
+                <p class="text-xs text-gray-500">Asset #{{ $editingContent['media_asset_id'] }} gekozen.</p>
+            @endif
+        </div>
+        <div>
+            <x-input-label for="feat-title" value="Titel" />
+            <x-text-input id="feat-title" wire:model="editingContent.title" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="feat-body" value="Tekst (HTML toegestaan)" />
+            <textarea id="feat-body" wire:model="editingContent.body" rows="4" class="mt-1 block w-full border-gray-300 rounded"></textarea>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <x-input-label for="feat-cta-label" value="CTA-label" />
+                <x-text-input id="feat-cta-label" wire:model="editingContent.cta_label" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="feat-cta-href" value="CTA-URL" />
+                <x-text-input id="feat-cta-href" wire:model="editingContent.cta_href" class="block mt-1 w-full" />
+            </div>
+        </div>
+        <div>
+            <x-input-label for="feat-side" value="Foto links of rechts" />
+            <select id="feat-side" wire:model="editingContent.image_side" class="mt-1 block w-full border-gray-300 rounded">
+                <option value="left">Links</option>
+                <option value="right">Rechts</option>
+            </select>
+        </div>
+        @break
 @endswitch
