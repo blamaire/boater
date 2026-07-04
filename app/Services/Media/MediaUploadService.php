@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\File\Exception\FileException;
 
 class MediaUploadService
 {
-    public const int MAX_BYTES = 10 * 1024 * 1024;
+    public const int MAX_BYTES = 512 * 1024 * 1024;
 
     public const int THUMB_SIZE = 300;
 
@@ -127,7 +127,7 @@ class MediaUploadService
 
         $size = $file->getSize() ?: 0;
         if ($size > self::MAX_BYTES) {
-            throw new FileException('Bestand is groter dan 10 MB.');
+            throw new FileException('Bestand is groter dan 512 MB.');
         }
 
         $mime = $file->getMimeType() ?? '';

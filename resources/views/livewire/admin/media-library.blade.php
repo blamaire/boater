@@ -22,7 +22,7 @@
                         <h3 class="font-medium text-sm text-gray-700">Nieuw bestand uploaden</h3>
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div>
-                                <x-input-label for="upload-file" value="Bestand (max 10 MB)" />
+                                <x-input-label for="upload-file" value="Bestand (max 512 MB)" />
                                 <input id="upload-file" type="file" wire:model="uploadFile"
                                     class="mt-1 block w-full text-sm text-gray-500 file:me-3 file:py-1.5 file:px-3 file:border file:border-gray-300 file:rounded file:bg-white file:text-sm hover:file:bg-gray-50">
                             </div>

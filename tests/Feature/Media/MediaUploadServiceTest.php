@@ -34,10 +34,11 @@ it('stores an image with dimensions and a thumbnail', function () {
 });
 
 it('rejects a file that is too large', function () {
-    $file = UploadedFile::fake()->create('groot.pdf', 15 * 1024, 'application/pdf');
+    // Nét boven de limiet van 512 MB (uitgedrukt in KB voor UploadedFile::fake).
+    $file = UploadedFile::fake()->create('groot.pdf', 513 * 1024, 'application/pdf');
 
     expect(fn () => app(MediaUploadService::class)->store($file))
-        ->toThrow(FileException::class, 'groter dan 10 MB');
+        ->toThrow(FileException::class, 'groter dan 512 MB');
 });
 
 it('rejects a disallowed mime type', function () {
