@@ -1,10 +1,20 @@
 <div>
     @if ($open)
-        <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" wire:click.self="close" wire:key="media-lib-modal">
-            <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div @class([
+            'fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50' => ! $standalone,
+        ])
+            @if (! $standalone) wire:click.self="close" @endif
+            wire:key="media-lib-modal">
+            <div @class([
+                'bg-white rounded-lg space-y-4 max-h-[90vh] overflow-y-auto',
+                'shadow-xl max-w-5xl w-full p-6' => ! $standalone,
+                'w-full p-6 border border-gray-200 shadow-sm' => $standalone,
+            ])>
                 <div class="flex items-baseline justify-between">
                     <h2 class="font-display text-xl">Mediabibliotheek</h2>
-                    <button wire:click="close" class="text-gray-400 hover:text-gray-700">✕</button>
+                    @if (! $standalone)
+                        <button wire:click="close" class="text-gray-400 hover:text-gray-700">✕</button>
+                    @endif
                 </div>
 
                 @can('media.upload')
@@ -12,7 +22,7 @@
                         <h3 class="font-medium text-sm text-gray-700">Nieuw bestand uploaden</h3>
                         <div class="grid gap-3 sm:grid-cols-2">
                             <div>
-                                <x-input-label for="upload-file" value="Bestand (max 10 MB)" />
+                                <x-input-label for="upload-file" value="Bestand (max 512 MB)" />
                                 <input id="upload-file" type="file" wire:model="uploadFile"
                                     class="mt-1 block w-full text-sm text-gray-500 file:me-3 file:py-1.5 file:px-3 file:border file:border-gray-300 file:rounded file:bg-white file:text-sm hover:file:bg-gray-50">
                             </div>
@@ -34,7 +44,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <button wire:click="upload" wire:loading.attr="disabled" class="px-3 py-1.5 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 disabled:opacity-50">Uploaden</button>
+                            <button wire:click="storeUpload" wire:loading.attr="disabled" class="px-3 py-1.5 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 disabled:opacity-50">Uploaden</button>
                             <span wire:loading wire:target="upload" class="text-xs text-gray-500">Bezig…</span>
                             @if ($uploadError)
                                 <span class="text-xs text-red-600">{{ $uploadError }}</span>
@@ -69,18 +79,28 @@
                                 <button type="button" wire:click="selectAsset({{ $asset->id }})" class="block w-full">
                                     @if ($asset->type->value === 'afbeelding' && ($asset->thumbnailUrl() || $asset->displayUrl()))
                                         <img src="{{ $asset->thumbnailUrl() ?? $asset->displayUrl() }}" alt="{{ $asset->alt }}" class="w-full h-24 object-cover rounded">
+                                    @elseif ($asset->type->value === 'video' && $asset->thumbnailUrl())
+                                        <div class="relative w-full h-24 rounded overflow-hidden">
+                                            <img src="{{ $asset->thumbnailUrl() }}" alt="{{ $asset->alt }}" class="w-full h-full object-cover">
+                                            <div class="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-2xl">▶</div>
+                                        </div>
                                     @else
                                         <div class="w-full h-24 flex items-center justify-center bg-gray-100 rounded text-2xl">
-                                            {{ $asset->type->value === 'document' ? '📄' : '📁' }}
+                                            {{ match ($asset->type->value) { 'document' => '📄', 'video' => '🎬', default => '📁' } }}
                                         </div>
                                     @endif
                                 </button>
                                 <div class="text-xs text-gray-600 truncate" title="{{ $asset->original_name }}">{{ $asset->original_name }}</div>
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-gray-600">{{ $asset->type->label() }}</span>
-                                    @can('media.delete')
-                                        <button wire:click="deleteAsset({{ $asset->id }})" wire:confirm="Media verwijderen?" class="text-red-600 hover:text-red-800">✕</button>
-                                    @endcan
+                                    <div class="flex items-center gap-2">
+                                        @can('media.upload')
+                                            <button wire:click="editAsset({{ $asset->id }})" title="Eigenschappen bewerken" class="text-gray-600 hover:text-rzvg-600">✎</button>
+                                        @endcan
+                                        @can('media.delete')
+                                            <button wire:click="deleteAsset({{ $asset->id }})" wire:confirm="Media verwijderen?" class="text-red-600 hover:text-red-800">✕</button>
+                                        @endcan
+                                    </div>
                                 </div>
                             </div>
                         @empty
@@ -92,6 +112,59 @@
 
                     <div>{{ $assets->links() }}</div>
                 </section>
+
+                @if ($editingAssetId !== null)
+                    @php($editingAsset = \App\Models\MediaAsset::query()->with('tags')->find($editingAssetId))
+                    <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]" wire:click.self="cancelAssetEdit">
+                        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 space-y-4">
+                            <div class="flex items-baseline justify-between">
+                                <h3 class="font-display text-lg">Eigenschappen bewerken</h3>
+                                <button wire:click="cancelAssetEdit" class="text-gray-400 hover:text-gray-700">✕</button>
+                            </div>
+                            @if ($editingAsset)
+                                <div class="flex justify-center">
+                                    @if ($editingAsset->type->value === 'afbeelding' && ($editingAsset->thumbnailUrl() || $editingAsset->displayUrl()))
+                                        <img src="{{ $editingAsset->thumbnailUrl() ?? $editingAsset->displayUrl() }}" alt="{{ $editingAsset->alt }}" class="max-h-48 rounded border border-gray-200">
+                                    @elseif ($editingAsset->type->value === 'video' && $editingAsset->thumbnailUrl())
+                                        <div class="relative">
+                                            <img src="{{ $editingAsset->thumbnailUrl() }}" alt="" class="max-h-48 rounded border border-gray-200">
+                                            <div class="absolute inset-0 flex items-center justify-center bg-black/30 text-white text-3xl rounded">▶</div>
+                                        </div>
+                                    @else
+                                        <div class="w-40 h-32 flex items-center justify-center bg-gray-100 rounded text-4xl">
+                                            {{ match ($editingAsset->type->value) { 'document' => '📄', 'video' => '🎬', default => '📁' } }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endif
+                            <div class="space-y-3 text-sm">
+                                <div>
+                                    <x-input-label for="edit-original-name" value="Bestandsnaam (weergave)" />
+                                    <x-text-input id="edit-original-name" wire:model="editOriginalName" class="mt-1 block w-full" />
+                                </div>
+                                <div>
+                                    <x-input-label for="edit-alt" value="Alt-tekst" />
+                                    <x-text-input id="edit-alt" wire:model="editAlt" class="mt-1 block w-full" />
+                                </div>
+                                <div>
+                                    <x-input-label for="edit-visibility" value="Zichtbaarheid" />
+                                    <select id="edit-visibility" wire:model="editVisibility" class="mt-1 block w-full border-gray-300 rounded-md">
+                                        <option value="publiek">Publiek</option>
+                                        <option value="besloten">Besloten (alleen leden met signed URL)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <x-input-label for="edit-tags" value="Tags (komma-gescheiden)" />
+                                    <x-text-input id="edit-tags" wire:model="editTagsInput" class="mt-1 block w-full" />
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <button type="button" wire:click="cancelAssetEdit" class="px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Annuleren</button>
+                                <button type="button" wire:click="saveAssetEdit" class="px-3 py-1.5 rounded bg-rzvg-600 text-white text-sm hover:bg-rzvg-700">Opslaan</button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     @endif

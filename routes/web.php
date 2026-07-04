@@ -86,6 +86,10 @@ Route::middleware(['auth', 'verified', 'can:site_settings.manage'])
     ->get('/beheer/instellingen', SiteInstellingen::class)
     ->name('admin.site-settings');
 
+Route::view('/beheer/media', 'admin.media')
+    ->middleware(['auth', 'verified', 'can:media.view'])
+    ->name('admin.media');
+
 Route::middleware(['auth', 'verified', 'can:queue.manage'])
     ->prefix('beheer/failed-jobs')
     ->name('admin.failed-jobs.')

@@ -5,6 +5,7 @@ namespace App\Enums;
 enum MediaType: string
 {
     case Image = 'afbeelding';
+    case Video = 'video';
     case Document = 'document';
     case Other = 'overig';
 
@@ -12,6 +13,7 @@ enum MediaType: string
     {
         return match ($this) {
             self::Image => 'Afbeelding',
+            self::Video => 'Video',
             self::Document => 'Document',
             self::Other => 'Overig',
         };
@@ -21,6 +23,10 @@ enum MediaType: string
     {
         if (str_starts_with($mimeType, 'image/')) {
             return self::Image;
+        }
+
+        if (str_starts_with($mimeType, 'video/')) {
+            return self::Video;
         }
 
         return match ($mimeType) {

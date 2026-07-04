@@ -218,7 +218,7 @@ class PageEditor extends Component
     }
 
     #[On('media-selected')]
-    public function handleMediaSelected(string $contextId, int $assetId, string $url, ?string $thumbnailUrl = null, ?string $alt = null, ?string $originalName = null): void
+    public function handleMediaSelected(string $contextId, int $assetId, string $url, string $thumbnailUrl = '', string $alt = '', string $originalName = ''): void
     {
         if ($this->editingBlockId === null) {
             return;
@@ -228,7 +228,7 @@ class PageEditor extends Component
             'image' => $this->editingContent = array_merge($this->editingContent, [
                 'url' => $url,
                 'media_asset_id' => $assetId,
-                'alt' => $this->editingContent['alt'] ?? $alt ?? '',
+                'alt' => $this->editingContent['alt'] ?? $alt,
             ]),
             'card-image' => $this->editingContent = array_merge($this->editingContent, [
                 'image_url' => $url,
@@ -237,7 +237,10 @@ class PageEditor extends Component
             'file' => $this->editingContent = array_merge($this->editingContent, [
                 'url' => $url,
                 'media_asset_id' => $assetId,
-                'label' => $this->editingContent['label'] ?? $originalName ?? '',
+                'label' => $this->editingContent['label'] ?? $originalName,
+            ]),
+            'hero-image', 'video-asset', 'feature-image' => $this->editingContent = array_merge($this->editingContent, [
+                'media_asset_id' => $assetId,
             ]),
             default => null,
         };
