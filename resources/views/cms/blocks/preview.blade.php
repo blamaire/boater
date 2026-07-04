@@ -113,7 +113,7 @@
         @break
     @case('hero')
         @php($heroUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
-        <section class="relative -mx-4 sm:-mx-6 lg:-mx-8 h-screen min-h-[560px] flex items-center justify-center overflow-hidden bg-gray-300">
+        <section class="relative w-screen left-1/2 -translate-x-1/2 h-screen min-h-[560px] flex items-center justify-center overflow-hidden bg-gray-300">
             @if ($heroUrl)
                 <img src="{{ $heroUrl }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @else
@@ -121,10 +121,10 @@
                     <span class="border-2 border-dashed border-gray-500 px-6 py-3 rounded">Foto ontbreekt — kies er een in de bibliotheek</span>
                 </div>
             @endif
-            <div class="relative z-10 max-w-3xl text-center px-6 py-8 bg-white/70 backdrop-blur-sm rounded-lg">
-                <h1 class="font-display text-4xl md:text-6xl text-rzvg-700 leading-tight">{{ $c['title'] ?? '' }}</h1>
+            <div class="relative z-10 max-w-3xl text-center px-6 py-8">
+                <h1 class="font-display text-4xl md:text-6xl text-white leading-tight drop-shadow-lg">{{ $c['title'] ?? '' }}</h1>
                 @if (! empty($c['subtitle']))
-                    <p class="mt-4 text-lg text-gray-700">{{ $c['subtitle'] }}</p>
+                    <p class="mt-4 text-lg text-white drop-shadow-md">{{ $c['subtitle'] }}</p>
                 @endif
                 <div class="mt-6 flex flex-wrap gap-3 justify-center">
                     @if (! empty($c['cta_label']))
@@ -143,24 +143,24 @@
         @break
     @case('video')
         @php($videoUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
-        <section class="-mx-4 sm:-mx-6 lg:-mx-8 py-16 bg-gray-900">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                @if ($videoUrl)
-                    <video src="{{ $videoUrl }}" controls preload="metadata" class="w-full aspect-video rounded-lg bg-black"></video>
-                @else
-                    <div class="aspect-video bg-gray-700 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-500 text-gray-300">
-                        Video ontbreekt — kies er een in de bibliotheek
-                    </div>
-                @endif
-            </div>
+        <section class="relative w-screen left-1/2 -translate-x-1/2 bg-black">
+            @if ($videoUrl)
+                <video src="{{ $videoUrl }}"
+                    autoplay muted loop playsinline preload="metadata"
+                    class="block w-full h-auto"></video>
+            @else
+                <div class="aspect-video flex items-center justify-center border-2 border-dashed border-gray-500 text-gray-300">
+                    Video ontbreekt — kies er een in de bibliotheek
+                </div>
+            @endif
         </section>
         @break
     @case('feature_sectie')
         @php($featUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
         @php($side = ($c['image_side'] ?? 'left') === 'right' ? 'right' : 'left')
-        <section class="-mx-4 sm:-mx-6 lg:-mx-8 py-20 bg-white">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-                <div @class(['aspect-[4/3] rounded-lg overflow-hidden bg-gray-200', 'md:order-2' => $side === 'right'])>
+        <section class="relative w-screen left-1/2 -translate-x-1/2 bg-white">
+            <div class="grid grid-cols-1 md:grid-cols-2 items-stretch">
+                <div @class(['aspect-[4/3] md:aspect-auto md:min-h-[28rem] overflow-hidden bg-gray-200', 'md:order-2' => $side === 'right'])>
                     @if ($featUrl)
                         <img src="{{ $featUrl }}" alt="" class="w-full h-full object-cover">
                     @else
@@ -169,7 +169,8 @@
                         </div>
                     @endif
                 </div>
-                <div @class(['md:order-1' => $side === 'right'])>
+                <div @class(['flex items-center px-6 sm:px-10 lg:px-16 py-16', 'md:order-1' => $side === 'right'])>
+                    <div class="max-w-xl">
                     <h2 class="font-display text-3xl md:text-4xl text-rzvg-700">{{ $c['title'] ?? '' }}</h2>
                     @if (! empty($c['body']))
                         <div class="mt-4 prose max-w-none text-gray-700">{!! $c['body'] !!}</div>
@@ -181,6 +182,7 @@
                             </a>
                         </div>
                     @endif
+                    </div>
                 </div>
             </div>
         </section>

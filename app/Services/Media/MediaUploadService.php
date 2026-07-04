@@ -14,6 +14,7 @@ use Intervention\Image\Drivers\Gd\Driver as GdDriver;
 use Intervention\Image\Encoders\WebpEncoder;
 use Intervention\Image\ImageManager;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
+use Symfony\Component\Process\Process;
 
 class MediaUploadService
 {
@@ -28,6 +29,16 @@ class MediaUploadService
         'image/webp',
         'image/gif',
         'image/svg+xml',
+    ];
+
+    /** @var array<int, string> */
+    public const array ALLOWED_VIDEO_MIMES = [
+        'video/mp4',
+        'video/webm',
+        'video/ogg',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/x-matroska',
     ];
 
     /** @var array<int, string> */
@@ -78,6 +89,10 @@ class MediaUploadService
                 $dimensions = ['width' => $info[0], 'height' => $info[1]];
             }
             $thumbnailPath = $this->generateThumbnail($disk, $path, $filename, $visibility);
+        }
+
+        if ($type === MediaType::Video) {
+            $thumbnailPath = $this->generateVideoThumbnail($disk, $path, $filename, $visibility);
         }
 
         $asset = MediaAsset::create([
@@ -131,7 +146,7 @@ class MediaUploadService
         }
 
         $mime = $file->getMimeType() ?? '';
-        $allowed = array_merge(self::ALLOWED_IMAGE_MIMES, self::ALLOWED_DOCUMENT_MIMES);
+        $allowed = array_merge(self::ALLOWED_IMAGE_MIMES, self::ALLOWED_VIDEO_MIMES, self::ALLOWED_DOCUMENT_MIMES);
         if (! in_array($mime, $allowed, true)) {
             throw new FileException('Bestandstype ['.$mime.'] wordt niet ondersteund.');
         }
@@ -156,6 +171,67 @@ class MediaUploadService
         }
     }
 
+    /**
+     * Trek een frame op t=1s uit de video via ffmpeg en converteer naar webp
+     * met dezelfde THUMB_SIZE-limiet als de beeld-thumbnails.
+     */
+    private function generateVideoThumbnail(string $disk, string $sourcePath, string $filename, PageVisibility $visibility): ?string
+    {
+        if (! $this->ffmpegAvailable()) {
+            return null;
+        }
+
+        $absolute = Storage::disk($disk)->path($sourcePath);
+        $thumbPath = 'thumbnails/'.now()->format('Y/m').'/'.pathinfo($filename, PATHINFO_FILENAME).'.webp';
+
+        // Ffmpeg schrijft naar een tijdelijk bestand; daarna kopiëren we het
+        // via Storage zodat visibility en disk-driver ook op S3 werken.
+        $tmp = tempnam(sys_get_temp_dir(), 'vidthumb_').'.webp';
+
+        try {
+            $process = new Process([
+                'ffmpeg',
+                '-y',
+                '-ss', '00:00:01',
+                '-i', $absolute,
+                '-frames:v', '1',
+                '-vf', 'scale='.self::THUMB_SIZE.':-1',
+                $tmp,
+            ]);
+            $process->setTimeout(60);
+            $process->run();
+
+            if (! $process->isSuccessful() || ! is_file($tmp)) {
+                return null;
+            }
+
+            Storage::disk($disk)->put($thumbPath, (string) file_get_contents($tmp), [
+                'visibility' => $visibility === PageVisibility::Public ? 'public' : 'private',
+            ]);
+
+            return $thumbPath;
+        } catch (\Throwable) {
+            return null;
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
+        }
+    }
+
+    private function ffmpegAvailable(): bool
+    {
+        $process = new Process(['ffmpeg', '-version']);
+        $process->setTimeout(5);
+        try {
+            $process->run();
+
+            return $process->isSuccessful();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     private function extensionFromMime(string $mime): string
     {
         return match ($mime) {
@@ -164,6 +240,12 @@ class MediaUploadService
             'image/webp' => 'webp',
             'image/gif' => 'gif',
             'image/svg+xml' => 'svg',
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'video/ogg' => 'ogv',
+            'video/quicktime' => 'mov',
+            'video/x-msvideo' => 'avi',
+            'video/x-matroska' => 'mkv',
             'application/pdf' => 'pdf',
             'application/msword' => 'doc',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',

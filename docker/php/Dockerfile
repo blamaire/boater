@@ -13,6 +13,9 @@ RUN install-php-extensions \
     gd \
     exif
 
+# ffmpeg voor video-thumbnails in de mediabibliotheek.
+RUN apk add --no-cache ffmpeg
+
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/zz-app.ini

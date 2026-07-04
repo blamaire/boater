@@ -45,6 +45,17 @@ class MediaLibrary extends Component
 
     public ?string $uploadError = null;
 
+    // Edit-modus voor een bestaand asset.
+    public ?int $editingAssetId = null;
+
+    public string $editAlt = '';
+
+    public string $editOriginalName = '';
+
+    public string $editVisibility = 'publiek';
+
+    public string $editTagsInput = '';
+
     public function mount(): void
     {
         if ($this->standalone) {
@@ -76,7 +87,7 @@ class MediaLibrary extends Component
         $this->resetPage();
     }
 
-    public function upload(MediaUploadService $service): void
+    public function storeUpload(MediaUploadService $service): void
     {
         $this->uploadError = null;
 
@@ -116,9 +127,9 @@ class MediaLibrary extends Component
             contextId: $this->contextId,
             assetId: $asset->id,
             url: $asset->displayUrl(),
-            thumbnailUrl: $asset->thumbnailUrl(),
-            alt: $asset->alt,
-            originalName: $asset->original_name,
+            thumbnailUrl: $asset->thumbnailUrl() ?? '',
+            alt: $asset->alt ?? '',
+            originalName: $asset->original_name ?? '',
         );
 
         $this->close();
@@ -136,6 +147,47 @@ class MediaLibrary extends Component
             $disk->delete($asset->thumbnail_path);
         }
         $asset->delete();
+    }
+
+    /**
+     * Open het edit-formulier voor een bestaand asset.
+     */
+    public function editAsset(int $assetId): void
+    {
+        $asset = MediaAsset::query()->with('tags')->findOrFail($assetId);
+
+        $this->editingAssetId = $asset->id;
+        $this->editAlt = (string) ($asset->alt ?? '');
+        $this->editOriginalName = (string) ($asset->original_name ?? '');
+        $this->editVisibility = $asset->visibility === PageVisibility::Public ? 'publiek' : 'besloten';
+        $this->editTagsInput = $asset->tags->pluck('name')->implode(', ');
+    }
+
+    public function cancelAssetEdit(): void
+    {
+        $this->reset(['editingAssetId', 'editAlt', 'editOriginalName', 'editVisibility', 'editTagsInput']);
+    }
+
+    /**
+     * Sla de gewijzigde eigenschappen van een bestaand asset op.
+     */
+    public function saveAssetEdit(MediaUploadService $service): void
+    {
+        if ($this->editingAssetId === null) {
+            return;
+        }
+
+        $asset = MediaAsset::query()->findOrFail($this->editingAssetId);
+
+        $asset->alt = trim($this->editAlt) !== '' ? trim($this->editAlt) : null;
+        $asset->original_name = trim($this->editOriginalName) !== '' ? trim($this->editOriginalName) : $asset->original_name;
+        $asset->visibility = $this->editVisibility === 'publiek' ? PageVisibility::Public : PageVisibility::Restricted;
+        $asset->save();
+
+        $tagNames = $this->parseTags($this->editTagsInput);
+        $service->syncTags($asset, $tagNames);
+
+        $this->cancelAssetEdit();
     }
 
     public function render(): View
