@@ -37,12 +37,7 @@
                 {{ $slot }}
             </main>
 
-            <footer class="bg-white border-t border-gray-200 mt-auto">
-                <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between text-sm text-gray-500">
-                    <span>&copy; {{ now()->year }} RZVG</span>
-                    <span class="font-display text-rzvg-600">Roei- en Zeilvereniging Gouda</span>
-                </div>
-            </footer>
+            @include('public._footer')
         </div>
         @livewireScripts
     </body>

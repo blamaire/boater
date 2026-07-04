@@ -24,6 +24,9 @@
                     @can('menu.manage')
                         <x-nav-section :href="route('admin.menu')" :active="request()->routeIs('admin.menu')">Menu</x-nav-section>
                     @endcan
+                    @can('site_settings.manage')
+                        <x-nav-section :href="route('admin.site-settings')" :active="request()->routeIs('admin.site-settings')">Instellingen</x-nav-section>
+                    @endcan
                     @can('roles.view')
                         <x-nav-section :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')">Beheer</x-nav-section>
                     @else
