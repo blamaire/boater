@@ -16,7 +16,7 @@ use Livewire\Component;
  * zolang de tabel leeg is toont de publieke site automatisch de root-CMS-
  * pagina's als fallback.
  */
-#[Layout('layouts.app')]
+#[Layout('layouts.app', ['header' => 'Menu-beheer'])]
 class MenuBeheer extends Component
 {
     public string $newLabel = '';
