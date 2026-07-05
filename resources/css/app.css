@@ -11,6 +11,10 @@
    Tailwind's auto-detectie mist ze door de colon in de string-key. */
 @source inline("md:grid-cols-2 md:grid-cols-3");
 
+/* Alpine.js: verberg elementen met x-cloak tot Alpine ze mount, zodat
+   sidebar-transitie niet 'flitst' bij initial load. */
+[x-cloak] { display: none !important; }
+
 @theme {
     --color-rzvg-50: #fdecec;
     --color-rzvg-100: #fbd0d1;

@@ -1,16 +1,14 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-baseline justify-between">
-            <h1 class="font-display text-2xl text-gray-900">Rollen</h1>
-            @can('roles.create')
+    <x-slot name="header">Rollen &amp; permissies</x-slot>
+
+    <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        @can('roles.create')
+            <div class="flex justify-end">
                 <a href="{{ route('admin.roles.create') }}" class="inline-flex items-center px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 transition">
                     Nieuwe rol
                 </a>
-            @endcan
-        </div>
-    </x-slot>
-
-    <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            </div>
+        @endcan
         @if (session('status'))
             <div class="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">{{ session('status') }}</div>
         @endif

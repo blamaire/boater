@@ -1,10 +1,7 @@
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
-    <header>
-        <h1 class="font-display text-3xl text-rzvg-600">Site-instellingen</h1>
-        <p class="text-sm text-gray-500 mt-1">
-            Beheer het contactblok in de footer, sociale-media-links en verwijzingen naar disclaimer- en privacypagina's.
-        </p>
-    </header>
+    <p class="text-sm text-gray-500">
+        Beheer het contactblok in de footer, sociale-media-links en verwijzingen naar disclaimer- en privacypagina's.
+    </p>
 
     @if ($statusMessage)
         <div class="rounded-md bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2" role="status">

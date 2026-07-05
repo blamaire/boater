@@ -1,12 +1,10 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-baseline justify-between">
-            <h1 class="font-display text-2xl text-gray-900">Vergelijken — v{{ $a->version_no }} vs v{{ $b->version_no }}</h1>
-            <a href="{{ route('admin.pages.history', $page) }}" class="text-sm text-gray-600 hover:text-gray-800">← Historie</a>
-        </div>
-    </x-slot>
+    <x-slot name="header">Vergelijken — v{{ $a->version_no }} vs v{{ $b->version_no }}</x-slot>
 
     <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <div>
+            <a href="{{ route('admin.pages.history', $page) }}" class="text-sm text-gray-600 hover:text-gray-800">← Historie</a>
+        </div>
         @php($report = app(\App\Services\Cms\ConflictDetector::class)->detect($a, $b, null))
 
         <section class="bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700">
