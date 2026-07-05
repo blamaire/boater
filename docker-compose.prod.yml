@@ -33,6 +33,12 @@ services:
       - "443:443"
     volumes:
       - .:/var/www/html
+      # Caddy serveert /storage/media/... rechtstreeks als static file via
+      # de symlink public/storage → storage/app/public. Zonder deze mount ziet
+      # caddy een lege map en levert 404 op elke thumbnail/asset-URL, terwijl
+      # Laravel de upload wél schrijft naar het (alleen aan app gemounte)
+      # media_data-volume.
+      - media_data:/var/www/html/storage/app/public/media
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
