@@ -40,7 +40,7 @@ class PermissionSeeder extends Seeder
             'activities' => $contentLifecycle,
             'reservations' => $proposalLifecycle,
             'damage_reports' => ['view', 'create', 'update', 'resolve'],
-            'pages' => $contentLifecycle,
+            'pages' => array_merge($contentLifecycle, ['push']),
             'invoices' => $crud,
             'ledger' => ['view', 'update'],
             'mailings' => ['view', 'create', 'send'],
@@ -55,6 +55,7 @@ class PermissionSeeder extends Seeder
             'menu' => ['manage'],
             'site_settings' => ['manage'],
             'ice_contacts' => ['view'],
+            'environments' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -117,6 +118,7 @@ class PermissionSeeder extends Seeder
             'menu' => 'Publiek menu',
             'site_settings' => 'Site-instellingen',
             'ice_contacts' => 'ICE-contacten',
+            'environments' => 'Omgevingen',
             default => ucfirst($module),
         };
 
@@ -131,6 +133,7 @@ class PermissionSeeder extends Seeder
             'send' => "{$moduleLabel} versturen",
             'run' => "{$moduleLabel} uitvoeren",
             'sign_up' => "Inschrijven op {$moduleLabel}",
+            'push' => "{$moduleLabel} naar een andere omgeving pushen",
             'upload' => "{$moduleLabel} uploaden",
             'manage' => "{$moduleLabel} beheren (failed jobs opnieuw uitvoeren of verwijderen)",
             default => "{$action} op {$moduleLabel}",
