@@ -6,6 +6,7 @@ use App\Enums\PageType;
 use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Http\Controllers\Controller;
+use App\Models\Environment;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Template;
@@ -27,6 +28,10 @@ class PageController extends Controller
 
         return view('admin.pages.index', [
             'pages' => $pages,
+            'pushEnvironments' => Environment::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

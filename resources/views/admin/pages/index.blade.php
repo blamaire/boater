@@ -54,6 +54,23 @@
                                     <a href="{{ route('admin.pages.editor', $page) }}" class="text-rzvg-600 hover:text-rzvg-800">Bewerken</a>
                                     <a href="{{ route('admin.pages.edit', $page) }}" class="text-gray-600 hover:text-gray-800">Instellingen</a>
                                 @endcan
+                                @can('pages.push')
+                                    @if ($page->publishedVersion && $pushEnvironments->isNotEmpty())
+                                        <form method="POST" action="{{ route('admin.pages.push', $page) }}"
+                                            class="inline-flex items-center gap-1"
+                                            onsubmit="return confirm('Deze pagina naar de gekozen omgeving pushen?');">
+                                            @csrf
+                                            <select name="environment_id" required
+                                                class="text-xs border-gray-300 rounded py-1 pl-2 pr-6 focus:border-rzvg-600 focus:ring-rzvg-600">
+                                                <option value="">Push naar…</option>
+                                                @foreach ($pushEnvironments as $env)
+                                                    <option value="{{ $env->id }}">{{ $env->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            <button type="submit" class="text-rzvg-600 hover:text-rzvg-800">Push</button>
+                                        </form>
+                                    @endif
+                                @endcan
                                 @can('pages.delete')
                                     @if ($page->type->isDeletable())
                                         <form method="POST" action="{{ route('admin.pages.destroy', $page) }}" class="inline" onsubmit="return confirm('Pagina verwijderen?');">

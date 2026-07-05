@@ -5,12 +5,14 @@ use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
+use App\Http\Controllers\Admin\PagePushController;
 use App\Http\Controllers\Admin\PersonRoleController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
@@ -52,6 +54,8 @@ Route::middleware(['auth', 'verified'])
             ->middleware('can:pages.update')
             ->name('conflict.show');
 
+        Route::post('/{page}/push', PagePushController::class)->middleware('can:pages.push')->name('push');
+
         Route::get('/{page}/historie', [PageHistoryController::class, 'index'])->middleware('can:pages.view')->name('history');
         Route::get('/{page}/historie/{version}/diff/{other}', [PageHistoryController::class, 'diff'])->middleware('can:pages.view')->name('history.diff');
         Route::post('/{page}/historie/{version}/herstellen', [PageHistoryController::class, 'restore'])->middleware('can:pages.update')->name('history.restore');
@@ -85,6 +89,10 @@ Route::middleware(['auth', 'verified', 'can:menu.manage'])
 Route::middleware(['auth', 'verified', 'can:site_settings.manage'])
     ->get('/beheer/instellingen', SiteInstellingen::class)
     ->name('admin.site-settings');
+
+Route::middleware(['auth', 'verified', 'can:environments.manage'])
+    ->get('/beheer/omgevingen', EnvironmentBeheer::class)
+    ->name('admin.environments');
 
 Route::view('/beheer/media', 'admin.media')
     ->middleware(['auth', 'verified', 'can:media.view'])

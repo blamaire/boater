@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'rzvg_import' => [
+        'token' => env('RZVG_IMPORT_TOKEN'),
+    ],
+
 ];

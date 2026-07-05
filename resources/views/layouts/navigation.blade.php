@@ -33,7 +33,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'roles.view'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             <ul class="mt-2 space-y-1">
@@ -75,6 +75,16 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.site-settings'),
                                 'text-gray-700' => ! request()->routeIs('admin.site-settings'),
                             ])>Instellingen</a>
+                    </li>
+                @endcan
+                @can('environments.manage')
+                    <li>
+                        <a href="{{ route('admin.environments') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.environments'),
+                                'text-gray-700' => ! request()->routeIs('admin.environments'),
+                            ])>Omgevingen</a>
                     </li>
                 @endcan
                 @can('roles.view')
