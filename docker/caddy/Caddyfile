@@ -1,0 +1,34 @@
+# Caddy config voor de test/prod-server. Domein wordt uit een env-variabele
+# gelezen zodat je APP_DOMAIN in .env kunt aanpassen zonder deze file te editen.
+# Voorbeeld: APP_DOMAIN=test.rzvg.lamaire.nl
+#
+# Caddy regelt automatisch een Let's Encrypt-certificaat en HTTPS-redirect.
+
+{$APP_DOMAIN} {
+    root * /var/www/html/public
+    encode zstd gzip
+
+    php_fastcgi app:9000
+
+    file_server
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # Verberg gevoelige paden.
+    @dotfiles {
+        path /.*
+        not path /.well-known/*
+    }
+    respond @dotfiles 403
+
+    log {
+        output stdout
+        format console
+    }
+}

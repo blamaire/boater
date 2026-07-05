@@ -1,0 +1,107 @@
+# Productie / test-server-stack. Verschilt van docker-compose.yml (dev) op:
+# - Geen mailpit / geen node-service (Vite-assets worden vooraf gebouwd).
+# - Caddy als reverse proxy op poort 80/443 met automatische HTTPS.
+# - MySQL + media persistent op named volumes.
+# - Restart policies op alle services zodat de stack na reboot vanzelf start.
+# - Queue-worker en scheduler als aparte services.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rzvg-app
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+      - media_data:/var/www/html/storage/app/public/media
+      - storage_logs:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rzvg
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: rzvg-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - .:/var/www/html
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - rzvg
+
+  db:
+    image: mysql:8.0
+    container_name: rzvg-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rzvg
+
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rzvg-queue
+    restart: unless-stopped
+    command: php artisan queue:work database --tries=3 --sleep=3 --timeout=90
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+      - media_data:/var/www/html/storage/app/public/media
+      - storage_logs:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rzvg
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: rzvg-scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    env_file: .env
+    volumes:
+      - .:/var/www/html
+      - media_data:/var/www/html/storage/app/public/media
+      - storage_logs:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rzvg
+
+volumes:
+  db_data:
+  media_data:
+  storage_logs:
+  caddy_data:
+  caddy_config:
+
+networks:
+  rzvg:
+    driver: bridge
