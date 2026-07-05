@@ -122,6 +122,29 @@ class Person extends Model
     }
 
     /**
+     * Relaties waarin deze persoon de subject is (bv. ouder van kind X):
+     * `$parent->relations` levert de PersonRelation-records met
+     * $relation->related_person = het kind.
+     *
+     * @return HasMany<PersonRelation, $this>
+     */
+    public function relations(): HasMany
+    {
+        return $this->hasMany(PersonRelation::class, 'person_id');
+    }
+
+    /**
+     * Relaties waarin deze persoon het object is (bv. jeugdlid dat een ouder
+     * heeft): `$child->inverseRelations->first()->person` = de ouder.
+     *
+     * @return HasMany<PersonRelation, $this>
+     */
+    public function inverseRelations(): HasMany
+    {
+        return $this->hasMany(PersonRelation::class, 'related_person_id');
+    }
+
+    /**
      * Het huidige lopende lidmaatschap (actief, en einddatum leeg of in de
      * toekomst). Wordt gebruikt door "Mijn lidmaatschap" (§19.1).
      */

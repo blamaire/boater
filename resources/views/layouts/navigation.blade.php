@@ -33,7 +33,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             <ul class="mt-2 space-y-1">
@@ -95,6 +95,16 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*'),
                                 'text-gray-700' => ! (request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')),
                             ])>Rollen &amp; permissies</a>
+                    </li>
+                @endcan
+                @can('users.manage')
+                    <li>
+                        <a href="{{ route('admin.users.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*')),
+                            ])>Gebruikers</a>
                     </li>
                 @endcan
             </ul>

@@ -163,6 +163,45 @@ class MembershipTypeSeeder extends Seeder
                 'derives_from_key' => null,
                 'sort_order' => 90,
             ],
+            // Bijzondere vormen (§7-uitbreiding): personen die wel in het
+            // systeem staan (rollen, ICE-koppeling, mail), maar geen echt lid
+            // zijn. Fase 3/4 filteren op is_member=false.
+            [
+                'key' => 'ouder_verzorger',
+                'name' => 'Ouder/verzorger',
+                'is_member' => false,
+                'description' => 'Ouder of verzorger van een minderjarig lid; geen eigen ledenrechten, wel bereikbaar voor mail en gekoppeld aan het kind via een person-relatie.',
+                'min_age' => null,
+                'max_age' => null,
+                'allows_boat_use' => false,
+                'allows_instruction' => false,
+                'intro_per_year' => 0,
+                'allows_competition' => false,
+                'seasonal_only' => false,
+                'auto_expiry' => false,
+                'requires_proof' => false,
+                'is_partner_type' => false,
+                'derives_from_key' => null,
+                'sort_order' => 200,
+            ],
+            [
+                'key' => 'functionaris_extern',
+                'name' => 'Externe functionaris',
+                'is_member' => false,
+                'description' => 'Externe partij (bv. terrein- of gebouwbeheerder, leverancier) met een account voor beheer- of communicatietaken; geen lidmaatschapsrechten.',
+                'min_age' => null,
+                'max_age' => null,
+                'allows_boat_use' => false,
+                'allows_instruction' => false,
+                'intro_per_year' => 0,
+                'allows_competition' => false,
+                'seasonal_only' => false,
+                'auto_expiry' => false,
+                'requires_proof' => false,
+                'is_partner_type' => false,
+                'derives_from_key' => null,
+                'sort_order' => 210,
+            ],
         ];
 
         foreach ($types as $type) {

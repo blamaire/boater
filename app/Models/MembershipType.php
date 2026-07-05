@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $key
  * @property string $name
+ * @property bool $is_member
  * @property string|null $description
  * @property int|null $min_age
  * @property int|null $max_age
@@ -29,6 +30,7 @@ class MembershipType extends Model
     protected $fillable = [
         'key',
         'name',
+        'is_member',
         'description',
         'min_age',
         'max_age',
@@ -47,6 +49,7 @@ class MembershipType extends Model
     protected function casts(): array
     {
         return [
+            'is_member' => 'bool',
             'min_age' => 'int',
             'max_age' => 'int',
             'allows_boat_use' => 'bool',

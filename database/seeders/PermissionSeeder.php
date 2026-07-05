@@ -56,6 +56,7 @@ class PermissionSeeder extends Seeder
             'site_settings' => ['manage'],
             'ice_contacts' => ['view'],
             'environments' => ['manage'],
+            'users' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -119,6 +120,7 @@ class PermissionSeeder extends Seeder
             'site_settings' => 'Site-instellingen',
             'ice_contacts' => 'ICE-contacten',
             'environments' => 'Omgevingen',
+            'users' => 'Gebruikers',
             default => ucfirst($module),
         };
 
