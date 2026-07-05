@@ -1,12 +1,5 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-baseline justify-between">
-            <h1 class="font-display text-2xl text-gray-900">
-                Welkom{{ $person ? ', '.$person->first_name : '' }}
-            </h1>
-            <p class="text-sm text-gray-500">{{ now()->translatedFormat('l j F Y') }}</p>
-        </div>
-    </x-slot>
+    <x-slot name="header">Welkom{{ $person ? ', '.$person->first_name : '' }}</x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">

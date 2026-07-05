@@ -14,7 +14,7 @@ use Livewire\Component;
  * Beheer-UI voor de site-brede instellingen (footer-contactblok, sociale
  * media, verwijzingen naar CMS-pagina's voor disclaimer/AVG).
  */
-#[Layout('layouts.app')]
+#[Layout('layouts.app', ['header' => 'Site-instellingen'])]
 class SiteInstellingen extends Component
 {
     public string $contact_name = '';

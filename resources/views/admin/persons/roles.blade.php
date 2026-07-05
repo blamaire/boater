@@ -1,9 +1,5 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h1 class="font-display text-2xl text-gray-900">
-            Rollen van {{ $person->first_name }} {{ $person->last_name }}
-        </h1>
-    </x-slot>
+    <x-slot name="header">Rollen van {{ $person->first_name }} {{ $person->last_name }}</x-slot>
 
     <div class="py-8 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         @if (session('status'))

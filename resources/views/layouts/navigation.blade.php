@@ -1,117 +1,118 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <div class="shrink-0 flex items-center gap-3">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
-                        <x-application-logo class="block h-10 w-auto" alt="RZVG" />
-                        <span class="hidden md:inline font-display text-lg text-rzvg-600">RZVG</span>
-                    </a>
-                </div>
+@php
+    $item = fn (?string $href, string $label, bool $active = false, bool $soon = false) => compact('href', 'label', 'active', 'soon');
+    $items = [
+        $item(route('dashboard'), 'Dashboard', request()->routeIs('dashboard')),
+        $item(null, 'Voorstellen', false, true),
+        $item(route('portal.mijn-lidmaatschap'), 'Mijn lidmaatschap', request()->routeIs('portal.mijn-lidmaatschap')),
+        $item(null, 'Activiteiten & Reserveren', false, true),
+    ];
+@endphp
 
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-section :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        Dashboard
-                    </x-nav-section>
-                    <x-nav-section soon>Voorstellen</x-nav-section>
-                    <x-nav-section :href="route('portal.mijn-lidmaatschap')" :active="request()->routeIs('portal.mijn-lidmaatschap')">Mijn lidmaatschap</x-nav-section>
-                    <x-nav-section soon>Activiteiten &amp; Reserveren</x-nav-section>
-                    @can('pages.view')
-                        <x-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-nav-section>
+<nav class="p-4 space-y-6 text-sm">
+    <div>
+        <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Portaal</h3>
+        <ul class="mt-2 space-y-1">
+            @foreach ($items as $it)
+                <li>
+                    @if ($it['soon'])
+                        <span class="block px-3 py-2 rounded-md text-gray-400 italic">
+                            {{ $it['label'] }} <span class="text-xs">(binnenkort)</span>
+                        </span>
                     @else
-                        <x-nav-section soon>Content</x-nav-section>
-                    @endcan
-                    @can('media.view')
-                        <x-nav-section :href="route('admin.media')" :active="request()->routeIs('admin.media')">Media</x-nav-section>
-                    @endcan
-                    @can('menu.manage')
-                        <x-nav-section :href="route('admin.menu')" :active="request()->routeIs('admin.menu')">Menu</x-nav-section>
-                    @endcan
-                    @can('site_settings.manage')
-                        <x-nav-section :href="route('admin.site-settings')" :active="request()->routeIs('admin.site-settings')">Instellingen</x-nav-section>
-                    @endcan
-                    @can('roles.view')
-                        <x-nav-section :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')">Beheer</x-nav-section>
-                    @else
-                        <x-nav-section soon>Beheer</x-nav-section>
-                    @endcan
-                </div>
-            </div>
-
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <x-dropdown align="right" width="48">
-                    <x-slot name="trigger">
-                        <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-600 bg-white hover:text-gray-900 focus:outline-none transition ease-in-out duration-150">
-                            <div>{{ Auth::user()->name }}</div>
-                            <div class="ms-1">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                        </button>
-                    </x-slot>
-
-                    <x-slot name="content">
-                        <x-dropdown-link :href="route('profile.edit')">Profiel</x-dropdown-link>
-
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <x-dropdown-link :href="route('logout')"
-                                    onclick="event.preventDefault(); this.closest('form').submit();">
-                                Uitloggen
-                            </x-dropdown-link>
-                        </form>
-                    </x-slot>
-                </x-dropdown>
-            </div>
-
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-700 transition duration-150 ease-in-out" aria-label="Menu openen">
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-        </div>
+                        <a href="{{ $it['href'] }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => $it['active'],
+                                'text-gray-700' => ! $it['active'],
+                            ])>
+                            {{ $it['label'] }}
+                        </a>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
     </div>
 
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-section :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                Dashboard
-            </x-responsive-nav-section>
-            <x-responsive-nav-section soon>Voorstellen</x-responsive-nav-section>
-            <x-responsive-nav-section :href="route('portal.mijn-lidmaatschap')" :active="request()->routeIs('portal.mijn-lidmaatschap')">Mijn lidmaatschap</x-responsive-nav-section>
-            <x-responsive-nav-section soon>Activiteiten &amp; Reserveren</x-responsive-nav-section>
-            @can('pages.view')
-                <x-responsive-nav-section :href="route('admin.pages.index')" :active="request()->routeIs('admin.pages.*')">Content</x-responsive-nav-section>
-            @else
-                <x-responsive-nav-section soon>Content</x-responsive-nav-section>
-            @endcan
-            @can('roles.view')
-                <x-responsive-nav-section :href="route('admin.roles.index')" :active="request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')">Beheer</x-responsive-nav-section>
-            @else
-                <x-responsive-nav-section soon>Beheer</x-responsive-nav-section>
-            @endcan
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'roles.view'])
+        <div>
+            <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
+            <ul class="mt-2 space-y-1">
+                @can('pages.view')
+                    <li>
+                        <a href="{{ route('admin.pages.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*'),
+                                'text-gray-700' => ! request()->routeIs('admin.pages.*'),
+                            ])>Content</a>
+                    </li>
+                @endcan
+                @can('media.view')
+                    <li>
+                        <a href="{{ route('admin.media') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.media'),
+                                'text-gray-700' => ! request()->routeIs('admin.media'),
+                            ])>Media</a>
+                    </li>
+                @endcan
+                @can('menu.manage')
+                    <li>
+                        <a href="{{ route('admin.menu') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.menu'),
+                                'text-gray-700' => ! request()->routeIs('admin.menu'),
+                            ])>Menu</a>
+                    </li>
+                @endcan
+                @can('site_settings.manage')
+                    <li>
+                        <a href="{{ route('admin.site-settings') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.site-settings'),
+                                'text-gray-700' => ! request()->routeIs('admin.site-settings'),
+                            ])>Instellingen</a>
+                    </li>
+                @endcan
+                @can('roles.view')
+                    <li>
+                        <a href="{{ route('admin.roles.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')),
+                            ])>Rollen &amp; permissies</a>
+                    </li>
+                @endcan
+            </ul>
         </div>
+    @endcanany
 
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-medium text-base text-gray-800">{{ Auth::user()->name }}</div>
-                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
-            </div>
-
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">Profiel</x-responsive-nav-link>
+    <div class="border-t border-gray-200 pt-4">
+        <div class="px-3 py-2">
+            <div class="font-medium text-gray-900">{{ Auth::user()->name }}</div>
+            <div class="text-xs text-gray-500 truncate">{{ Auth::user()->email }}</div>
+        </div>
+        <ul class="mt-2 space-y-1">
+            <li>
+                <a href="{{ route('profile.edit') }}"
+                    @class([
+                        'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                        'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('profile.edit'),
+                        'text-gray-700' => ! request()->routeIs('profile.edit'),
+                    ])>Profiel</a>
+            </li>
+            <li>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();">
+                    <button type="submit" class="block w-full text-left px-3 py-2 rounded-md text-gray-700 hover:bg-red-50 hover:text-red-700">
                         Uitloggen
-                    </x-responsive-nav-link>
+                    </button>
                 </form>
-            </div>
-        </div>
+            </li>
+        </ul>
     </div>
 </nav>
