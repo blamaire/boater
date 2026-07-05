@@ -58,10 +58,10 @@ docker run --rm -v "$PWD":/app -w /app php:8.4-cli php -r \
 Zet in het DNS-paneel van je domein een **A-record**:
 
 ```
-test.rzvg.lamaire.nl  →  <ip-van-de-vserver>
+rzvg-tst.lamaire.nl  →  <ip-van-de-vserver>
 ```
 
-TTL 300–3600. Wacht tot `dig test.rzvg.lamaire.nl` het juiste IP retourneert
+TTL 300–3600. Wacht tot `dig rzvg-tst.lamaire.nl` het juiste IP retourneert
 (meestal binnen enkele minuten). Caddy heeft een geldige DNS-resolutie nodig
 om het Let's Encrypt-certificaat op te halen.
 
