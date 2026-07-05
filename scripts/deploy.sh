@@ -7,8 +7,9 @@
 #   2. Build assets (via node-container, éénmalig)
 #   3. Bouw + start containers via docker-compose.prod.yml
 #   4. Migreer database
-#   5. Cache warm
-#   6. Restart queue-worker (voor code-wijzigingen in queued jobs)
+#   5. Seed permissies/rollen/sjablonen (idempotent via updateOrCreate)
+#   6. Cache warm
+#   7. Restart queue-worker (voor code-wijzigingen in queued jobs)
 
 set -euo pipefail
 
@@ -46,6 +47,9 @@ $COMPOSE exec -T app php artisan storage:link || true
 
 echo "==> Migreren"
 $COMPOSE exec -T app php artisan migrate --force
+
+echo "==> Seeders (idempotent — permissies, rollen, sjablonen, review-policies, lidmaatschapsvormen, field-definitions)"
+$COMPOSE exec -T app php artisan db:seed --force
 
 echo "==> Config- en route-cache"
 $COMPOSE exec -T app php artisan config:cache
