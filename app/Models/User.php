@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $email_verified_at
  * @property string $password
  * @property string|null $remember_token
+ * @property Carbon|null $disabled_at
  * @property-read Person|null $person
  */
 class User extends Authenticatable implements MustVerifyEmail
@@ -35,6 +36,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'disabled_at',
     ];
 
     /**
@@ -57,12 +59,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'disabled_at' => 'datetime',
         ];
     }
 
     public function person(): HasOne
     {
         return $this->hasOne(Person::class, 'account_id');
+    }
+
+    public function isDisabled(): bool
+    {
+        return $this->disabled_at !== null;
     }
 
     /**
