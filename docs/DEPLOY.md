@@ -83,7 +83,7 @@ docker compose -f docker-compose.prod.yml exec app php artisan rzvg:make-admin <
 
 ## 6. Updates uitrollen
 
-Bij elke code-wijziging op `main`:
+Bij elke code-wijziging op `main` (of welke branch je op de server hebt uitgechecked):
 
 ```sh
 ssh rzvg@<server-ip>
@@ -92,6 +92,33 @@ bash scripts/deploy.sh
 ```
 
 Idempotent — herhaalbaar zonder side-effects.
+
+### 6.1 Auto-deploy vanaf een `test`-branch
+
+Zodra je merges naar de branch `test` automatisch wilt uitrollen, activeer
+je de watcher-cron. Op de server als `rzvg`:
+
+```sh
+sudo touch /var/log/rzvg-auto-deploy.log && sudo chown rzvg:rzvg /var/log/rzvg-auto-deploy.log
+crontab -e
+```
+
+Voeg toe:
+
+```
+# Elke minuut kijken of origin/test nieuwe commits heeft en deployen.
+* * * * * flock -n /tmp/rzvg-auto-deploy.lock bash /var/www/rzvg/scripts/auto-deploy.sh >> /var/log/rzvg-auto-deploy.log 2>&1
+```
+
+De `flock` voorkomt overlappende deploys. Standaard is `DEPLOY_BRANCH=test`;
+zet er een `DEPLOY_BRANCH=<naam>=` in de cron voor als je een andere branch
+wilt volgen.
+
+Log realtime volgen:
+
+```sh
+tail -f /var/log/rzvg-auto-deploy.log
+```
 
 ---
 
@@ -108,12 +135,33 @@ Idempotent — herhaalbaar zonder side-effects.
 
 ## Backup
 
-Minimaal aanbevolen (via cron als `rzvg`):
+`scripts/backup.sh` dumpt MySQL + media naar `/home/rzvg/backups`, met
+standaard 30 dagen retention. Activeren via cron (als `rzvg`):
 
 ```sh
-# Elke nacht om 3:00
-0 3 * * * cd /var/www/rzvg && docker compose -f docker-compose.prod.yml exec -T db mysqldump -u root -p"$DB_ROOT_PASSWORD" "$DB_DATABASE" | gzip > /home/rzvg/backups/db-$(date +\%F).sql.gz
+mkdir -p /home/rzvg/backups
+sudo touch /var/log/rzvg-backup.log && sudo chown rzvg:rzvg /var/log/rzvg-backup.log
+crontab -e
 ```
 
-Voor media synchroniseer je periodiek `/var/lib/docker/volumes/rzvg_media_data`
-naar een tweede locatie (rsync, Backblaze B2, etc.).
+Voeg toe:
+
+```
+# Elke nacht om 03:00 een backup + retention-cleanup.
+0 3 * * * bash /var/www/rzvg/scripts/backup.sh >> /var/log/rzvg-backup.log 2>&1
+```
+
+Bestanden die het aanmaakt:
+
+- `/home/rzvg/backups/db-YYYY-MM-DD-HHMM.sql.gz` — gzipped mysqldump
+- `/home/rzvg/backups/media-YYYY-MM-DD-HHMM.tar.gz` — tar van het media-volume
+
+### Off-site kopie (aanbevolen)
+
+Voor bescherming tegen server-verlies dupliceer je de backups naar een
+andere locatie (rsync, S3-compatible, Backblaze B2). Voorbeeld met rsync
+naar een tweede host:
+
+```
+15 3 * * * rsync -aq --delete /home/rzvg/backups/ backup-user@backup-host:/rzvg/
+```
