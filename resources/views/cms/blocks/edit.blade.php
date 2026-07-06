@@ -260,4 +260,41 @@
             </select>
         </div>
         @break
+
+    @case('agenda')
+        <div>
+            <x-input-label for="agenda-title" value="Titel boven de lijst (optioneel)" />
+            <x-text-input id="agenda-title" wire:model="editingContent.title" class="mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label value="Voorfilter categorieën (leeg = alle)" />
+            <div class="mt-1 flex flex-wrap gap-2">
+                @foreach (\App\Models\ActivityCategory::query()->orderBy('sort_order')->get() as $cat)
+                    <label class="inline-flex items-center gap-1 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 text-sm">
+                        <input type="checkbox" value="{{ $cat->id }}" wire:model="editingContent.category_ids"
+                            class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600" />
+                        <span>{{ $cat->name }}</span>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+        <div>
+            <x-input-label for="agenda-period" value="Periode: hoeveel dagen vooruit (0 = onbeperkt)" />
+            <x-text-input id="agenda-period" type="number" min="0" wire:model="editingContent.period_days" class="mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="agenda-limit" value="Maximaal aantal items" />
+            <x-text-input id="agenda-limit" type="number" min="1" wire:model="editingContent.limit" class="mt-1 w-full" />
+        </div>
+        <div class="flex items-center gap-2">
+            <input id="agenda-hide-history" type="checkbox" wire:model="editingContent.hide_history"
+                class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600" />
+            <label for="agenda-hide-history" class="text-sm text-gray-700">Historie verbergen (voorkeur; gebruiker kan omzetten)</label>
+        </div>
+        <div class="flex items-center gap-2">
+            <input id="agenda-user-filter" type="checkbox" wire:model="editingContent.allow_user_filter"
+                class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600" />
+            <label for="agenda-user-filter" class="text-sm text-gray-700">Bezoekers verder laten filteren</label>
+        </div>
+        @break
 @endswitch

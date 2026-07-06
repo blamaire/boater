@@ -187,6 +187,9 @@
             </div>
         </section>
         @break
+    @case('agenda')
+        @livewire('public.agenda-block', ['blockContent' => $c], key('agenda-'.$block->id))
+        @break
     @default
         <em class="text-gray-400">Onbekend bloktype.</em>
 @endswitch

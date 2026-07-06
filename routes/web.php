@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\FailedJobsController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
@@ -12,6 +13,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Livewire\Admin\ActiviteitBeheer;
+use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\MenuBeheer;
@@ -92,6 +95,14 @@ Route::middleware(['auth', 'verified', 'can:users.manage'])
     ->get('/beheer/personen/{person}/rechten', PersonPermissionBeheer::class)
     ->name('admin.person-permissions.index');
 
+Route::middleware(['auth', 'verified', 'can:activities.view'])
+    ->get('/beheer/activiteiten', ActiviteitBeheer::class)
+    ->name('admin.activities.index');
+
+Route::middleware(['auth', 'verified', 'can:activities.update'])
+    ->get('/beheer/activiteiten/categorieen', ActivityCategoryBeheer::class)
+    ->name('admin.activity-categories.index');
+
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
     ->name('admin.menu');
@@ -125,6 +136,7 @@ require __DIR__.'/auth.php';
 
 Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
+Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')
     ->name('public.page');
