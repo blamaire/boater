@@ -31,7 +31,16 @@ Vervolg vanaf je lokale machine:
 ssh rzvg@<server-ip>
 ```
 
-## 2. Repo op de server + `.env`
+## 2. Repo op de server + `.env.tst`
+
+Elke omgeving heeft een eigen env-bestand naast de root van de repo:
+
+- `.env.local` — dev (op je laptop)
+- `.env.tst` — test-server
+- `.env.acc` — acceptatie-server (zie §6.2)
+
+De docker-compose stacks bind-mounten hun env-bestand als `/var/www/html/.env`
+zodat Laravel altijd de juiste config leest.
 
 ```sh
 # Als rzvg
@@ -40,9 +49,9 @@ cd /var/www
 git clone https://github.com/blamaire/boater.git rzvg
 cd rzvg
 
-cp .env.production.example .env
-nano .env   # vul minimaal APP_KEY, APP_DOMAIN, DB_PASSWORD, DB_ROOT_PASSWORD,
-            # en MAIL_* in
+cp .env.tst.example .env.tst
+nano .env.tst   # vul minimaal APP_KEY, APP_DOMAIN, DB_PASSWORD,
+                # DB_ROOT_PASSWORD, en MAIL_* in
 ```
 
 Genereer een APP_KEY:
@@ -78,7 +87,8 @@ en start alles. Na afloop moet de site live zijn op `https://APP_DOMAIN`.
 ## 5. Beheerder aanmaken
 
 ```sh
-docker compose -f docker-compose.prod.yml exec app php artisan rzvg:make-admin <email>
+docker compose --env-file .env.tst -f docker-compose.prod.yml exec app \
+    php artisan rzvg:make-admin <email>
 ```
 
 ## 6. Updates uitrollen
@@ -144,29 +154,26 @@ cd /var/www/rzvg-acc
 git checkout acceptatie
 ```
 
-#### Stap 2 — `.env` voor acc
+#### Stap 2 — `.env.acc` voor acc
 
 ```sh
-cp .env.acc.example .env
-nano .env   # vul APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, RZVG_IMPORT_TOKEN
+cp .env.acc.example .env.acc
+nano .env.acc   # vul APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, RZVG_IMPORT_TOKEN
 ```
 
 Genereer APP_KEY en `RZVG_IMPORT_TOKEN` op dezelfde manier als bij test (zie
 stap 2 hierboven). Kies andere waardes dan test — deze omgevingen delen niets.
+`ACC_DOMAIN=rzvg-acc.lamaire.nl` staat al in het template; niet in
+`.env.tst` zetten. De test-caddy leest `.env.acc` optioneel in en pikt de
+`ACC_DOMAIN` daaruit op.
 
-#### Stap 3 — `ACC_DOMAIN` in de test-`.env` zetten
+#### Stap 3 — Caddy uit test-stack herstarten
 
-De test-Caddy leest twee domeinen uit één `.env`. Voeg toe aan `/var/www/rzvg/.env`:
-
-```
-ACC_DOMAIN=rzvg-acc.lamaire.nl
-```
-
-Herstart Caddy zodat 'ie de nieuwe env-var én de Caddyfile-uitbreiding oppikt:
+Zodat de Caddy de nieuwe env-mount en Caddyfile-uitbreiding oppikt:
 
 ```sh
 cd /var/www/rzvg
-docker compose -f docker-compose.prod.yml up -d --force-recreate caddy
+docker compose --env-file .env.tst -f docker-compose.prod.yml up -d --force-recreate caddy
 ```
 
 #### Stap 4 — Acc-stack starten
@@ -183,7 +190,8 @@ verwelkomingspagina tonen (nog geen users).
 #### Stap 5 — Beheerder aanmaken op acc
 
 ```sh
-docker compose -f docker-compose.acc.yml exec app php artisan rzvg:make-admin <email>
+docker compose --env-file .env.acc -f docker-compose.acc.yml exec app \
+    php artisan rzvg:make-admin <email>
 ```
 
 #### Stap 6 — Auto-deploy voor acc
@@ -206,14 +214,14 @@ Aparte lockfile en logfile zodat test en acc niet met elkaar botsen.
   repo staan; niet in een subdirectory.
 - **Assets niet zichtbaar**: `public/build/` moet bestaan; herbouw met
   `docker run --rm -v "$PWD":/app -w /app node:22-alpine sh -c 'npm ci && npm run build'`.
-- **Queue-jobs draaien niet**: `docker compose -f docker-compose.prod.yml logs queue`.
+- **Queue-jobs draaien niet**: `docker compose --env-file .env.tst -f docker-compose.prod.yml logs queue`.
   Voor code-wijzigingen: het script draait automatisch `queue:restart`.
 - **`rzvg-acc.lamaire.nl` geeft 502 / bad gateway**: caddy kan de acc-app-container
   niet vinden. Controleer met `docker network inspect rzvg_shared` of zowel
   `rzvg-caddy` als `rzvg-acc-app` in het netwerk zitten. Zo niet: `docker network
   create rzvg_shared` en beide stacks herstarten (`up -d`).
 - **Acc-thumbnails 404 na eerste upload**: caddy heeft `rzvg_acc_media_data`
-  nog niet gezien. Herstart caddy met `docker compose -f docker-compose.prod.yml
+  nog niet gezien. Herstart caddy met `docker compose --env-file .env.tst -f docker-compose.prod.yml
   up -d --force-recreate caddy`.
 
 ## Backup

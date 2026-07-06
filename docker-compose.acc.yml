@@ -7,6 +7,10 @@
 #   benaderen is.
 # - `rzvg_shared` is een extern netwerk (`docker network create rzvg_shared`)
 #   dat de test-caddy én deze acc-app verbindt.
+#
+# Env: alle acc-vars in `.env.acc` naast dit compose-bestand. Laravel binnen
+# de container ziet die via de bind-mount als `.env`. Voor `${VAR}`-substitutie
+# in dit compose-bestand start je met `--env-file .env.acc` (zie deploy.sh).
 
 services:
   app:
@@ -15,9 +19,10 @@ services:
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-acc-app
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.acc
     volumes:
       - .:/var/www/html
+      - ./.env.acc:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -54,9 +59,10 @@ services:
     container_name: rzvg-acc-queue
     restart: unless-stopped
     command: php artisan queue:work database --tries=3 --sleep=3 --timeout=90
-    env_file: .env
+    env_file: .env.acc
     volumes:
       - .:/var/www/html
+      - ./.env.acc:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -72,9 +78,10 @@ services:
     container_name: rzvg-acc-scheduler
     restart: unless-stopped
     command: php artisan schedule:work
-    env_file: .env
+    env_file: .env.acc
     volumes:
       - .:/var/www/html
+      - ./.env.acc:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:

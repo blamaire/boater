@@ -4,6 +4,16 @@
 # - MySQL + media persistent op named volumes.
 # - Restart policies op alle services zodat de stack na reboot vanzelf start.
 # - Queue-worker en scheduler als aparte services.
+#
+# Env-scheiding:
+# - Alle test-vars staan in `.env.tst` (naast dit bestand op de host).
+# - Laravel in de container leest `.env`; die wordt bind-gemount vanuit
+#   `.env.tst` zodat dotenv altijd het test-bestand oppikt.
+# - Voor `${VAR}`-substitutie in dit compose-bestand (bv. `${DB_DATABASE}`)
+#   moet je docker compose starten met `--env-file .env.tst`. `deploy.sh`
+#   doet dat automatisch.
+# - De gedeelde Caddy leest zowel `.env.acc` (optioneel, voor ACC_DOMAIN) als
+#   `.env.tst`; bij conflict wint `.env.tst` (later in de lijst).
 
 services:
   app:
@@ -12,9 +22,10 @@ services:
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-app
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -27,7 +38,11 @@ services:
     image: caddy:2-alpine
     container_name: rzvg-caddy
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: /var/www/rzvg-acc/.env.acc
+        required: false
+      - path: .env.tst
+        required: true
     ports:
       - "80:80"
       - "443:443"
@@ -81,9 +96,10 @@ services:
     container_name: rzvg-queue
     restart: unless-stopped
     command: php artisan queue:work database --tries=3 --sleep=3 --timeout=90
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -99,9 +115,10 @@ services:
     container_name: rzvg-scheduler
     restart: unless-stopped
     command: php artisan schedule:work
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
