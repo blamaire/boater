@@ -25,9 +25,12 @@
                 </div>
             </header>
 
-            {{-- Vaste pagina-header: titel + gebruikersnaam + hamburger/kruis. --}}
+            {{-- Vaste pagina-header: titel + gebruikersnaam + hamburger/kruis.
+                 Container-breedte is gelijk aan de logoheader hierboven: volle
+                 breedte met dezelfde px-*-schaal, zodat de titel netjes recht
+                 onder het logo begint zonder extra witruimte links/rechts. --}}
             <div class="bg-white border-b border-gray-200">
-                <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+                <div class="mx-auto py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
                     <h1 class="font-display text-3xl text-rzvg-600">
                         {{ $header ?? config('app.name', 'RZVG') }}
                     </h1>
