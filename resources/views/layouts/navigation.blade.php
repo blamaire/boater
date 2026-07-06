@@ -33,7 +33,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             <ul class="mt-2 space-y-1">
@@ -108,6 +108,16 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => $inUsersSection,
                                 'text-gray-700' => ! $inUsersSection,
                             ])>Gebruikers</a>
+                    </li>
+                @endcan
+                @can('activities.view')
+                    <li>
+                        <a href="{{ route('admin.activities.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*')),
+                            ])>Activiteiten</a>
                     </li>
                 @endcan
             </ul>
