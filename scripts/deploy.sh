@@ -16,7 +16,18 @@ set -euo pipefail
 REPO_DIR="${REPO_DIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 cd "$REPO_DIR"
 
-COMPOSE="docker compose -f docker-compose.prod.yml"
+# DEPLOY_STACK bepaalt welke compose-file wordt gebruikt:
+#   test (default) -> docker-compose.prod.yml
+#   acc            -> docker-compose.acc.yml
+DEPLOY_STACK="${DEPLOY_STACK:-test}"
+case "$DEPLOY_STACK" in
+    test) COMPOSE_FILE="docker-compose.prod.yml" ;;
+    acc)  COMPOSE_FILE="docker-compose.acc.yml" ;;
+    *) echo "Onbekende DEPLOY_STACK: $DEPLOY_STACK" >&2; exit 1 ;;
+esac
+
+COMPOSE="docker compose -f $COMPOSE_FILE"
+echo "==> Deploy voor stack '$DEPLOY_STACK' via $COMPOSE_FILE"
 
 echo "==> Repo up-to-date maken"
 git pull --ff-only
