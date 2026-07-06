@@ -177,7 +177,15 @@ class GebruikerBeheer extends Component
                 'person.memberships' => fn ($q) => $q
                     ->where('status', MembershipStatus::Active->value)
                     ->with('type'),
-                'person.roles',
+                // Alleen actieve, niet-verlopen roltoewijzingen laten zien in
+                // de overzichtstabel; gedeactiveerde assignments blijven voor
+                // audit-doeleinden in de DB maar horen niet in dit overzicht.
+                'person.roles' => fn ($q) => $q
+                    ->wherePivot('status', 'active')
+                    ->where(function ($qq): void {
+                        $qq->whereNull('role_assignments.ends_at')
+                            ->orWhere('role_assignments.ends_at', '>', now());
+                    }),
             ])
             ->orderBy('email');
 

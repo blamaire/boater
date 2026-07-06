@@ -99,11 +99,14 @@
                 @endcan
                 @can('users.manage')
                     <li>
+                        @php
+                            $inUsersSection = request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*');
+                        @endphp
                         <a href="{{ route('admin.users.index') }}"
                             @class([
                                 'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*'),
-                                'text-gray-700' => ! (request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*')),
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => $inUsersSection,
+                                'text-gray-700' => ! $inUsersSection,
                             ])>Gebruikers</a>
                     </li>
                 @endcan
