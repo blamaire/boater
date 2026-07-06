@@ -176,8 +176,7 @@
                         </td>
                         <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                             @if ($person)
-                                <a href="{{ route('admin.person-roles.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rollen</a>
-                                <a href="{{ route('admin.person-permissions.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rechten</a>
+                                <a href="{{ route('admin.person-permissions.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rollen &amp; rechten</a>
                             @endif
                             <button type="button" wire:click="resendInvitation({{ $user->id }})"
                                 class="text-gray-600 hover:text-gray-800">

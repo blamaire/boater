@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
 use App\Http\Controllers\Admin\PagePushController;
-use App\Http\Controllers\Admin\PersonRoleController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
@@ -73,15 +72,6 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{role}/bewerken', [RoleController::class, 'edit'])->middleware('can:roles.update')->name('edit');
         Route::patch('/{role}', [RoleController::class, 'update'])->middleware('can:roles.update')->name('update');
         Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.delete')->name('destroy');
-    });
-
-Route::middleware(['auth', 'verified'])
-    ->prefix('beheer/personen/{person}/rollen')
-    ->name('admin.person-roles.')
-    ->group(function () {
-        Route::get('/', [PersonRoleController::class, 'index'])->middleware('can:roles.update')->name('index');
-        Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
-        Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
     });
 
 Route::middleware(['auth', 'verified', 'can:users.manage'])
