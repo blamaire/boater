@@ -5,28 +5,84 @@ namespace App\Livewire\Admin;
 use App\Models\Permission;
 use App\Models\Person;
 use App\Models\PersonPermission;
+use App\Models\Role;
+use App\Models\RoleAssignment;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Beheer directe permissies per persoon (`person_permissions`). Toont
- * per permissie of hij via een rol komt of direct is toegekend, en laat
- * de beheerder directe toewijzingen aan- en uitzetten. Rechten via rollen
- * kunnen hier niet worden weggehaald — die pas je aan bij de rol.
+ * Gecombineerde beheer-UI voor rollen én directe permissies per persoon.
+ * Rollen bovenaan (toewijzen en deactiveren), directe rechten daaronder.
+ * Rechten via een rol kunnen hier niet worden weggehaald — die pas je aan
+ * bij de rol zelf.
  */
-#[Layout('layouts.app', ['header' => 'Rechten per persoon'])]
+#[Layout('layouts.app', ['header' => 'Rollen en rechten per persoon'])]
 class PersonPermissionBeheer extends Component
 {
     public Person $person;
+
+    public ?int $newRoleId = null;
+
+    public string $newRoleReason = '';
 
     public ?string $statusMessage = null;
 
     public function mount(Person $person): void
     {
         $this->person = $person;
+    }
+
+    public function assignRole(AuditLogger $audit): void
+    {
+        $this->validate([
+            'newRoleId' => ['required', 'integer', 'exists:roles,id'],
+            'newRoleReason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $role = Role::query()->findOrFail($this->newRoleId);
+        $assignerPersonId = auth()->user()?->person?->id;
+
+        RoleAssignment::query()->create([
+            'person_id' => $this->person->id,
+            'role_id' => $role->id,
+            'status' => 'active',
+            'assigned_by' => $assignerPersonId,
+            'assigned_at' => Carbon::now(),
+            'reason' => trim($this->newRoleReason) !== '' ? trim($this->newRoleReason) : null,
+        ]);
+
+        $audit->log('person.role_assigned', $this->person, after: [
+            'role_id' => $role->id,
+            'role_name' => $role->name,
+        ]);
+
+        $this->reset(['newRoleId', 'newRoleReason']);
+        $this->statusMessage = "Rol [{$role->name}] toegewezen.";
+    }
+
+    public function deactivateAssignment(int $assignmentId, AuditLogger $audit): void
+    {
+        $assignment = RoleAssignment::query()
+            ->where('person_id', $this->person->id)
+            ->findOrFail($assignmentId);
+
+        $roleName = $assignment->role->name;
+
+        $assignment->update([
+            'status' => 'deactivated',
+            'deactivated_at' => Carbon::now(),
+        ]);
+
+        $audit->log('person.role_deactivated', $this->person, before: [
+            'role_id' => $assignment->role_id,
+            'role_name' => $roleName,
+        ]);
+
+        $this->statusMessage = "Rol [{$roleName}] gedeactiveerd.";
     }
 
     public function grant(int $permissionId, AuditLogger $audit): void
@@ -70,6 +126,22 @@ class PersonPermissionBeheer extends Component
 
     public function render(): View
     {
+        $allAssignments = RoleAssignment::query()
+            ->with(['role', 'assignedBy'])
+            ->where('person_id', $this->person->id)
+            ->orderByDesc('assigned_at')
+            ->get();
+
+        $activeAssignments = $allAssignments->filter(fn (RoleAssignment $a) => $a->status === 'active');
+
+        $allRoles = Role::query()
+            ->orderByDesc('is_system')
+            ->orderBy('name')
+            ->get();
+
+        $activeRoleIds = $activeAssignments->pluck('role_id')->all();
+        $availableRoles = $allRoles->reject(fn ($r) => in_array($r->id, $activeRoleIds, true))->values();
+
         $rolePermissions = DB::table('role_permissions')
             ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
             ->join('role_assignments', 'role_assignments.role_id', '=', 'role_permissions.role_id')
@@ -101,6 +173,9 @@ class PersonPermissionBeheer extends Component
 
         return view('livewire.admin.person-permission-beheer', [
             'person' => $this->person,
+            'activeAssignments' => $activeAssignments,
+            'allAssignments' => $allAssignments,
+            'availableRoles' => $availableRoles,
             'permissionsByModule' => $allPermissions,
             'rolePermissions' => $rolePermissions,
             'directPermissions' => $directPermissions,
