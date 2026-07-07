@@ -4,17 +4,50 @@
             wire:ignore
             x-data="{
                 value: @entangle('editingContent.html'),
+                showSource: false,
                 init() {
                     this.$refs.trixInput.value = this.value ?? '';
                     this.$refs.editor.addEventListener('trix-change', () => {
-                        this.value = this.$refs.trixInput.value;
+                        if (! this.showSource) {
+                            this.value = this.$refs.trixInput.value;
+                        }
                     });
+                },
+                toggleSource() {
+                    if (! this.showSource) {
+                        // Visueel → Broncode: pak de nu-actuele HTML uit Trix.
+                        this.value = this.$refs.trixInput.value;
+                    } else {
+                        // Broncode → Visueel: laad de aangepaste bron in Trix.
+                        this.$refs.editor.editor.loadHTML(this.value ?? '');
+                        this.$refs.trixInput.value = this.value ?? '';
+                    }
+                    this.showSource = ! this.showSource;
                 }
             }"
         >
-            <x-input-label value="Tekst" />
+            <div class="flex items-center justify-between">
+                <x-input-label value="Tekst" />
+                <button type="button" @click="toggleSource()"
+                    class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50">
+                    <span x-show="! showSource">&lt;/&gt; Broncode</span>
+                    <span x-show="showSource" x-cloak>👁 Visueel</span>
+                </button>
+            </div>
+
             <input type="hidden" x-ref="trixInput" id="trix-input-tekstblok">
-            <trix-editor x-ref="editor" input="trix-input-tekstblok" class="prose max-w-none mt-1 border border-gray-300 rounded-md min-h-[50rem] bg-white p-3"></trix-editor>
+            <trix-editor x-ref="editor" input="trix-input-tekstblok"
+                x-show="! showSource"
+                class="prose max-w-none mt-1 border border-gray-300 rounded-md min-h-[50rem] bg-white p-3"></trix-editor>
+
+            <textarea x-show="showSource" x-cloak
+                x-model="value"
+                class="mt-1 w-full min-h-[50rem] border border-gray-300 rounded-md p-3 font-mono text-sm bg-gray-50"
+                spellcheck="false"
+                placeholder="&lt;p&gt;HTML broncode…&lt;/p&gt;"></textarea>
+            <p x-show="showSource" x-cloak class="text-xs text-gray-500 mt-1">
+                Rechtstreekse HTML — bij het terugschakelen naar visueel wordt de bron door de editor geïnterpreteerd; niet-ondersteunde tags kunnen weggefilterd worden.
+            </p>
         </div>
         @break
 
