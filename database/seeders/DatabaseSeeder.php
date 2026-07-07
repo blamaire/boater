@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             TemplateSeeder::class,
+            HomeSystemPageSeeder::class,
             ReviewPolicySeeder::class,
             MembershipTypeSeeder::class,
             ActivityCategorySeeder::class,
