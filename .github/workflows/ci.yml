@@ -57,7 +57,7 @@ jobs:
 
       - name: Prepare environment
         run: |
-          cp .env.local.example .env
+          cp .env.example .env
           php artisan key:generate
 
       - name: Codestijl (Pint)
