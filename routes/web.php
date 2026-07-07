@@ -17,9 +17,13 @@ use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\MenuBeheer;
+use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
+use App\Livewire\Admin\ReservableObjectBeheer;
+use App\Livewire\Admin\ReserveringBeheer;
 use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
+use App\Livewire\Portal\Reserveren;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +37,10 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
     });
+
+Route::middleware(['auth', 'verified', 'can:reservations.create'])
+    ->get('/reserveren', Reserveren::class)
+    ->name('portal.reserveren');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -92,6 +100,18 @@ Route::middleware(['auth', 'verified', 'can:activities.view'])
 Route::middleware(['auth', 'verified', 'can:activities.update'])
     ->get('/beheer/activiteiten/categorieen', ActivityCategoryBeheer::class)
     ->name('admin.activity-categories.index');
+
+Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
+    ->get('/beheer/objectcategorieen', ObjectCategoryBeheer::class)
+    ->name('admin.object-categories.index');
+
+Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
+    ->get('/beheer/objecten', ReservableObjectBeheer::class)
+    ->name('admin.reservable-objects.index');
+
+Route::middleware(['auth', 'verified', 'can:reservations.view'])
+    ->get('/beheer/reserveringen', ReserveringBeheer::class)
+    ->name('admin.reservations.index');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)

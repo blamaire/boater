@@ -4,7 +4,9 @@
         $item(route('dashboard'), 'Dashboard', request()->routeIs('dashboard')),
         $item(null, 'Voorstellen', false, true),
         $item(route('portal.mijn-lidmaatschap'), 'Mijn lidmaatschap', request()->routeIs('portal.mijn-lidmaatschap')),
-        $item(null, 'Activiteiten & Reserveren', false, true),
+        auth()->user()?->can('reservations.create')
+            ? $item(route('portal.reserveren'), 'Reserveren', request()->routeIs('portal.reserveren'))
+            : $item(null, 'Reserveren', false, true),
     ];
 @endphp
 
@@ -33,10 +35,30 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             <ul class="mt-2 space-y-1">
+                @can('reservable_objects.manage')
+                    <li>
+                        <a href="{{ route('admin.reservable-objects.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.reservable-objects.*') || request()->routeIs('admin.object-categories.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.reservable-objects.*') || request()->routeIs('admin.object-categories.*')),
+                            ])>Objecten</a>
+                    </li>
+                @endcan
+                @can('reservations.view')
+                    <li>
+                        <a href="{{ route('admin.reservations.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.reservations.*'),
+                                'text-gray-700' => ! request()->routeIs('admin.reservations.*'),
+                            ])>Reserveringen</a>
+                    </li>
+                @endcan
                 @can('activities.view')
                     <li>
                         <a href="{{ route('admin.activities.index') }}"
