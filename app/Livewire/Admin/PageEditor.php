@@ -332,45 +332,116 @@ class PageEditor extends Component
             return;
         }
 
-        DB::transaction(function () use ($decoded): void {
-            $version = $this->version();
-            // Bestaande bands (en cascade hun blocks) opruimen.
+        // Valideer eerst alle enum-waardes zodat we geen half-toegepaste
+        // structuur achterlaten in de DB én de gebruiker een nette melding
+        // krijgt in plaats van een 500.
+        try {
+            $prepared = $this->validateAndPrepareBands($decoded['bands']);
+        } catch (\RuntimeException $e) {
+            $this->jsonStatus = 'Kon de JSON niet toepassen: '.$e->getMessage();
+
+            return;
+        }
+
+        // Loskoppelen van de computed-cache, zodat we op verse DB-state werken
+        // (niet op een gedecacheerde collection uit de vorige render).
+        unset($this->version);
+        $version = $this->version();
+
+        DB::transaction(function () use ($prepared, $version): void {
             foreach ($version->bands as $band) {
                 $band->delete();
             }
 
-            foreach ($decoded['bands'] as $bandData) {
-                if (! is_array($bandData)) {
-                    continue;
-                }
+            foreach ($prepared as $bandData) {
                 $band = $version->bands()->create([
-                    'zone' => (string) ($bandData['zone'] ?? 'hoofd'),
-                    'layout' => BandLayout::from((int) ($bandData['layout'] ?? 1)),
-                    'sort_order' => (int) ($bandData['sort_order'] ?? 0),
+                    'zone' => $bandData['zone'],
+                    'layout' => $bandData['layout'],
+                    'sort_order' => $bandData['sort_order'],
                 ]);
 
-                $blocks = $bandData['blocks'] ?? [];
-                if (! is_array($blocks)) {
-                    continue;
-                }
-                foreach ($blocks as $blockData) {
-                    if (! is_array($blockData)) {
-                        continue;
-                    }
+                foreach ($bandData['blocks'] as $blockData) {
                     Block::create([
                         'band_id' => $band->id,
-                        'column_index' => (int) ($blockData['column_index'] ?? 0),
-                        'sort_order' => (int) ($blockData['sort_order'] ?? 0),
-                        'type' => BlockType::from((string) ($blockData['type'] ?? 'tekst')),
-                        'content' => (array) ($blockData['content'] ?? []),
-                        'visibility' => PageVisibility::from((string) ($blockData['visibility'] ?? 'public')),
+                        'column_index' => $blockData['column_index'],
+                        'sort_order' => $blockData['sort_order'],
+                        'type' => $blockData['type'],
+                        'content' => $blockData['content'],
+                        'visibility' => $blockData['visibility'],
                     ]);
                 }
             }
         });
 
+        // Nogmaals cache wissen zodat de volgende render ook de zojuist
+        // gemaakte bands en blocks laadt.
         unset($this->version);
+        // Paneel dicht — anders zie je alleen de textarea en niet de
+        // ge-updatete blokken eronder.
+        $this->showJsonPanel = false;
+        $this->importJsonText = '';
         $this->jsonStatus = 'Broncode toegepast op deze conceptversie.';
+    }
+
+    /**
+     * Zet ruwe JSON-arrays om in gevalideerde payload-arrays voor Band en
+     * Block. Gooit een RuntimeException met duidelijke boodschap zodra er
+     * een onbekende enum-waarde (layout, type, visibility) wordt geraakt.
+     *
+     * @param  array<int, mixed>  $rawBands
+     * @return array<int, array{zone: string, layout: BandLayout, sort_order: int, blocks: array<int, array{column_index: int, sort_order: int, type: BlockType, content: array<string, mixed>, visibility: PageVisibility}>}>
+     */
+    private function validateAndPrepareBands(array $rawBands): array
+    {
+        $result = [];
+        foreach ($rawBands as $bandIndex => $bandData) {
+            if (! is_array($bandData)) {
+                throw new \RuntimeException("band #{$bandIndex} is geen object.");
+            }
+            $layoutValue = (int) ($bandData['layout'] ?? 1);
+            $layout = BandLayout::tryFrom($layoutValue);
+            if ($layout === null) {
+                throw new \RuntimeException("band #{$bandIndex}: onbekende layout [{$layoutValue}].");
+            }
+
+            $blocksRaw = $bandData['blocks'] ?? [];
+            if (! is_array($blocksRaw)) {
+                throw new \RuntimeException("band #{$bandIndex}: 'blocks' is geen lijst.");
+            }
+            $blocks = [];
+            foreach ($blocksRaw as $blockIndex => $blockData) {
+                if (! is_array($blockData)) {
+                    throw new \RuntimeException("band #{$bandIndex}, block #{$blockIndex} is geen object.");
+                }
+                $typeValue = (string) ($blockData['type'] ?? '');
+                $type = BlockType::tryFrom($typeValue);
+                if ($type === null) {
+                    throw new \RuntimeException("band #{$bandIndex}, block #{$blockIndex}: onbekend type [{$typeValue}].");
+                }
+                $visibilityValue = (string) ($blockData['visibility'] ?? 'public');
+                $visibility = PageVisibility::tryFrom($visibilityValue);
+                if ($visibility === null) {
+                    throw new \RuntimeException("band #{$bandIndex}, block #{$blockIndex}: onbekende visibility [{$visibilityValue}].");
+                }
+
+                $blocks[] = [
+                    'column_index' => (int) ($blockData['column_index'] ?? 0),
+                    'sort_order' => (int) ($blockData['sort_order'] ?? 0),
+                    'type' => $type,
+                    'content' => (array) ($blockData['content'] ?? []),
+                    'visibility' => $visibility,
+                ];
+            }
+
+            $result[] = [
+                'zone' => (string) ($bandData['zone'] ?? 'hoofd'),
+                'layout' => $layout,
+                'sort_order' => (int) ($bandData['sort_order'] ?? 0),
+                'blocks' => $blocks,
+            ];
+        }
+
+        return $result;
     }
 
     public function render(): View

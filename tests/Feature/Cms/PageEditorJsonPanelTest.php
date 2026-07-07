@@ -104,7 +104,10 @@ it('vervangt bands en blocks bij het toepassen van geïmporteerde JSON', functio
     Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
         ->set('importJsonText', json_encode($nieuw))
         ->call('applyImportedJson')
-        ->assertHasNoErrors();
+        ->assertHasNoErrors()
+        ->assertSet('showJsonPanel', false)
+        ->assertSet('importJsonText', '')
+        ->assertSet('jsonStatus', 'Broncode toegepast op deze conceptversie.');
 
     $this->version->refresh()->load('bands.blocks');
     expect($this->version->bands)->toHaveCount(1)
@@ -120,6 +123,33 @@ it('weigert kapotte JSON met een duidelijke melding', function () {
         ->set('importJsonText', '{ dit is geen json')
         ->call('applyImportedJson')
         ->assertSet('jsonStatus', 'Kon de JSON niet lezen. Zorg dat je een object met een "bands"-lijst plakt.');
+});
+
+it('geeft een nette melding bij een onbekende block-type of layout in de JSON', function () {
+    $this->actingAs($this->beheerder);
+
+    // Onbekend blocktype 'raket' → geen 500, wel een status-melding.
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->set('importJsonText', json_encode([
+            'bands' => [
+                [
+                    'zone' => 'hoofd',
+                    'layout' => 1,
+                    'sort_order' => 0,
+                    'blocks' => [
+                        [
+                            'type' => 'raket',
+                            'column_index' => 0,
+                            'sort_order' => 0,
+                            'content' => [],
+                            'visibility' => 'public',
+                        ],
+                    ],
+                ],
+            ],
+        ]))
+        ->call('applyImportedJson')
+        ->assertSet('jsonStatus', 'Kon de JSON niet toepassen: band #0, block #0: onbekend type [raket].');
 });
 
 it('weigert JSON-toepassen op een niet-bewerkbare (bv. gepubliceerde) versie', function () {
