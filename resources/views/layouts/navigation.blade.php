@@ -37,14 +37,37 @@
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             <ul class="mt-2 space-y-1">
-                @can('pages.view')
+                @can('activities.view')
                     <li>
-                        <a href="{{ route('admin.pages.index') }}"
+                        <a href="{{ route('admin.activities.index') }}"
                             @class([
                                 'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*'),
-                                'text-gray-700' => ! request()->routeIs('admin.pages.*'),
-                            ])>Content</a>
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*')),
+                            ])>Activiteiten</a>
+                    </li>
+                @endcan
+                @can('users.manage')
+                    <li>
+                        @php
+                            $inUsersSection = request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*');
+                        @endphp
+                        <a href="{{ route('admin.users.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => $inUsersSection,
+                                'text-gray-700' => ! $inUsersSection,
+                            ])>Gebruikers</a>
+                    </li>
+                @endcan
+                @can('site_settings.manage')
+                    <li>
+                        <a href="{{ route('admin.site-settings') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.site-settings'),
+                                'text-gray-700' => ! request()->routeIs('admin.site-settings'),
+                            ])>Instellingen</a>
                     </li>
                 @endcan
                 @can('media.view')
@@ -67,16 +90,6 @@
                             ])>Menu</a>
                     </li>
                 @endcan
-                @can('site_settings.manage')
-                    <li>
-                        <a href="{{ route('admin.site-settings') }}"
-                            @class([
-                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.site-settings'),
-                                'text-gray-700' => ! request()->routeIs('admin.site-settings'),
-                            ])>Instellingen</a>
-                    </li>
-                @endcan
                 @can('environments.manage')
                     <li>
                         <a href="{{ route('admin.environments') }}"
@@ -87,6 +100,16 @@
                             ])>Omgevingen</a>
                     </li>
                 @endcan
+                @can('pages.view')
+                    <li>
+                        <a href="{{ route('admin.pages.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*'),
+                                'text-gray-700' => ! request()->routeIs('admin.pages.*'),
+                            ])>Pagina's</a>
+                    </li>
+                @endcan
                 @can('roles.view')
                     <li>
                         <a href="{{ route('admin.roles.index') }}"
@@ -95,29 +118,6 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*'),
                                 'text-gray-700' => ! (request()->routeIs('admin.roles.*') || request()->routeIs('admin.person-roles.*')),
                             ])>Rollen &amp; permissies</a>
-                    </li>
-                @endcan
-                @can('users.manage')
-                    <li>
-                        @php
-                            $inUsersSection = request()->routeIs('admin.users.*') || request()->routeIs('admin.person-permissions.*');
-                        @endphp
-                        <a href="{{ route('admin.users.index') }}"
-                            @class([
-                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => $inUsersSection,
-                                'text-gray-700' => ! $inUsersSection,
-                            ])>Gebruikers</a>
-                    </li>
-                @endcan
-                @can('activities.view')
-                    <li>
-                        <a href="{{ route('admin.activities.index') }}"
-                            @class([
-                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*'),
-                                'text-gray-700' => ! (request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*')),
-                            ])>Activiteiten</a>
                     </li>
                 @endcan
             </ul>
