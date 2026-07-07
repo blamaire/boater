@@ -19,8 +19,8 @@ use RuntimeException;
  *
  * 1. Geen dubbelboeking op hetzelfde object (overlappende bevestigde
  *    reserveringen zijn niet toegestaan).
- * 2. Botengebruik-recht: als de categorie van het object `requires_boat_right`
- *    is, moet de begunstigde een lopende `Membership` hebben waarvan het
+ * 2. Bootrecht: als de categorie van het object `requires_boat_right` is,
+ *    moet de begunstigde een lopende `Membership` hebben waarvan het
  *    `MembershipType.allows_boat_use=true` is.
  *
  * Reserveringsregels/drempels en de goedkeuringsmotor komen in v2.
@@ -47,8 +47,8 @@ class ReservationService
 
         if ($object->category->requires_boat_right && ! $this->hasBoatRight($beneficiary)) {
             throw new RuntimeException(
-                'Voor deze categorie is botengebruik-recht vereist. '
-                ."{$beneficiary->first_name} heeft geen lopend lidmaatschap dat botengebruik toestaat."
+                'Voor deze categorie is bootrecht vereist. '
+                ."{$beneficiary->first_name} heeft geen lopend lidmaatschap dat bootrecht geeft."
             );
         }
 
@@ -120,7 +120,7 @@ class ReservationService
     }
 
     /**
-     * Invariant 2: botengebruik-recht op basis van huidig lidmaatschap.
+     * Invariant 2: bootrecht op basis van huidig lidmaatschap.
      */
     private function hasBoatRight(Person $person): bool
     {

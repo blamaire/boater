@@ -153,7 +153,7 @@ it('staat een dubbelboeking op een geannuleerde eerdere reservering toe', functi
     expect($second->status)->toBe(ReservationStatus::Confirmed);
 });
 
-it('weigert reservering van een boot-categorie voor iemand zonder botengebruik-recht (invariant 2)', function () {
+it('weigert reservering van een boot-categorie voor iemand zonder bootrecht (invariant 2)', function () {
     $object = makeObject($this->boatCategory->id);
     $person = Person::create(['first_name' => 'Zonder', 'last_name' => 'Rechten']);
 
@@ -165,7 +165,7 @@ it('weigert reservering van een boot-categorie voor iemand zonder botengebruik-r
     ))->toThrow(RuntimeException::class);
 });
 
-it('laat een A-lid met botengebruik-recht een boot reserveren', function () {
+it('laat een A-lid met bootrecht een boot reserveren', function () {
     $object = makeObject($this->boatCategory->id);
     $person = makeMemberWithBoatRight();
 

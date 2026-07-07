@@ -1,7 +1,7 @@
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
     <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">
-            Categorieën waarin reserveerbare objecten worden ingedeeld. "Vaartuig" markeren betekent dat de reserveerder botengebruik-recht nodig heeft.
+            Categorieën waarin reserveerbare objecten worden ingedeeld. "Vaartuig" markeren betekent dat de reserveerder bootrecht nodig heeft.
         </p>
         <a href="{{ route('admin.reservable-objects.index') }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">→ Objecten</a>
     </div>
@@ -18,7 +18,7 @@
                 <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Botrecht</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bootrecht</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Volgorde</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Objecten</th>
                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
@@ -70,7 +70,7 @@
                 <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model="requiresBoatRight"
                         class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600" />
-                    Vaartuig — reserveerder heeft botengebruik-recht nodig
+                    Vaartuig — reserveerder heeft bootrecht nodig
                 </label>
             </div>
         </div>

@@ -60,7 +60,7 @@
                             <div class="font-medium text-gray-900">
                                 {{ $obj->name }}
                                 @if ($obj->category->requires_boat_right)
-                                    <span class="text-xs text-blue-600" title="Botengebruik-recht vereist">⚓</span>
+                                    <span class="text-xs text-blue-600" title="Bootrecht vereist">⚓</span>
                                 @endif
                             </div>
                             <div class="text-xs text-gray-500">
