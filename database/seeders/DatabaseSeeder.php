@@ -18,6 +18,9 @@ class DatabaseSeeder extends Seeder
             ReviewPolicySeeder::class,
             MembershipTypeSeeder::class,
             ActivityCategorySeeder::class,
+            // Alleen actief bij APP_ENV=local (interne guard); seed nooit
+            // productie-tokens of test-users op andere omgevingen.
+            LocalDevUserSeeder::class,
         ]);
     }
 }

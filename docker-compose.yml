@@ -3,6 +3,14 @@
 # Voor `${VAR}`-substitutie in dit bestand start je met
 #   `docker compose --env-file .env.local up`
 # — of je gebruikt `scripts/dev.sh` dat 'm voor je meegeeft.
+#
+# Snelheid op Windows: de Windows C-schijf is via Docker Desktop's bind-mount
+# op /mnt/c ver-uit-de-hand traag voor mappen met heel veel files. Vandaar dat
+# `vendor/`, `node_modules/`, `bootstrap/cache/` en `storage/framework/` in
+# named volumes zitten in plaats van in de bind-mount van de repo. Die mappen
+# leven daarmee binnen het docker-volume-filesystem en zijn ~10× sneller om
+# te lezen. Consequentie: `composer install` en `npm install` moet je in de
+# container draaien; op de host zijn deze mappen leeg.
 
 services:
   app:
@@ -14,6 +22,9 @@ services:
     volumes:
       - .:/var/www/html
       - ./.env.local:/var/www/html/.env:ro
+      - app_vendor:/var/www/html/vendor
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache
+      - app_storage_framework:/var/www/html/storage/framework
     depends_on:
       - db
 
@@ -45,6 +56,7 @@ services:
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
+      - app_node_modules:/var/www/html/node_modules
     ports:
       - "5173:5173"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
@@ -73,6 +85,9 @@ services:
     volumes:
       - .:/var/www/html
       - ./.env.local:/var/www/html/.env:ro
+      - app_vendor:/var/www/html/vendor
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache
+      - app_storage_framework:/var/www/html/storage/framework
     command: php artisan queue:work database --tries=3 --sleep=3
     depends_on:
       - db
@@ -86,9 +101,16 @@ services:
     volumes:
       - .:/var/www/html
       - ./.env.local:/var/www/html/.env:ro
+      - app_vendor:/var/www/html/vendor
+      - app_bootstrap_cache:/var/www/html/bootstrap/cache
+      - app_storage_framework:/var/www/html/storage/framework
     command: php artisan schedule:work
     depends_on:
       - db
 
 volumes:
   db-data:
+  app_vendor:
+  app_node_modules:
+  app_bootstrap_cache:
+  app_storage_framework:

@@ -26,6 +26,19 @@ RUN sed -i 's/^user = www-data/user = root/; s/^group = www-data/group = root/' 
 
 WORKDIR /var/www/html
 
+# Zorg dat Laravel's cache- en session-directories bestaan in de image, zodat
+# de bijbehorende docker-named-volumes bij eerste mount deze structuur
+# overnemen. Zonder deze mkdir gooit de view-compiler bij package:discover
+# een "Please provide a valid cache path".
+RUN mkdir -p \
+    /var/www/html/bootstrap/cache \
+    /var/www/html/storage/framework/cache/data \
+    /var/www/html/storage/framework/sessions \
+    /var/www/html/storage/framework/testing \
+    /var/www/html/storage/framework/views \
+    /var/www/html/vendor \
+    && chmod -R 777 /var/www/html/bootstrap/cache /var/www/html/storage/framework
+
 EXPOSE 9000
 
 CMD ["php-fpm", "--allow-to-run-as-root"]
