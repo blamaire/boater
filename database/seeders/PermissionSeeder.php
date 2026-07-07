@@ -57,6 +57,7 @@ class PermissionSeeder extends Seeder
             'ice_contacts' => ['view'],
             'environments' => ['manage'],
             'users' => ['manage'],
+            'reservable_objects' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -121,6 +122,7 @@ class PermissionSeeder extends Seeder
             'ice_contacts' => 'ICE-contacten',
             'environments' => 'Omgevingen',
             'users' => 'Gebruikers',
+            'reservable_objects' => 'Objecten (reserveren)',
             default => ucfirst($module),
         };
 
