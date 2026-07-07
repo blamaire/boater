@@ -41,8 +41,8 @@ it('geeft elke nieuwe MediaAsset een uuid via het creating-event', function () {
         'visibility' => PageVisibility::Public,
     ]);
 
-    expect($asset->uuid)->toBeString()
-        ->and(strlen($asset->uuid))->toBe(36);
+    expect(strlen($asset->uuid))->toBe(36)
+        ->and($asset->uuid)->toMatch('/^[0-9a-f-]{36}$/i');
 });
 
 it('probe-endpoint retourneert alleen ontbrekende uuids', function () {
