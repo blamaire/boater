@@ -16,7 +16,32 @@ set -euo pipefail
 REPO_DIR="${REPO_DIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 cd "$REPO_DIR"
 
-COMPOSE="docker compose -f docker-compose.prod.yml"
+# DEPLOY_STACK bepaalt welke compose- en env-file worden gebruikt:
+#   test (default) -> docker-compose.prod.yml + .env.tst
+#   acc            -> docker-compose.acc.yml  + .env.acc
+DEPLOY_STACK="${DEPLOY_STACK:-test}"
+case "$DEPLOY_STACK" in
+    test)
+        COMPOSE_FILE="docker-compose.prod.yml"
+        ENV_FILE=".env.tst"
+        ;;
+    acc)
+        COMPOSE_FILE="docker-compose.acc.yml"
+        ENV_FILE=".env.acc"
+        ;;
+    *)
+        echo "Onbekende DEPLOY_STACK: $DEPLOY_STACK" >&2
+        exit 1
+        ;;
+esac
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Env-file $ENV_FILE ontbreekt in $REPO_DIR" >&2
+    exit 1
+fi
+
+COMPOSE="docker compose --env-file $ENV_FILE -f $COMPOSE_FILE"
+echo "==> Deploy voor stack '$DEPLOY_STACK' via $COMPOSE_FILE + $ENV_FILE"
 
 echo "==> Repo up-to-date maken"
 git pull --ff-only
