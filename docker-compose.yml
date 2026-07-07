@@ -1,11 +1,19 @@
+# Lokale dev-stack. Alle secrets in `.env.local` (naast dit compose-bestand
+# op de host). Laravel in de container ziet die als `.env` via bind-mount.
+# Voor `${VAR}`-substitutie in dit bestand start je met
+#   `docker compose --env-file .env.local up`
+# — of je gebruikt `scripts/dev.sh` dat 'm voor je meegeeft.
+
 services:
   app:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-app
+    env_file: .env.local
     volumes:
       - .:/var/www/html
+      - ./.env.local:/var/www/html/.env:ro
     depends_on:
       - db
 
@@ -61,8 +69,10 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-queue
+    env_file: .env.local
     volumes:
       - .:/var/www/html
+      - ./.env.local:/var/www/html/.env:ro
     command: php artisan queue:work database --tries=3 --sleep=3
     depends_on:
       - db
@@ -72,8 +82,10 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-scheduler
+    env_file: .env.local
     volumes:
       - .:/var/www/html
+      - ./.env.local:/var/www/html/.env:ro
     command: php artisan schedule:work
     depends_on:
       - db

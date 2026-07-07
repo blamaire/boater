@@ -11,6 +11,9 @@ set -euo pipefail
 
 REPO_DIR="${REPO_DIR:-$(dirname "$(dirname "$(readlink -f "$0")")")}"
 BRANCH="${DEPLOY_BRANCH:-test}"
+# DEPLOY_STACK wordt doorgegeven aan deploy.sh (test/acc). Default 'test'
+# houdt bestaande cron werkend.
+export DEPLOY_STACK="${DEPLOY_STACK:-test}"
 
 cd "$REPO_DIR"
 
