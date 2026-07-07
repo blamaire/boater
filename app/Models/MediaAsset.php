@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
+ * @property string $uuid
  * @property string $disk
  * @property string $path
  * @property string|null $thumbnail_path
@@ -30,6 +32,7 @@ use Illuminate\Support\Facades\URL;
 class MediaAsset extends Model
 {
     protected $fillable = [
+        'uuid',
         'disk',
         'path',
         'thumbnail_path',
@@ -42,6 +45,17 @@ class MediaAsset extends Model
         'visibility',
         'uploaded_by_person_id',
     ];
+
+    protected static function booted(): void
+    {
+        // Auto-genereer een portable UUID bij aanmaak. Op meerdere omgevingen
+        // dient deze als vaste identifier voor cross-environment media-sync.
+        static::creating(function (self $asset): void {
+            if (empty($asset->uuid)) {
+                $asset->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

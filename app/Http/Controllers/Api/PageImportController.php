@@ -23,6 +23,8 @@ class PageImportController extends Controller
             'page.template_name' => ['required', 'string'],
             'version' => ['required', 'array'],
             'version.bands' => ['required', 'array'],
+            'media_uuid_map' => ['array'],
+            'media_uuid_map.*' => ['string', 'uuid'],
         ]);
 
         try {
