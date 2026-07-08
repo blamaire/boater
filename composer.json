@@ -63,6 +63,9 @@
             "@stan",
             "@test"
         ],
+        "db-reset": [
+            "@php artisan migrate:fresh --seed --force"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

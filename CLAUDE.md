@@ -36,6 +36,7 @@ Alles via `docker compose exec app …`:
 | Eén testbestand | `vendor/bin/pest tests/Feature/Proposals/ProposalEngineTest.php` |
 | Eén test op naam | `vendor/bin/pest --filter="approves stap voor stap"` |
 | Migrate (lokaal MySQL) | `php artisan migrate` |
+| Lokale DB resetten + seeden | `composer db-reset` — draait `migrate:fresh --seed`. Gebruik dit altijd i.p.v. los `migrate:fresh`, anders heb je geen home-pagina en geen dev-users (zie `LocalDevUserSeeder`) en werkt inloggen niet. |
 | Een user tot Beheerder maken (alle permissies) | `php artisan rzvg:make-admin <email>` — vereist bestaande user; maakt zo nodig een Person aan en koppelt de rol `Beheerder`. |
 
 Tests draaien op een **in-memory SQLite** (`phpunit.xml`), dus PHPStan en Pest werken zonder dat de MySQL-container draait — alleen migraties tegen echte data hebben `db` nodig.
