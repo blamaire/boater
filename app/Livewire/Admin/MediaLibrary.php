@@ -202,7 +202,10 @@ class MediaLibrary extends Component
 
     private function assets(): LengthAwarePaginator
     {
+        // Context-gebonden assets (bv. schadefoto's, §22) horen niet in
+        // de mediabibliotheek en worden hier weggefilterd.
         $query = MediaAsset::query()
+            ->whereNull('context')
             ->with(['tags'])
             ->orderByDesc('id');
 

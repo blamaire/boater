@@ -55,6 +55,12 @@
                         <td class="px-4 py-2">
                             <div class="font-medium text-gray-900">{{ $r->object->name }}</div>
                             <div class="text-xs text-gray-500">{{ $r->object->category->name }}</div>
+                            @if ($r->object->status === \App\Enums\ReservableObjectStatus::OutOfService && $r->status === \App\Enums\ReservationStatus::Confirmed && $r->ends_at >= now())
+                                {{-- §22.4 signaal: object staat buiten gebruik terwijl de reservering nog loopt. Niet auto-annuleren; alleen tonen. --}}
+                                <div class="mt-1 inline-flex items-center rounded-full bg-yellow-50 border border-yellow-200 px-2 py-0.5 text-xs text-yellow-800">
+                                    Object staat buiten gebruik — opvolgen
+                                </div>
+                            @endif
                         </td>
                         <td class="px-4 py-2 text-gray-700">
                             {{ $r->person->first_name }} {{ $r->person->last_name }}

@@ -1,7 +1,7 @@
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
     <div class="flex items-center justify-between">
         <p class="text-sm text-gray-500">
-            Categorieën waarin reserveerbare objecten worden ingedeeld. "Vaartuig" markeren betekent dat de reserveerder bootrecht nodig heeft.
+            Categorieën waarin reserveerbare objecten worden ingedeeld. "Vaartuig" markeren betekent dat de reserveerder bootrecht nodig heeft. Verantwoordelijken krijgen mail bij schademeldingen op deze categorie (met overerving naar de parent-categorie).
         </p>
         <a href="{{ route('admin.reservable-objects.index') }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">→ Objecten</a>
     </div>
@@ -17,10 +17,11 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Parent</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Bootrecht</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Volgorde</th>
                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Objecten</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Verantwoordelijken schade</th>
                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
                 </tr>
             </thead>
@@ -28,7 +29,13 @@
                 @forelse ($categories as $cat)
                     <tr>
                         <td class="px-4 py-2 font-medium text-gray-900">{{ $cat->name }}</td>
-                        <td class="px-4 py-2 text-gray-500 text-xs font-mono">{{ $cat->slug }}</td>
+                        <td class="px-4 py-2 text-gray-700">
+                            @if ($cat->parent)
+                                {{ $cat->parent->name }}
+                            @else
+                                <span class="text-gray-400">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-2">
                             @if ($cat->requires_boat_right)
                                 <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700 border border-blue-200">vereist</span>
@@ -38,6 +45,29 @@
                         </td>
                         <td class="px-4 py-2 text-gray-700">{{ $cat->sort_order }}</td>
                         <td class="px-4 py-2 text-gray-700">{{ $cat->objects()->count() }}</td>
+                        <td class="px-4 py-2 text-gray-700">
+                            <div class="flex flex-wrap gap-1 mb-2">
+                                @forelse ($cat->responsibles as $link)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs">
+                                        {{ $link->person->first_name }} {{ $link->person->last_name }}
+                                        <button type="button" wire:click="removeResponsible({{ $link->id }})"
+                                            class="text-red-600 hover:text-red-800" title="Verwijderen">×</button>
+                                    </span>
+                                @empty
+                                    <span class="text-xs text-gray-400 italic">geen (erft van parent)</span>
+                                @endforelse
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <select wire:model="responsibleInput.{{ $cat->id }}" class="border-gray-300 rounded shadow-sm text-xs">
+                                    <option value="">— Kies persoon —</option>
+                                    @foreach ($personsForResponsibility as $p)
+                                        <option value="{{ $p->id }}">{{ $p->first_name }} {{ $p->last_name }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="button" wire:click="addResponsible({{ $cat->id }})"
+                                    class="text-xs px-2 py-1 rounded border border-gray-300 hover:bg-gray-50">Toevoegen</button>
+                            </div>
+                        </td>
                         <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                             <button type="button" wire:click="edit({{ $cat->id }})" class="text-rzvg-600 hover:text-rzvg-800">Wijzigen</button>
                             <button type="button" wire:click="delete({{ $cat->id }})"
@@ -47,7 +77,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-gray-500">Nog geen categorieën.</td>
+                        <td colspan="7" class="px-4 py-6 text-center text-gray-500">Nog geen categorieën.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -61,6 +91,18 @@
                 <x-input-label for="cat-name" value="Naam" />
                 <x-text-input id="cat-name" wire:model="name" class="mt-1 w-full" />
                 @error('name') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+            </div>
+            <div>
+                <x-input-label for="cat-parent" value="Parent-categorie (optioneel)" />
+                <select id="cat-parent" wire:model="parentId" class="mt-1 w-full border-gray-300 rounded shadow-sm">
+                    <option value="">— Geen (hoofdcategorie) —</option>
+                    @foreach ($categories as $cat)
+                        @if ($cat->id !== $editingId)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                        @endif
+                    @endforeach
+                </select>
+                @error('parentId') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
             </div>
             <div>
                 <x-input-label for="cat-sort" value="Volgorde (lager = eerst)" />

@@ -26,6 +26,11 @@
                                     · voor {{ $r->person->first_name }} {{ $r->person->last_name }}
                                 @endif
                             </div>
+                            @if ($r->object->status === \App\Enums\ReservableObjectStatus::OutOfService)
+                                <div class="mt-1 inline-flex items-center rounded-full bg-yellow-50 border border-yellow-200 px-2 py-0.5 text-xs text-yellow-800">
+                                    Let op: object is nu buiten gebruik — controleer voor je gaat
+                                </div>
+                            @endif
                         </div>
                         <button type="button" wire:click="cancel({{ $r->id }})"
                             onclick="return confirm('Reservering intrekken?');"
