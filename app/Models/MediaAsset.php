@@ -25,12 +25,19 @@ use Illuminate\Support\Str;
  * @property string|null $alt
  * @property array<string, int>|null $dimensions
  * @property PageVisibility $visibility
+ * @property string|null $context
  * @property int|null $uploaded_by_person_id
  * @property-read Person|null $uploadedBy
  * @property-read Collection<int, MediaTag> $tags
  */
 class MediaAsset extends Model
 {
+    /**
+     * Context 'damage_report' verbergt een asset uit de mediabibliotheek
+     * (§22, schadefoto's horen daar niet thuis).
+     */
+    public const CONTEXT_DAMAGE_REPORT = 'damage_report';
+
     protected $fillable = [
         'uuid',
         'disk',
@@ -43,6 +50,7 @@ class MediaAsset extends Model
         'alt',
         'dimensions',
         'visibility',
+        'context',
         'uploaded_by_person_id',
     ];
 

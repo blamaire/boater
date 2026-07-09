@@ -61,6 +61,7 @@ class MediaUploadService
         PageVisibility $visibility = PageVisibility::Public,
         ?string $alt = null,
         array $tagNames = [],
+        ?string $context = null,
     ): MediaAsset {
         $this->validate($file);
 
@@ -106,6 +107,7 @@ class MediaUploadService
             'alt' => $alt,
             'dimensions' => $dimensions,
             'visibility' => $visibility,
+            'context' => $context,
             'uploaded_by_person_id' => $uploadedBy?->id,
         ]);
 

@@ -21,9 +21,11 @@ use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
 use App\Livewire\Admin\ReservableObjectBeheer;
 use App\Livewire\Admin\ReserveringBeheer;
+use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
+use App\Livewire\Portal\SchadeMelden;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +43,10 @@ Route::middleware(['auth', 'verified'])
 Route::middleware(['auth', 'verified', 'can:reservations.create'])
     ->get('/reserveren', Reserveren::class)
     ->name('portal.reserveren');
+
+Route::middleware(['auth', 'verified', 'can:damage_reports.create'])
+    ->get('/schade-melden', SchadeMelden::class)
+    ->name('portal.schade-melden');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -112,6 +118,10 @@ Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
 Route::middleware(['auth', 'verified', 'can:reservations.view'])
     ->get('/beheer/reserveringen', ReserveringBeheer::class)
     ->name('admin.reservations.index');
+
+Route::middleware(['auth', 'verified', 'can:damage_reports.view'])
+    ->get('/beheer/schademeldingen', SchademeldingBeheer::class)
+    ->name('admin.damage-reports.index');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
