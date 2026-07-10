@@ -31,7 +31,7 @@ it('rendert /reserveren voor een beheerder', function () {
     $person = Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $user->id]);
     $person->roles()->attach(Role::query()->where('name', 'Beheerder')->value('id'));
 
-    $this->actingAs($user)->get('/reserveren')->assertOk()->assertSee('Beschikbare objecten');
+    $this->actingAs($user)->get('/reserveren')->assertOk()->assertSee('Nieuwe reservering');
 });
 
 it('vereist reservable_objects.manage voor /beheer/objecten', function () {
@@ -46,4 +46,18 @@ it('rendert /beheer/objecten voor een beheerder', function () {
     $person->roles()->attach(Role::query()->where('name', 'Beheerder')->value('id'));
 
     $this->actingAs($user)->get('/beheer/objecten')->assertOk()->assertSee('Reserveerbare objecten');
+});
+
+it('vereist reservations.update voor /beheer/reserveringsregels', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    Person::create(['first_name' => 'X', 'last_name' => 'Y', 'account_id' => $user->id]);
+    $this->actingAs($user)->get('/beheer/reserveringsregels')->assertForbidden();
+});
+
+it('rendert /beheer/reserveringsregels voor een beheerder', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $user->id]);
+    $person->roles()->attach(Role::query()->where('name', 'Beheerder')->value('id'));
+
+    $this->actingAs($user)->get('/beheer/reserveringsregels')->assertOk()->assertSee('Drempels');
 });

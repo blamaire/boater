@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
+use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use Illuminate\Database\Seeder;
 
 class ReviewPolicySeeder extends Seeder
@@ -54,6 +55,24 @@ class ReviewPolicySeeder extends Seeder
                 'bypass_permission' => 'persons.update',
                 'resubmit_behavior' => ResubmitBehavior::Restart,
                 'reminder_after_days' => 7,
+            ],
+        );
+
+        // §18.4 — reserveringen komen alleen op deze policy als ze een
+        // drempel overschrijden of voor een ander zijn zonder machtiging.
+        // De "clean" flow gaat direct via `ReservationService::reserve()`
+        // en ziet deze policy nooit.
+        ReviewPolicy::updateOrCreate(
+            ['subject_type' => ReservationProposalHandler::SUBJECT_TYPE],
+            [
+                'name' => 'Reserveringsaanvraag boven drempel of voor een ander',
+                'auto_apply' => false,
+                'steps' => [
+                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
+                ],
+                'bypass_permission' => 'reservations.approve',
+                'resubmit_behavior' => ResubmitBehavior::Restart,
+                'reminder_after_days' => 3,
             ],
         );
     }
