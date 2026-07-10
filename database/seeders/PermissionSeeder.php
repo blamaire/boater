@@ -58,6 +58,7 @@ class PermissionSeeder extends Seeder
             'environments' => ['manage'],
             'users' => ['manage'],
             'reservable_objects' => ['manage'],
+            'approver_groups' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -93,6 +94,16 @@ class PermissionSeeder extends Seeder
             'is_sensitive' => true,
         ];
 
+        // Een lid mag content-wijzigingen op CMS-pagina's voorstellen (§5, §26.4).
+        // Wordt in EffectivePermissions automatisch verleend aan iedereen met
+        // een actief lidmaatschap; hoeft dus niet op een rol te staan.
+        $entries[] = [
+            'key' => 'pages.propose',
+            'module' => 'pages',
+            'action' => 'propose',
+            'description' => 'Een wijziging aan een CMS-pagina voorstellen (gaat via de goedkeuringsmotor)',
+        ];
+
         return $entries;
     }
 
@@ -123,6 +134,7 @@ class PermissionSeeder extends Seeder
             'environments' => 'Omgevingen',
             'users' => 'Gebruikers',
             'reservable_objects' => 'Objecten (reserveren)',
+            'approver_groups' => 'Goedkeuringsgroepen',
             default => ucfirst($module),
         };
 

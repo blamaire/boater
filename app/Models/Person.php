@@ -159,4 +159,19 @@ class Person extends Model
             ->orderByDesc('start_date')
             ->first();
     }
+
+    /**
+     * Is deze persoon nu een actief lid? Basis voor
+     * membership-afgeleide permissies (§6-7).
+     */
+    public function hasActiveMembership(): bool
+    {
+        return $this->memberships()
+            ->where('status', MembershipStatus::Active->value)
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->exists();
+    }
 }

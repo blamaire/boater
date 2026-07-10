@@ -16,6 +16,7 @@ use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
+use App\Livewire\Admin\GoedkeuringsgroepBeheer;
 use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
@@ -65,12 +66,17 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{page}/instellingen', [AdminPageController::class, 'edit'])->middleware('can:pages.update')->name('edit');
         Route::patch('/{page}/instellingen', [AdminPageController::class, 'update'])->middleware('can:pages.update')->name('update');
         Route::delete('/{page}', [AdminPageController::class, 'destroy'])->middleware('can:pages.delete')->name('destroy');
-        Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.update')->name('editor');
-        Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.update')->name('versions.store');
-        Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.update')->name('versions.submit');
+        // De editor + versie-indienen staan open voor leden met `pages.propose`
+        // (impliciet via een actief lidmaatschap). Redacteurs/beheerders met
+        // `pages.update` krijgen `pages.propose` automatisch (impliceerregel
+        // in EffectivePermissions). De uiteindelijke bypass-check (direct
+        // publiceren i.p.v. via motor) zit op de policy (`pages.publish`).
+        Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.propose')->name('editor');
+        Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.propose')->name('versions.store');
+        Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.propose')->name('versions.submit');
 
         Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
-            ->middleware('can:pages.update')
+            ->middleware('can:pages.propose')
             ->name('conflict.show');
 
         Route::post('/{page}/push', PagePushController::class)->middleware('can:pages.push')->name('push');
@@ -95,6 +101,10 @@ Route::middleware(['auth', 'verified'])
 Route::middleware(['auth', 'verified', 'can:users.manage'])
     ->get('/beheer/gebruikers', GebruikerBeheer::class)
     ->name('admin.users.index');
+
+Route::middleware(['auth', 'verified', 'can:approver_groups.manage'])
+    ->get('/beheer/goedkeuringsgroepen', GoedkeuringsgroepBeheer::class)
+    ->name('admin.approver-groups.index');
 
 Route::middleware(['auth', 'verified', 'can:users.manage'])
     ->get('/beheer/personen/{person}/rechten', PersonPermissionBeheer::class)

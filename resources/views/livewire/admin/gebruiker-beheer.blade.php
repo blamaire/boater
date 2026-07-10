@@ -3,6 +3,9 @@
         Beheer alle inlog-accounts van de vereniging: leden, ouders/verzorgers en externe functionarissen. Bij aanmaken kun je een uitnodigingsmail met wachtwoord-link versturen.
     </p>
 
+    <x-policy-reference subject="membership.application" />
+    <x-policy-reference subject="person.field_update" />
+
     @if ($statusMessage)
         <div class="rounded-md bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2" role="status">
             {{ $statusMessage }}

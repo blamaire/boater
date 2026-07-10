@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\Person;
 use App\Models\Proposal;
 use App\Models\ReviewStep;
+use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Services\Authorization\EffectivePermissions;
 use Illuminate\Contracts\View\View;
@@ -159,12 +160,21 @@ class DashboardController extends Controller
             ->whereIn('assignee_id', $roleIds->all())
             ->count();
 
-        $groupIds = $person->approverGroups()->pluck('approver_groups.id');
+        // Beheerders zitten impliciet in élke groep (§20.4 groepsstap).
+        // Zie ReviewerResolver::canDecide.
+        $isBeheerder = $roleIds->contains(fn ($id) => (int) $id === (int) Role::query()->where('name', 'Beheerder')->value('id'));
 
-        $groupSteps = $groupIds->isEmpty() ? 0 : $this->openStepsQuery()
-            ->where('assignee_type', AssigneeType::Group)
-            ->whereIn('assignee_id', $groupIds->all())
-            ->count();
+        if ($isBeheerder) {
+            $groupSteps = $this->openStepsQuery()
+                ->where('assignee_type', AssigneeType::Group)
+                ->count();
+        } else {
+            $groupIds = $person->approverGroups()->pluck('approver_groups.id');
+            $groupSteps = $groupIds->isEmpty() ? 0 : $this->openStepsQuery()
+                ->where('assignee_type', AssigneeType::Group)
+                ->whereIn('assignee_id', $groupIds->all())
+                ->count();
+        }
 
         return $personSteps + $roleSteps + $groupSteps;
     }

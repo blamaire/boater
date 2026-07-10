@@ -5,6 +5,7 @@ namespace App\Services\Proposals;
 use App\Enums\AssigneeType;
 use App\Models\Person;
 use App\Models\ReviewStep;
+use App\Models\Role;
 use Illuminate\Support\Carbon;
 
 class ReviewerResolver
@@ -15,13 +16,15 @@ class ReviewerResolver
      * - Persoonstoewijzing: alleen die persoon.
      * - Roltoewijzing: een actieve, niet-verlopen role_assignment voor die rol.
      * - Groepstoewijzing: lid van de groep — één goedkeuring volstaat (§20.4 Groepsstap).
+     *   Beheerders zitten impliciet in élke groep zodat er nooit iets vast
+     *   komt te zitten wanneer een groep leeg is.
      */
     public function canDecide(ReviewStep $step, Person $decider): bool
     {
         return match ($step->assignee_type) {
             AssigneeType::Person => $decider->id === $step->assignee_id,
             AssigneeType::Role => $this->hasActiveRole($decider, $step->assignee_id),
-            AssigneeType::Group => $this->isGroupMember($decider, $step->assignee_id),
+            AssigneeType::Group => $this->isGroupMember($decider, $step->assignee_id) || $this->isBeheerder($decider),
         };
     }
 
@@ -42,5 +45,15 @@ class ReviewerResolver
     private function isGroupMember(Person $decider, int $groupId): bool
     {
         return $decider->approverGroups()->where('approver_groups.id', $groupId)->exists();
+    }
+
+    private function isBeheerder(Person $decider): bool
+    {
+        $beheerderId = Role::query()->where('name', 'Beheerder')->value('id');
+        if ($beheerderId === null) {
+            return false;
+        }
+
+        return $this->hasActiveRole($decider, (int) $beheerderId);
     }
 }
