@@ -39,7 +39,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             {{-- Beheer-menu-items staan alfabetisch op label. --}}
@@ -65,6 +65,16 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => $inUsersSection,
                                 'text-gray-700' => ! $inUsersSection,
                             ])>Gebruikers</a>
+                    </li>
+                @endcan
+                @can('approver_groups.manage')
+                    <li>
+                        <a href="{{ route('admin.approver-groups.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.approver-groups.*'),
+                                'text-gray-700' => ! request()->routeIs('admin.approver-groups.*'),
+                            ])>Goedkeuringsgroepen</a>
                     </li>
                 @endcan
                 @can('site_settings.manage')

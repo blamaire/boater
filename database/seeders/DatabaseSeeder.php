@@ -16,6 +16,9 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             TemplateSeeder::class,
             HomeSystemPageSeeder::class,
+            // ApproverGroupSeeder móét vóór ReviewPolicySeeder draaien:
+            // policies verwijzen naar deze groepen als assignee.
+            ApproverGroupSeeder::class,
             ReviewPolicySeeder::class,
             MembershipTypeSeeder::class,
             ActivityCategorySeeder::class,

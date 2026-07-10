@@ -10,11 +10,11 @@ use Illuminate\Support\Collection;
 class EffectivePermissions
 {
     /**
-     * Resolve the union of permission keys that apply to a person right now.
+     * De permissies die op dit moment gelden voor deze persoon.
      *
      * Bron: §26.4 — unie van (a) rolpermissies via actieve roltoewijzingen,
-     * (b) individueel toegekende person_permissions en (c) lidmaatschapsprivileges.
-     * (c) is een stub tot module Lidmaatschap er is.
+     * (b) individueel toegekende person_permissions en (c) permissies die
+     * automatisch aan actieve leden worden verleend.
      *
      * @return Collection<int, string>
      */
@@ -50,8 +50,49 @@ class EffectivePermissions
             })
             ->pluck('key');
 
-        return $rolePermissionKeys->concat($directPermissionKeys)->unique()->values();
+        $membershipPermissionKeys = $person->hasActiveMembership()
+            ? collect(self::MEMBERSHIP_GRANTED_KEYS)
+            : collect();
+
+        $effective = $rolePermissionKeys
+            ->concat($directPermissionKeys)
+            ->concat($membershipPermissionKeys)
+            ->unique()
+            ->values();
+
+        // Impliceerde permissies: als iemand de zwaardere permissie heeft,
+        // krijgt hij de lichtere er automatisch bij. Voorkomt dat Redacteurs
+        // en Beheerders per ongeluk `pages.propose` moeten missen om leden-
+        // routes te bereiken.
+        foreach (self::IMPLICIT_GRANTS as $heavy => $light) {
+            if ($effective->contains($heavy) && ! $effective->contains($light)) {
+                $effective->push($light);
+            }
+        }
+
+        return $effective->unique()->values();
     }
+
+    /**
+     * Permissies die iedereen met een actief lidmaatschap automatisch krijgt.
+     * Voor nu handmatig gecureerd; wordt vervangen door
+     * lidmaatschapstype-specifieke rechten (§6-7) wanneer die module er is.
+     *
+     * @var list<string>
+     */
+    private const array MEMBERSHIP_GRANTED_KEYS = [
+        'pages.propose',
+    ];
+
+    /**
+     * Zwaardere permissie → verleent automatisch de lichtere. Handig voor
+     * combinaties zoals "wie mag publiceren mag ook indienen mag ook voorstellen".
+     *
+     * @var array<string, string>
+     */
+    private const array IMPLICIT_GRANTS = [
+        'pages.update' => 'pages.propose',
+    ];
 
     public function has(Person $person, string $permissionKey): bool
     {
