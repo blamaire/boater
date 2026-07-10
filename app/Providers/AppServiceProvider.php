@@ -11,6 +11,7 @@ use App\Services\Authorization\EffectivePermissions;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
+use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
 use App\View\Composers\PublicFooterComposer;
 use App\View\Composers\PublicNavComposer;
@@ -53,6 +54,11 @@ class AppServiceProvider extends ServiceProvider
         app(ProposalHandlerRegistry::class)->register(
             PersonFieldUpdateHandler::SUBJECT_TYPE,
             app(PersonFieldUpdateHandler::class),
+        );
+
+        app(ProposalHandlerRegistry::class)->register(
+            ReservationProposalHandler::SUBJECT_TYPE,
+            app(ReservationProposalHandler::class),
         );
 
         View::composer('public._nav', PublicNavComposer::class);

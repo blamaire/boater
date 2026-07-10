@@ -21,6 +21,7 @@ use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
 use App\Livewire\Admin\ReservableObjectBeheer;
 use App\Livewire\Admin\ReserveringBeheer;
+use App\Livewire\Admin\ReserveringsregelBeheer;
 use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
@@ -118,6 +119,10 @@ Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
 Route::middleware(['auth', 'verified', 'can:reservations.view'])
     ->get('/beheer/reserveringen', ReserveringBeheer::class)
     ->name('admin.reservations.index');
+
+Route::middleware(['auth', 'verified', 'can:reservations.update'])
+    ->get('/beheer/reserveringsregels', ReserveringsregelBeheer::class)
+    ->name('admin.reservation-rules.index');
 
 Route::middleware(['auth', 'verified', 'can:damage_reports.view'])
     ->get('/beheer/schademeldingen', SchademeldingBeheer::class)
