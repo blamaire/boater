@@ -32,6 +32,7 @@ class PageEditorController extends Controller
         return view('admin.pages.editor', [
             'page' => $page,
             'version' => $version,
+            'hasUnpublishedChanges' => $version->hasUnpublishedChanges(),
         ]);
     }
 
