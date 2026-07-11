@@ -26,6 +26,7 @@
                     @auth
                         <div class="flex items-center gap-3 text-sm">
                             <a href="{{ route('dashboard') }}" class="inline-flex items-center px-3 py-1.5 rounded-md border border-rzvg-200 text-rzvg-700 hover:bg-rzvg-50">Ledenpagina</a>
+                            <div style="width: 10rem"></div>
                             <span class="text-gray-700 max-w-[10rem] truncate">{{ Auth::user()->name }}</span>
                         </div>
                     @else
