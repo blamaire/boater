@@ -61,4 +61,41 @@ class PageVersion extends Model
     {
         return $this->hasMany(Band::class)->orderBy('sort_order');
     }
+
+    /**
+     * Bepaalt of deze versie inhoudelijk afwijkt van de momenteel gepubliceerde
+     * versie van dezelfde pagina — dus of er nog wijzigingen op publicatie wachten.
+     */
+    public function hasUnpublishedChanges(): bool
+    {
+        $published = $this->page->publishedVersion;
+
+        if ($published === null) {
+            return true;
+        }
+
+        if ($published->id === $this->id) {
+            return false;
+        }
+
+        return $this->contentSignature() !== $published->contentSignature();
+    }
+
+    private function contentSignature(): string
+    {
+        $bands = $this->bands()->with('blocks')->get()->map(fn (Band $band) => [
+            'zone' => $band->zone,
+            'layout' => $band->layout->value,
+            'sort_order' => $band->sort_order,
+            'blocks' => $band->blocks->map(fn (Block $block) => [
+                'column_index' => $block->column_index,
+                'sort_order' => $block->sort_order,
+                'type' => $block->type->value,
+                'visibility' => $block->visibility->value,
+                'content' => $block->content,
+            ])->all(),
+        ])->all();
+
+        return (string) json_encode($bands);
+    }
 }

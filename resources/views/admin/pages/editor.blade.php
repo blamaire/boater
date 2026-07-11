@@ -6,6 +6,9 @@
             <div class="flex items-baseline gap-3 text-sm">
                 <a href="{{ route('admin.pages.index') }}" class="text-gray-600 hover:text-gray-800">← Alle pagina's</a>
                 <p class="text-gray-500">Concept · v{{ $version->version_no }}</p>
+                @if ($hasUnpublishedChanges)
+                    <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Niet gepubliceerd</span>
+                @endif
             </div>
             <div class="flex items-center gap-3 text-sm">
                 <a href="{{ route('admin.pages.history', $page) }}" class="text-gray-600 hover:text-gray-800">Historie</a>
