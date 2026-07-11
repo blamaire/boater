@@ -24,7 +24,10 @@
                         <span class="hidden sm:inline font-display text-xl text-rzvg-600">Roei- en Zeilvereniging Gouda</span>
                     </a>
                     @auth
-                        <a href="{{ route('dashboard') }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">Naar portaal →</a>
+                        <div class="flex items-center gap-3 text-sm">
+                            <a href="{{ route('dashboard') }}" class="inline-flex items-center px-3 py-1.5 rounded-md border border-rzvg-200 text-rzvg-700 hover:bg-rzvg-50">Ledenpagina</a>
+                            <span class="text-gray-700 max-w-[10rem] truncate">{{ Auth::user()->name }}</span>
+                        </div>
                     @else
                         <a href="{{ route('login') }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">Inloggen</a>
                     @endauth
