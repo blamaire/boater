@@ -51,35 +51,31 @@
             {{-- Portaalbalk met beperkt-zichtbare CMS-pagina's. Composer
                  `PortalPagesComposer` vult `$portalPages` alleen als de user
                  er toegang toe zou hebben (ingelogd + actief lid, of inzage-
-                 rol); anders blijft de balk uit beeld. Children verschijnen
-                 als hover-uitklap onder de parent. --}}
+                 rol); anders blijft de balk uit beeld. Opmaak volgt het
+                 publieke topmenu (grijstinten) — children als hover-uitklap. --}}
             @if (! empty($portalPages) && $portalPages->isNotEmpty())
-                <nav class="bg-rzvg-50 border-b border-rzvg-100">
-                    <ul class="mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-stretch gap-1 text-sm">
-                        @foreach ($portalPages as $portalPage)
-                            <li class="relative group">
-                                <a href="{{ $portalPage->publicUrl() }}"
-                                    class="flex items-center gap-1 px-3 py-2 text-rzvg-700 hover:bg-rzvg-100 rounded-t-md">
-                                    {{ $portalPage->title }}
-                                    @if ($portalPage->children->isNotEmpty())
-                                        <span aria-hidden="true" class="text-xs">▾</span>
+                <nav class="border-t border-gray-100 bg-gray-50">
+                    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <ul class="flex flex-wrap items-center gap-2 py-2 text-sm">
+                            @foreach ($portalPages as $portalPage)
+                                <li class="relative group">
+                                    @if ($portalPage->children->isEmpty())
+                                        <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900">{{ $portalPage->title }}</a>
+                                    @else
+                                        <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900 inline-flex items-center gap-1">
+                                            {{ $portalPage->title }}
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                                        </a>
+                                        <ul class="hidden group-hover:block group-focus-within:block absolute z-10 left-0 top-full bg-white border border-gray-200 rounded-md shadow-lg min-w-[12rem] py-1">
+                                            @foreach ($portalPage->children as $child)
+                                                <li><a href="{{ $child->publicUrl() }}" class="block px-3 py-1.5 hover:bg-gray-50">{{ $child->title }}</a></li>
+                                            @endforeach
+                                        </ul>
                                     @endif
-                                </a>
-                                @if ($portalPage->children->isNotEmpty())
-                                    <ul class="hidden group-hover:block group-focus-within:block absolute left-0 top-full z-40 min-w-[12rem] bg-white border border-rzvg-100 rounded-b-md shadow-lg py-1">
-                                        @foreach ($portalPage->children as $child)
-                                            <li>
-                                                <a href="{{ $child->publicUrl() }}"
-                                                    class="block px-3 py-2 text-gray-700 hover:bg-rzvg-50 hover:text-rzvg-700">
-                                                    {{ $child->title }}
-                                                </a>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ul>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 </nav>
             @endif
 
