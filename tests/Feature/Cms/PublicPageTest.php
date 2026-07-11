@@ -2,15 +2,23 @@
 
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
+use App\Enums\MembershipStatus;
 use App\Enums\PageType;
 use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Models\Band;
 use App\Models\Block;
+use App\Models\Membership;
+use App\Models\MembershipType;
 use App\Models\Page;
 use App\Models\PageVersion;
+use App\Models\Permission;
+use App\Models\Person;
 use App\Models\Template;
 use App\Models\User;
+use Database\Seeders\MembershipTypeSeeder;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 
 beforeEach(function () {
     $this->template = Template::create([
@@ -89,12 +97,65 @@ it('returns 404 when no published version exists', function () {
     $this->get('/pagina/concept-only')->assertNotFound();
 });
 
-it('requires login for members-only pages', function () {
-    publishedPage($this->template, 'voor-leden', 'Voor leden', visibility: PageVisibility::Members);
+it('weigert een beperkt-zichtbare pagina voor uitgelogde bezoekers', function () {
+    publishedPage($this->template, 'voor-leden', 'Voor leden', visibility: PageVisibility::Restricted);
 
     $this->get('/pagina/voor-leden')->assertForbidden();
+});
+
+it('weigert een beperkt-zichtbare pagina voor ingelogde oud-leden zonder actief lidmaatschap', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+    $this->seed(MembershipTypeSeeder::class);
+
+    publishedPage($this->template, 'voor-leden', 'Voor leden', visibility: PageVisibility::Restricted);
 
     $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'Oud', 'last_name' => 'Lid', 'account_id' => $user->id]);
+    $type = MembershipType::query()->where('key', 'a')->firstOrFail();
+    Membership::create([
+        'person_id' => $person->id,
+        'membership_type_id' => $type->id,
+        'status' => MembershipStatus::Active,
+        'start_date' => now()->subYears(2)->toDateString(),
+        'end_date' => now()->subMonth()->toDateString(),
+        'billing_person_id' => $person->id,
+    ]);
+
+    $this->actingAs($user)->get('/pagina/voor-leden')->assertForbidden();
+});
+
+it('toont een beperkt-zichtbare pagina aan een ingelogd lid met actief lidmaatschap', function () {
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+    $this->seed(MembershipTypeSeeder::class);
+
+    publishedPage($this->template, 'voor-leden', 'Voor leden', visibility: PageVisibility::Restricted);
+
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'Actief', 'last_name' => 'Lid', 'account_id' => $user->id]);
+    $type = MembershipType::query()->where('key', 'a')->firstOrFail();
+    Membership::create([
+        'person_id' => $person->id,
+        'membership_type_id' => $type->id,
+        'status' => MembershipStatus::Active,
+        'start_date' => now()->subMonth()->toDateString(),
+        'billing_person_id' => $person->id,
+    ]);
+
+    $this->actingAs($user)->get('/pagina/voor-leden')->assertOk();
+});
+
+it('toont een beperkt-zichtbare pagina aan een redacteur zonder lidmaatschap', function () {
+    $this->seed(PermissionSeeder::class);
+
+    publishedPage($this->template, 'voor-leden', 'Voor leden', visibility: PageVisibility::Restricted);
+
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'Redac', 'last_name' => 'Teur', 'account_id' => $user->id]);
+    $permissionId = Permission::query()->where('key', 'pages.view')->firstOrFail()->id;
+    $person->personPermissions()->create(['permission_id' => $permissionId, 'status' => 'active']);
+
     $this->actingAs($user)->get('/pagina/voor-leden')->assertOk();
 });
 

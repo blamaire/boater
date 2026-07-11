@@ -49,9 +49,45 @@
             </div>
 
             <div class="flex-1 flex">
-                <main class="flex-1 min-w-0">
-                    {{ $slot }}
-                </main>
+                {{-- Main-kolom bevat óók de portaalbalk zodat die mee-schuift
+                     met het hoofdstuk zodra de rechter sidebar (aside) open
+                     of dicht klapt. --}}
+                <div class="flex-1 min-w-0 flex flex-col">
+                    {{-- Portaalbalk met beperkt-zichtbare CMS-pagina's. Composer
+                         `PortalPagesComposer` vult `$portalPages` alleen als de
+                         user er toegang toe zou hebben (ingelogd + actief lid,
+                         of inzage-rol); anders blijft de balk uit beeld.
+                         Children als hover-uitklap onder de parent. --}}
+                    @if (! empty($portalPages) && $portalPages->isNotEmpty())
+                        <nav class="bg-white border-b border-gray-200">
+                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <ul class="flex flex-wrap items-center gap-2 py-2 text-sm">
+                                    @foreach ($portalPages as $portalPage)
+                                        <li class="relative group">
+                                            @if ($portalPage->children->isEmpty())
+                                                <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900">{{ $portalPage->title }}</a>
+                                            @else
+                                                <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900 inline-flex items-center gap-1">
+                                                    {{ $portalPage->title }}
+                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                                                </a>
+                                                <ul class="hidden group-hover:block group-focus-within:block absolute z-10 left-0 top-full bg-white border border-gray-200 rounded-md shadow-lg min-w-[12rem] py-1">
+                                                    @foreach ($portalPage->children as $child)
+                                                        <li><a href="{{ $child->publicUrl() }}" class="block px-3 py-1.5 hover:bg-gray-50">{{ $child->title }}</a></li>
+                                                    @endforeach
+                                                </ul>
+                                            @endif
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </nav>
+                    @endif
+
+                    <main class="flex-1 min-w-0">
+                        {{ $slot }}
+                    </main>
+                </div>
 
                 {{-- Overlay op mobile wanneer drawer open is --}}
                 <div x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false"

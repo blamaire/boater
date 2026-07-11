@@ -39,7 +39,7 @@ class PageImportService
         $slug = (string) ($pageData['slug'] ?? '');
         $title = (string) ($pageData['title'] ?? '');
         $type = PageType::from((string) $pageData['type']);
-        $visibility = PageVisibility::from((string) $pageData['visibility']);
+        $visibility = $this->parseVisibility((string) $pageData['visibility']);
         $parentSlug = $pageData['parent_slug'] ?? null;
         $templateName = (string) ($pageData['template_name'] ?? '');
 
@@ -145,7 +145,7 @@ class PageImportService
                     'sort_order' => (int) ($blockData['sort_order'] ?? 0),
                     'type' => BlockType::from((string) $blockData['type']),
                     'content' => $this->rewriteMediaIds((array) ($blockData['content'] ?? []), $sourceIdToLocalId),
-                    'visibility' => PageVisibility::from((string) $blockData['visibility']),
+                    'visibility' => $this->parseVisibility((string) $blockData['visibility']),
                 ]);
             }
         }
@@ -159,6 +159,19 @@ class PageImportService
      * @param  array<int, int>  $sourceIdToLocalId
      * @return array<string, mixed>
      */
+    /**
+     * Oude exports kennen nog de waarde `leden`; die is samengevoegd met
+     * `beperkt` (zie 2026_07_11_120000_migrate_leden_visibility_to_beperkt).
+     */
+    private function parseVisibility(string $raw): PageVisibility
+    {
+        if ($raw === 'leden') {
+            return PageVisibility::Restricted;
+        }
+
+        return PageVisibility::from($raw);
+    }
+
     private function rewriteMediaIds(array $content, array $sourceIdToLocalId): array
     {
         foreach ($content as $key => $value) {
