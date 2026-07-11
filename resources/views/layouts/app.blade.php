@@ -55,7 +55,7 @@
                  publieke topmenu (grijstinten) — children als hover-uitklap. --}}
             @if (! empty($portalPages) && $portalPages->isNotEmpty())
                 <nav class="bg-white border-b border-gray-200">
-                    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <ul class="flex flex-wrap items-center gap-2 py-2 text-sm">
                             @foreach ($portalPages as $portalPage)
                                 <li class="relative group">
