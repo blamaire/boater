@@ -3,7 +3,10 @@
 
     <div class="py-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-4 flex items-baseline justify-between">
-            <p class="text-sm text-gray-500">Concept · v{{ $version->version_no }}</p>
+            <div class="flex items-baseline gap-3 text-sm">
+                <a href="{{ route('admin.pages.index') }}" class="text-gray-600 hover:text-gray-800">← Alle pagina's</a>
+                <p class="text-gray-500">Concept · v{{ $version->version_no }}</p>
+            </div>
             <div class="flex items-center gap-3 text-sm">
                 <a href="{{ route('admin.pages.history', $page) }}" class="text-gray-600 hover:text-gray-800">Historie</a>
                 <a href="{{ route('admin.pages.edit', $page) }}" class="text-gray-600 hover:text-gray-800">Instellingen</a>
