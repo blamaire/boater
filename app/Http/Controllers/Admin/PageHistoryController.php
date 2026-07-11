@@ -6,6 +6,8 @@ use App\Enums\PageVersionStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\PageVersion;
+use App\Services\Cms\ConflictDetector;
+use App\Services\Cms\PageVersionDiffSerializer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,15 +24,27 @@ class PageHistoryController extends Controller
         ]);
     }
 
-    public function diff(Page $page, PageVersion $version, PageVersion $other): View
-    {
+    public function diff(
+        Page $page,
+        PageVersion $version,
+        PageVersion $other,
+        ConflictDetector $detector,
+        PageVersionDiffSerializer $serializer,
+    ): View {
         abort_unless($version->page_id === $page->id, 404);
         abort_unless($other->page_id === $page->id, 404);
+
+        // Two-way diff: geen gemeenschappelijke voorouder, dus base=null.
+        $report = $detector->detect($version, $other, null);
 
         return view('admin.pages.history-diff', [
             'page' => $page,
             'a' => $version,
             'b' => $other,
+            'report' => $report,
+            'structuredDiff' => $serializer->structured($report),
+            'rawA' => $serializer->raw($version),
+            'rawB' => $serializer->raw($other),
         ]);
     }
 
