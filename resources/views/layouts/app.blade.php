@@ -48,6 +48,41 @@
                 </div>
             </div>
 
+            {{-- Portaalbalk met beperkt-zichtbare CMS-pagina's. Composer
+                 `PortalPagesComposer` vult `$portalPages` alleen als de user
+                 er toegang toe zou hebben (ingelogd + actief lid, of inzage-
+                 rol); anders blijft de balk uit beeld. Children verschijnen
+                 als hover-uitklap onder de parent. --}}
+            @if (! empty($portalPages) && $portalPages->isNotEmpty())
+                <nav class="bg-rzvg-50 border-b border-rzvg-100">
+                    <ul class="mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-stretch gap-1 text-sm">
+                        @foreach ($portalPages as $portalPage)
+                            <li class="relative group">
+                                <a href="{{ $portalPage->publicUrl() }}"
+                                    class="flex items-center gap-1 px-3 py-2 text-rzvg-700 hover:bg-rzvg-100 rounded-t-md">
+                                    {{ $portalPage->title }}
+                                    @if ($portalPage->children->isNotEmpty())
+                                        <span aria-hidden="true" class="text-xs">▾</span>
+                                    @endif
+                                </a>
+                                @if ($portalPage->children->isNotEmpty())
+                                    <ul class="hidden group-hover:block group-focus-within:block absolute left-0 top-full z-40 min-w-[12rem] bg-white border border-rzvg-100 rounded-b-md shadow-lg py-1">
+                                        @foreach ($portalPage->children as $child)
+                                            <li>
+                                                <a href="{{ $child->publicUrl() }}"
+                                                    class="block px-3 py-2 text-gray-700 hover:bg-rzvg-50 hover:text-rzvg-700">
+                                                    {{ $child->title }}
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </nav>
+            @endif
+
             <div class="flex-1 flex">
                 <main class="flex-1 min-w-0">
                     {{ $slot }}

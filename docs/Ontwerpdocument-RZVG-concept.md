@@ -350,7 +350,7 @@ Elke module wordt langs hetzelfde stramien uitgewerkt:
 - **Beheeraspecten**: levenscyclus (concept → publiceren → intrekken → archiveren → verwijderen), goed-/afkeuren, en modulespecifieke beheerschermen.
 - **Datamodel-uitbreiding**: de entiteiten en velden van de module.
 - **Koppelingen**: relaties met andere modules en het kernsysteem.
-- **Instellingen en zichtbaarheid**: gedeelde opties (waaronder zichtbaarheid: iedereen / alleen leden / specifieke rol).
+- **Instellingen en zichtbaarheid**: gedeelde opties (waaronder zichtbaarheid: publiek / beperkt, waarbij `beperkt` = ingelogd + actief lidmaatschap of een inzage-rol).
 
 ## 16. CMS — detailuitwerking
 
@@ -358,7 +358,7 @@ Elke module wordt langs hetzelfde stramien uitgewerkt:
 
 Kernentiteiten:
 
-- **PAGE** — `id`, `slug`, `title`, `type` (content/systeem), `visibility` (publiek/leden/beperkt), `parent_id` (hiërarchie voor navigatie), `template_id`, `published_version_id`.
+- **PAGE** — `id`, `slug`, `title`, `type` (content/systeem), `visibility` (publiek/beperkt — `beperkt` = ingelogd + actief lidmaatschap of een inzage-rol), `parent_id` (hiërarchie voor navigatie), `template_id`, `published_version_id`.
 - **PAGE_VERSION** — `id`, `page_id`, `version_no`, `status` (concept/in_review/gepubliceerd/gearchiveerd), `base_version_id` (de versie waarvan deze vertakt), `created_by`, `created_at`.
 - **BAND** — `id`, `page_version_id`, `zone` (uit het sjabloon), `layout` (1/2/3 kolommen), `sort_order`.
 - **BLOCK** — `id`, `band_id`, `column_index`, `sort_order`, `type` (content/module), `module_id` (bij een moduleblok), `content` (JSON: rijke tekst/instellingen).
@@ -382,7 +382,7 @@ De bewerker is in-context: de redacteur bewerkt de pagina zoals die eruitziet.
 
 ### 16.3 Blok- en moduletypecatalogus
 
-Gedeelde blokinstellingen: **zichtbaarheid** (iedereen / alleen leden / specifieke rol) en witruimte/marges. Moduleblokken hebben daarnaast een optionele titel.
+Gedeelde blokinstellingen: **zichtbaarheid** (publiek / beperkt — waarbij `beperkt` = ingelogd + actief lidmaatschap of een inzage-rol) en witruimte/marges. Moduleblokken hebben daarnaast een optionele titel.
 
 **Contentblokken**
 

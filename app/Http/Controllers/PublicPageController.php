@@ -85,6 +85,11 @@ class PublicPageController extends Controller
         return $current;
     }
 
+    /**
+     * `beperkt` = ingelogd + actief lidmaatschap OF een inzage-rol
+     * (redacteur/beheerder via `pages.view`). Oud-leden zonder actief
+     * lidmaatschap krijgen geen toegang (zie §11 + §26.4).
+     */
     private function guardVisibility(Page $page, Request $request): void
     {
         if ($page->visibility === PageVisibility::Public) {
@@ -94,8 +99,10 @@ class PublicPageController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 403, 'Deze pagina is alleen voor ingelogde leden.');
 
-        if ($page->visibility === PageVisibility::Restricted) {
-            abort_unless($user->can('pages.view'), 403);
+        if ($user->can('pages.view')) {
+            return;
         }
+
+        abort_unless($user->person?->hasActiveMembership() === true, 403);
     }
 }

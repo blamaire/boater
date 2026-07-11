@@ -28,6 +28,11 @@ class MediaDownloadController extends Controller
         );
     }
 
+    /**
+     * `beperkt` = ingelogd + actief lidmaatschap OF een inzage-rol
+     * (via `media.view`). Oud-leden zonder actief lidmaatschap krijgen
+     * geen toegang.
+     */
     private function guardVisibility(MediaAsset $asset, Request $request): void
     {
         if ($asset->visibility === PageVisibility::Public) {
@@ -37,8 +42,10 @@ class MediaDownloadController extends Controller
         $user = $request->user();
         abort_unless($user !== null, 403, 'Deze media zijn alleen beschikbaar voor ingelogde leden.');
 
-        if ($asset->visibility === PageVisibility::Restricted) {
-            abort_unless($user->can('media.view'), 403);
+        if ($user->can('media.view')) {
+            return;
         }
+
+        abort_unless($user->person?->hasActiveMembership() === true, 403);
     }
 }
