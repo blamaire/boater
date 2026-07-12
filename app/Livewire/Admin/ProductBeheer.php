@@ -7,6 +7,7 @@ use App\Enums\ProductType;
 use App\Models\LedgerAccount;
 use App\Models\MembershipType;
 use App\Models\Product;
+use App\Models\ProductPrice;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,24 @@ class ProductBeheer extends Component
 
     public ?string $statusMessage = null;
 
+    public function mount(): void
+    {
+        $this->resetPriceInputs();
+    }
+
+    private function resetPriceInputs(): void
+    {
+        // "Geldig vanaf" staat standaard op vandaag zodat je 'm niet elke keer hoeft te kiezen.
+        $this->priceValidFrom = now()->toDateString();
+        $this->priceAmount = null;
+    }
+
     public function edit(int $id): void
+    {
+        $this->loadProduct($id);
+    }
+
+    private function loadProduct(int $id): void
     {
         $product = Product::query()->with('membershipTypes')->findOrFail($id);
         $this->editingId = $product->id;
@@ -54,21 +72,24 @@ class ProductBeheer extends Component
         $this->isRecurring = $product->is_recurring;
         $this->recurrence = $product->recurrence?->value;
         $this->linkedMembershipTypeIds = $product->membershipTypes->pluck('id')->all();
-        $this->reset(['priceValidFrom', 'priceAmount']);
+        $this->resetPriceInputs();
     }
 
     public function resetForm(): void
     {
         $this->reset([
             'editingId', 'name', 'ledgerAccountId', 'isRecurring',
-            'recurrence', 'linkedMembershipTypeIds', 'priceValidFrom', 'priceAmount',
+            'recurrence', 'linkedMembershipTypeIds',
         ]);
         $this->type = 'contributie';
+        $this->resetPriceInputs();
     }
 
     public function save(AuditLogger $audit): void
     {
-        $data = $this->validate([
+        $creating = $this->editingId === null;
+
+        $rules = [
             'name' => ['required', 'string', 'max:150'],
             'type' => ['required', 'in:'.implode(',', array_column(ProductType::cases(), 'value'))],
             'ledgerAccountId' => ['nullable', 'integer', 'exists:ledger_accounts,id'],
@@ -80,9 +101,19 @@ class ProductBeheer extends Component
             ],
             'linkedMembershipTypeIds' => ['array'],
             'linkedMembershipTypeIds.*' => ['integer', 'exists:membership_types,id'],
-        ]);
+        ];
 
-        DB::transaction(function () use ($data, $audit) {
+        if ($creating) {
+            // Beginprijs is optioneel: "Geldig vanaf" staat standaard op vandaag,
+            // dus de prijs telt alleen mee als er een bedrag is ingevuld. Is dat
+            // zo, dan is een ingangsdatum verplicht.
+            $rules['priceValidFrom'] = ['nullable', 'required_with:priceAmount', 'date'];
+            $rules['priceAmount'] = ['nullable', 'numeric', 'min:0'];
+        }
+
+        $data = $this->validate($rules);
+
+        $product = DB::transaction(function () use ($data, $audit, $creating): Product {
             $attributes = [
                 'name' => $data['name'],
                 'type' => $data['type'],
@@ -91,7 +122,7 @@ class ProductBeheer extends Component
                 'recurrence' => $data['isRecurring'] ? $data['recurrence'] : null,
             ];
 
-            if ($this->editingId !== null) {
+            if (! $creating) {
                 $product = Product::query()->findOrFail($this->editingId);
                 $before = $product->only(array_keys($attributes));
                 $product->update($attributes);
@@ -100,13 +131,22 @@ class ProductBeheer extends Component
             } else {
                 $product = Product::create($attributes);
                 $audit->log('product.created', $product, after: $attributes);
+
+                // Beginprijs direct meegeven bij het aanmaken (alleen als er een
+                // bedrag is; de datum staat standaard op vandaag).
+                if (($this->priceAmount ?? '') !== '' && ($this->priceValidFrom ?? '') !== '') {
+                    $this->recordPrice($product, $this->priceValidFrom, $this->priceAmount, $audit);
+                }
                 $this->statusMessage = "Product [{$product->name}] aangemaakt.";
             }
 
             $this->syncMembershipTypes($product, $audit);
+
+            return $product;
         });
 
-        $this->resetForm();
+        // Blijf op het product staan zodat er direct meer prijzen bij kunnen.
+        $this->loadProduct($product->id);
     }
 
     /**
@@ -146,19 +186,30 @@ class ProductBeheer extends Component
         ]);
 
         $product = Product::query()->findOrFail($this->editingId);
+        $price = $this->recordPrice($product, $data['priceValidFrom'], (string) $data['priceAmount'], $audit);
 
+        $this->resetPriceInputs();
+        $this->statusMessage = "Prijs vanaf {$price->valid_from->format('d-m-Y')} vastgelegd.";
+    }
+
+    /**
+     * Legt een prijs vast (of overschrijft de prijs met dezelfde ingangsdatum)
+     * en logt de mutatie. Gedeeld door de beginprijs bij aanmaken en het
+     * toevoegen van prijzen bij een bestaand product.
+     */
+    private function recordPrice(Product $product, string $validFrom, string $amount, AuditLogger $audit): ProductPrice
+    {
         $price = $product->prices()->updateOrCreate(
-            ['valid_from' => $data['priceValidFrom']],
-            ['amount' => $data['priceAmount']],
+            ['valid_from' => $validFrom],
+            ['amount' => $amount],
         );
 
         $audit->log('product_price.set', $product, after: [
-            'valid_from' => $data['priceValidFrom'],
-            'amount' => $data['priceAmount'],
+            'valid_from' => $validFrom,
+            'amount' => $amount,
         ]);
 
-        $this->reset(['priceValidFrom', 'priceAmount']);
-        $this->statusMessage = "Prijs vanaf {$price->valid_from->format('d-m-Y')} vastgelegd.";
+        return $price;
     }
 
     public function deletePrice(int $priceId, AuditLogger $audit): void

@@ -75,4 +75,17 @@ class Product extends Model
     {
         return $this->priceOn(Carbon::now());
     }
+
+    /**
+     * De eerstvolgende prijs die nog moet ingaan (valid_from in de toekomst).
+     * Handig om te tonen dat er wél een prijs is vastgelegd, maar pas later
+     * geldt — anders lijkt de huidige prijs "leeg".
+     */
+    public function upcomingPrice(): ?ProductPrice
+    {
+        return $this->prices()
+            ->where('valid_from', '>', Carbon::now())
+            ->orderBy('valid_from')
+            ->first();
+    }
 }

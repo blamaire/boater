@@ -36,7 +36,7 @@ it('maakt een product aan met opbrengstrekening', function () {
     $account = LedgerAccount::query()->where('code', '8000')->firstOrFail();
     $this->actingAs($this->beheerder);
 
-    Livewire::test(ProductBeheer::class)
+    $component = Livewire::test(ProductBeheer::class)
         ->set('name', 'Seniorlidmaatschap')
         ->set('type', 'contributie')
         ->set('ledgerAccountId', $account->id)
@@ -46,11 +46,65 @@ it('maakt een product aan met opbrengstrekening', function () {
         ->assertHasNoErrors();
 
     $product = Product::query()->firstOrFail();
+
+    // Na aanmaken blijft het product in bewerkmodus zodat de prijs direct
+    // ingevoerd kan worden (het prijsvak is dan zichtbaar).
+    $component->assertSet('editingId', $product->id);
+
     expect($product->name)->toBe('Seniorlidmaatschap')
         ->and($product->type->value)->toBe('contributie')
         ->and($product->ledger_account_id)->toBe($account->id)
         ->and($product->is_recurring)->toBeTrue()
         ->and($product->recurrence->value)->toBe('jaarlijks');
+});
+
+it('legt meteen een beginprijs vast bij het aanmaken', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ProductBeheer::class)
+        ->set('name', 'Jeugdlidmaatschap')
+        ->set('type', 'contributie')
+        ->set('priceValidFrom', '2026-01-01')
+        ->set('priceAmount', '85.00')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $product = Product::query()->where('name', 'Jeugdlidmaatschap')->firstOrFail();
+    expect($product->prices()->count())->toBe(1)
+        ->and((float) $product->currentPrice()->amount)->toBe(85.0);
+});
+
+it('maakt zonder bedrag gewoon een product zonder prijs aan', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ProductBeheer::class)
+        ->set('name', 'Nog geen prijs')
+        ->set('type', 'contributie')
+        ->set('priceAmount', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    $product = Product::query()->where('name', 'Nog geen prijs')->firstOrFail();
+    expect($product->prices()->count())->toBe(0);
+});
+
+it('vereist een ingangsdatum als er wel een bedrag maar geen datum is', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ProductBeheer::class)
+        ->set('name', 'Bedrag zonder datum')
+        ->set('type', 'contributie')
+        ->set('priceValidFrom', '')
+        ->set('priceAmount', '50.00')
+        ->call('save')
+        ->assertHasErrors(['priceValidFrom']);
+});
+
+it('zet Geldig vanaf standaard op vandaag', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ProductBeheer::class)
+        ->assertSet('priceValidFrom', now()->toDateString());
 });
 
 it('vereist een herhaalschema wanneer het product terugkerend is', function () {
