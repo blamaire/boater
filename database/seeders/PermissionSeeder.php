@@ -46,6 +46,9 @@ class PermissionSeeder extends Seeder
             'reservations' => ['view', 'create', 'update', 'approve'],
             'damage_reports' => ['view', 'create'],
             'pages' => ['view', 'create', 'update', 'publish', 'delete', 'push'],
+            // Financiën — Fase 3. Productbeheer (producten, prijzen, rekening-
+            // koppeling) valt onder één beheerpermissie.
+            'products' => ['manage'],
             'audit_trail' => ['view'],
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
@@ -106,6 +109,7 @@ class PermissionSeeder extends Seeder
             'reservations' => 'Reserveringen',
             'damage_reports' => 'Schademeldingen',
             'pages' => 'Pagina\'s',
+            'products' => 'Producten',
             'audit_trail' => 'Auditlogboek',
             'media' => 'Media',
             'queue' => 'Queue',
@@ -127,7 +131,7 @@ class PermissionSeeder extends Seeder
             'approve' => "{$moduleLabel} goedkeuren",
             'push' => "{$moduleLabel} naar een andere omgeving pushen",
             'upload' => "{$moduleLabel} uploaden",
-            'manage' => "{$moduleLabel} beheren (failed jobs opnieuw uitvoeren of verwijderen)",
+            'manage' => "{$moduleLabel} beheren",
             default => "{$action} op {$moduleLabel}",
         };
     }
