@@ -14,10 +14,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Beheer-UI voor activiteiten. Aanmaken en wijzigen; publiceren of afgelasten.
- * Permissie: `activities.create` (aanmaken), `activities.update` (wijzigen),
- * `activities.delete` (verwijderen). Views/lijst is voor iedereen met
- * `activities.view`.
+ * Beheer-UI voor activiteiten. Aanmaken, wijzigen, publiceren en afgelasten.
+ * Toegang tot de lijst/route loopt via `activities.view`; wijzigen valt onder
+ * `activities.update`.
  */
 #[Layout('layouts.app', ['header' => 'Activiteiten'])]
 class ActiviteitBeheer extends Component
