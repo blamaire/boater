@@ -267,7 +267,6 @@ class Reserveren extends Component
         $objects = $categoryFilter(
             ReservableObject::query()
                 ->with('category')
-                ->orderBy('sort_order')
                 ->orderBy('name')
         )->get();
 
