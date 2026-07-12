@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
 use App\Http\Controllers\Admin\PagePushController;
+use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
+use App\Livewire\Admin\Auditlogboek;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\GoedkeuringsgroepBeheer;
@@ -137,6 +139,16 @@ Route::middleware(['auth', 'verified', 'can:reservations.update'])
 Route::middleware(['auth', 'verified', 'can:damage_reports.view'])
     ->get('/beheer/schademeldingen', SchademeldingBeheer::class)
     ->name('admin.damage-reports.index');
+
+Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
+    ->get('/beheer/auditlogboek', Auditlogboek::class)
+    ->name('admin.audit.index');
+
+// Read-only voorstel-inzage, ontsloten vanuit het auditlogboek. Zelfde
+// permissie als het auditlogboek zelf (governance-inzage).
+Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
+    ->get('/beheer/voorstellen/{proposal}', [ProposalController::class, 'show'])
+    ->name('admin.proposals.show');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
