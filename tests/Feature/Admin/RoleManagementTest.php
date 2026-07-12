@@ -96,7 +96,7 @@ it('laat gebruiker met roles.update een niet-systeem-rol wijzigen', function () 
     $user = loginWithPermissions(['roles.view', 'roles.update']);
     $role = Role::create(['name' => 'Voorloper', 'description' => 'Oude naam', 'is_system' => false]);
 
-    $newPermission = Permission::query()->where('key', 'persons.view')->value('id');
+    $newPermission = Permission::query()->where('key', 'persons.update')->value('id');
 
     $this->actingAs($user)
         ->patch('/beheer/rollen/'.$role->id, [
@@ -108,7 +108,7 @@ it('laat gebruiker met roles.update een niet-systeem-rol wijzigen', function () 
 
     $role->refresh();
     expect($role->name)->toBe('Nieuwe rolnaam')
-        ->and($role->permissions->pluck('key')->all())->toContain('persons.view');
+        ->and($role->permissions->pluck('key')->all())->toContain('persons.update');
 });
 
 it('weigert wijziging van de Beheerder-systeem-rol', function () {
