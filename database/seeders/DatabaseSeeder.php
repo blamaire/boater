@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             // policies verwijzen naar deze groepen als assignee.
             ApproverGroupSeeder::class,
             ReviewPolicySeeder::class,
+            LedgerAccountSeeder::class,
             MembershipTypeSeeder::class,
             ActivityCategorySeeder::class,
             // Alleen actief bij APP_ENV=local (interne guard); seed nooit

@@ -22,6 +22,7 @@ use App\Livewire\Admin\GoedkeuringsgroepBeheer;
 use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
+use App\Livewire\Admin\ProductBeheer;
 use App\Livewire\Admin\ReservableObjectBeheer;
 use App\Livewire\Admin\ReserveringBeheer;
 use App\Livewire\Admin\ReserveringsregelBeheer;
@@ -149,6 +150,10 @@ Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
 Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
     ->get('/beheer/voorstellen/{proposal}', [ProposalController::class, 'show'])
     ->name('admin.proposals.show');
+
+Route::middleware(['auth', 'verified', 'can:products.manage'])
+    ->get('/beheer/producten', ProductBeheer::class)
+    ->name('admin.products.index');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
