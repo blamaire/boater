@@ -47,8 +47,9 @@ class PermissionSeeder extends Seeder
             'damage_reports' => ['view', 'create'],
             'pages' => ['view', 'create', 'update', 'publish', 'delete', 'push'],
             // Financiën — Fase 3. Productbeheer (producten, prijzen, rekening-
-            // koppeling) valt onder één beheerpermissie.
+            // koppeling) en facturatie (posten, facturen, journaalposten).
             'products' => ['manage'],
+            'invoices' => ['manage'],
             'audit_trail' => ['view'],
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
@@ -110,6 +111,7 @@ class PermissionSeeder extends Seeder
             'damage_reports' => 'Schademeldingen',
             'pages' => 'Pagina\'s',
             'products' => 'Producten',
+            'invoices' => 'Facturatie',
             'audit_trail' => 'Auditlogboek',
             'media' => 'Media',
             'queue' => 'Queue',

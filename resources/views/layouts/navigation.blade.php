@@ -39,7 +39,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             {{-- Beheer-menu-items staan alfabetisch op label. --}}
@@ -62,6 +62,16 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.audit.*'),
                                 'text-gray-700' => ! request()->routeIs('admin.audit.*'),
                             ])>Auditlogboek</a>
+                    </li>
+                @endcan
+                @can('invoices.manage')
+                    <li>
+                        <a href="{{ route('admin.billing.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.billing.*') || request()->routeIs('admin.invoices.*'),
+                                'text-gray-700' => ! (request()->routeIs('admin.billing.*') || request()->routeIs('admin.invoices.*')),
+                            ])>Facturatie</a>
                     </li>
                 @endcan
                 @can('users.manage')
