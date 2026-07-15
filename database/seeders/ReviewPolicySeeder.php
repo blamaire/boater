@@ -4,24 +4,35 @@ namespace Database\Seeders;
 
 use App\Enums\AssigneeType;
 use App\Enums\ResubmitBehavior;
+use App\Models\ApproverGroup;
 use App\Models\ReviewPolicy;
-use App\Models\Role;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
+use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use Illuminate\Database\Seeder;
 
+/**
+ * Elke policy wijst naar één van de centrale groepen uit
+ * {@see ApproverGroupSeeder}. Beheerders zitten impliciet in alle groepen
+ * (afgedwongen in ReviewerResolver) zodat er nooit iets vast komt te
+ * zitten wanneer een groep tijdelijk leeg is.
+ */
 class ReviewPolicySeeder extends Seeder
 {
     public function run(): void
     {
+        $redactie = $this->groupId('Redactie');
+        $ledenAdmin = $this->groupId('Ledenadministratie');
+        $materialen = $this->groupId('Materialen');
+
         ReviewPolicy::updateOrCreate(
             ['subject_type' => PageVersionProposalHandler::SUBJECT_TYPE],
             [
                 'name' => 'Publicatie van een pagina',
                 'auto_apply' => false,
                 'steps' => [
-                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->editorRoleId()],
+                    ['assignee_type' => AssigneeType::Group->value, 'assignee_id' => $redactie],
                 ],
                 'bypass_permission' => 'pages.publish',
                 'resubmit_behavior' => ResubmitBehavior::Restart,
@@ -35,7 +46,7 @@ class ReviewPolicySeeder extends Seeder
                 'name' => 'Aanvraag lidmaatschap',
                 'auto_apply' => false,
                 'steps' => [
-                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
+                    ['assignee_type' => AssigneeType::Group->value, 'assignee_id' => $ledenAdmin],
                 ],
                 'bypass_permission' => 'memberships.approve',
                 'resubmit_behavior' => ResubmitBehavior::Restart,
@@ -49,27 +60,31 @@ class ReviewPolicySeeder extends Seeder
                 'name' => 'Wijziging van een gevoelig persoonsgegeven',
                 'auto_apply' => false,
                 'steps' => [
-                    ['assignee_type' => AssigneeType::Role->value, 'assignee_id' => $this->beheerderRoleId()],
+                    ['assignee_type' => AssigneeType::Group->value, 'assignee_id' => $ledenAdmin],
                 ],
                 'bypass_permission' => 'persons.update',
                 'resubmit_behavior' => ResubmitBehavior::Restart,
                 'reminder_after_days' => 7,
             ],
         );
+
+        ReviewPolicy::updateOrCreate(
+            ['subject_type' => ReservationProposalHandler::SUBJECT_TYPE],
+            [
+                'name' => 'Reserveringsaanvraag boven drempel of voor een ander',
+                'auto_apply' => false,
+                'steps' => [
+                    ['assignee_type' => AssigneeType::Group->value, 'assignee_id' => $materialen],
+                ],
+                'bypass_permission' => 'reservations.approve',
+                'resubmit_behavior' => ResubmitBehavior::Restart,
+                'reminder_after_days' => 3,
+            ],
+        );
     }
 
-    private function editorRoleId(): int
+    private function groupId(string $name): int
     {
-        $role = Role::query()->where('name', 'Redacteur')->first();
-        if ($role) {
-            return $role->id;
-        }
-
-        return Role::create(['name' => 'Redacteur'])->id;
-    }
-
-    private function beheerderRoleId(): int
-    {
-        return (int) Role::query()->where('name', 'Beheerder')->value('id');
+        return (int) ApproverGroup::query()->where('name', $name)->value('id');
     }
 }

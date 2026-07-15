@@ -1,12 +1,16 @@
 <?php
 
 use App\Enums\MediaType;
+use App\Enums\MembershipStatus;
 use App\Enums\PageVisibility;
 use App\Models\MediaAsset;
+use App\Models\Membership;
+use App\Models\MembershipType;
 use App\Models\Permission;
 use App\Models\Person;
 use App\Models\PersonPermission;
 use App\Models\User;
+use Database\Seeders\MembershipTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -32,36 +36,57 @@ function makeAsset(PageVisibility $visibility = PageVisibility::Public, MediaTyp
 }
 
 it('rejects a download without a signature', function () {
-    $asset = makeAsset(PageVisibility::Members);
+    $asset = makeAsset(PageVisibility::Restricted);
 
     $this->get(route('media.download', ['asset' => $asset->id]))->assertForbidden();
 });
 
-it('rejects a signed download for members-only when guest', function () {
-    $asset = makeAsset(PageVisibility::Members);
+it('rejects a signed download of a restricted asset for guests', function () {
+    $asset = makeAsset(PageVisibility::Restricted);
     $signedUrl = URL::signedRoute('media.download', ['asset' => $asset->id], now()->addMinutes(60));
 
     $this->get($signedUrl)->assertForbidden();
 });
 
-it('serves a signed download for members-only when logged in', function () {
-    $asset = makeAsset(PageVisibility::Members);
-    $signedUrl = URL::signedRoute('media.download', ['asset' => $asset->id], now()->addMinutes(60));
+it('rejects a signed download of a restricted asset for a former member without active membership', function () {
+    $this->seed(MembershipTypeSeeder::class);
 
-    $user = User::factory()->create(['email_verified_at' => now()]);
-    Person::create(['first_name' => 'M', 'last_name' => 'Ember', 'account_id' => $user->id]);
-
-    $this->actingAs($user)->get($signedUrl)->assertOk();
-});
-
-it('rejects a restricted download without media.view permission', function () {
     $asset = makeAsset(PageVisibility::Restricted);
     $signedUrl = URL::signedRoute('media.download', ['asset' => $asset->id], now()->addMinutes(60));
 
     $user = User::factory()->create(['email_verified_at' => now()]);
-    Person::create(['first_name' => 'B', 'last_name' => 'Eperkt', 'account_id' => $user->id]);
+    $person = Person::create(['first_name' => 'Oud', 'last_name' => 'Lid', 'account_id' => $user->id]);
+    $type = MembershipType::query()->where('key', 'a')->firstOrFail();
+    Membership::create([
+        'person_id' => $person->id,
+        'membership_type_id' => $type->id,
+        'status' => MembershipStatus::Active,
+        'start_date' => now()->subYears(2)->toDateString(),
+        'end_date' => now()->subMonth()->toDateString(),
+        'billing_person_id' => $person->id,
+    ]);
 
     $this->actingAs($user)->get($signedUrl)->assertForbidden();
+});
+
+it('serves a signed download of a restricted asset for an active member', function () {
+    $this->seed(MembershipTypeSeeder::class);
+
+    $asset = makeAsset(PageVisibility::Restricted);
+    $signedUrl = URL::signedRoute('media.download', ['asset' => $asset->id], now()->addMinutes(60));
+
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'Actief', 'last_name' => 'Lid', 'account_id' => $user->id]);
+    $type = MembershipType::query()->where('key', 'a')->firstOrFail();
+    Membership::create([
+        'person_id' => $person->id,
+        'membership_type_id' => $type->id,
+        'status' => MembershipStatus::Active,
+        'start_date' => now()->subMonth()->toDateString(),
+        'billing_person_id' => $person->id,
+    ]);
+
+    $this->actingAs($user)->get($signedUrl)->assertOk();
 });
 
 it('serves a restricted download when the user has media.view', function () {

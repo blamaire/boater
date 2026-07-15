@@ -10,9 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
+ * @property string $uuid
  * @property string $disk
  * @property string $path
  * @property string|null $thumbnail_path
@@ -23,13 +25,21 @@ use Illuminate\Support\Facades\URL;
  * @property string|null $alt
  * @property array<string, int>|null $dimensions
  * @property PageVisibility $visibility
+ * @property string|null $context
  * @property int|null $uploaded_by_person_id
  * @property-read Person|null $uploadedBy
  * @property-read Collection<int, MediaTag> $tags
  */
 class MediaAsset extends Model
 {
+    /**
+     * Context 'damage_report' verbergt een asset uit de mediabibliotheek
+     * (§22, schadefoto's horen daar niet thuis).
+     */
+    public const CONTEXT_DAMAGE_REPORT = 'damage_report';
+
     protected $fillable = [
+        'uuid',
         'disk',
         'path',
         'thumbnail_path',
@@ -40,8 +50,20 @@ class MediaAsset extends Model
         'alt',
         'dimensions',
         'visibility',
+        'context',
         'uploaded_by_person_id',
     ];
+
+    protected static function booted(): void
+    {
+        // Auto-genereer een portable UUID bij aanmaak. Op meerdere omgevingen
+        // dient deze als vaste identifier voor cross-environment media-sync.
+        static::creating(function (self $asset): void {
+            if (empty($asset->uuid)) {
+                $asset->uuid = (string) Str::uuid();
+            }
+        });
+    }
 
     protected function casts(): array
     {

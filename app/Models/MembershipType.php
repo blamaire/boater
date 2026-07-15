@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property string $key
+ * @property int|null $product_id
  * @property string $name
  * @property bool $is_member
  * @property string|null $description
@@ -24,11 +25,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_partner_type
  * @property string|null $derives_from_key
  * @property int $sort_order
+ * @property-read Product|null $product
  */
 class MembershipType extends Model
 {
     protected $fillable = [
         'key',
+        'product_id',
         'name',
         'is_member',
         'description',
@@ -74,5 +77,11 @@ class MembershipType extends Model
     public function derivesFrom(): BelongsTo
     {
         return $this->belongsTo(MembershipType::class, 'derives_from_key', 'key');
+    }
+
+    /** @return BelongsTo<Product, $this> Contributie-product van deze lidmaatschapsvorm (§23.4). */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 }

@@ -11,7 +11,9 @@ use App\Services\Authorization\EffectivePermissions;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
+use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
+use App\View\Composers\PortalPagesComposer;
 use App\View\Composers\PublicFooterComposer;
 use App\View\Composers\PublicNavComposer;
 use Illuminate\Support\Facades\Gate;
@@ -55,7 +57,13 @@ class AppServiceProvider extends ServiceProvider
             app(PersonFieldUpdateHandler::class),
         );
 
+        app(ProposalHandlerRegistry::class)->register(
+            ReservationProposalHandler::SUBJECT_TYPE,
+            app(ReservationProposalHandler::class),
+        );
+
         View::composer('public._nav', PublicNavComposer::class);
         View::composer('public._footer', PublicFooterComposer::class);
+        View::composer('layouts.app', PortalPagesComposer::class);
     }
 }

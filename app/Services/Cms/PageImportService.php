@@ -9,6 +9,7 @@ use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Models\Band;
 use App\Models\Block;
+use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Template;
@@ -38,7 +39,7 @@ class PageImportService
         $slug = (string) ($pageData['slug'] ?? '');
         $title = (string) ($pageData['title'] ?? '');
         $type = PageType::from((string) $pageData['type']);
-        $visibility = PageVisibility::from((string) $pageData['visibility']);
+        $visibility = $this->parseVisibility((string) $pageData['visibility']);
         $parentSlug = $pageData['parent_slug'] ?? null;
         $templateName = (string) ($pageData['template_name'] ?? '');
 
@@ -60,7 +61,26 @@ class PageImportService
             $parentId = $parent->id;
         }
 
-        return DB::transaction(function () use ($slug, $title, $type, $visibility, $parentId, $template, $versionData) {
+        // Bouw een vertaal-tabel van source-asset-IDs naar lokale IDs, op
+        // basis van de UUIDs in `media_uuid_map`. Assets die op deze omgeving
+        // ontbreken worden overgeslagen (payload verwijst dan naar 'null'),
+        // maar normaliter heeft de source ze eerst via /api/media/upload
+        // gepusht zodat elke UUID matcht.
+        $sourceIdToLocalId = [];
+        $rawMap = $payload['media_uuid_map'] ?? [];
+        if (is_array($rawMap) && $rawMap !== []) {
+            $localAssetsByUuid = MediaAsset::query()
+                ->whereIn('uuid', array_values($rawMap))
+                ->pluck('id', 'uuid');
+            foreach ($rawMap as $sourceId => $uuid) {
+                $localId = $localAssetsByUuid->get((string) $uuid);
+                if ($localId !== null) {
+                    $sourceIdToLocalId[(int) $sourceId] = (int) $localId;
+                }
+            }
+        }
+
+        return DB::transaction(function () use ($slug, $title, $type, $visibility, $parentId, $template, $versionData, $sourceIdToLocalId) {
             $page = Page::query()->where('slug', $slug)->where('parent_id', $parentId)->first();
             $created = false;
 
@@ -86,7 +106,7 @@ class PageImportService
                 'created_by_person_id' => null,
             ]);
 
-            $this->hydrateBands($version, $versionData['bands'] ?? []);
+            $this->hydrateBands($version, $versionData['bands'] ?? [], $sourceIdToLocalId);
 
             return [
                 'status' => 'ok',
@@ -99,8 +119,9 @@ class PageImportService
 
     /**
      * @param  array<int, array<string, mixed>>  $bands
+     * @param  array<int, int>  $sourceIdToLocalId
      */
-    private function hydrateBands(PageVersion $version, array $bands): void
+    private function hydrateBands(PageVersion $version, array $bands, array $sourceIdToLocalId): void
     {
         foreach ($bands as $bandData) {
             $band = Band::query()->create([
@@ -123,10 +144,44 @@ class PageImportService
                     'column_index' => (int) ($blockData['column_index'] ?? 0),
                     'sort_order' => (int) ($blockData['sort_order'] ?? 0),
                     'type' => BlockType::from((string) $blockData['type']),
-                    'content' => (array) ($blockData['content'] ?? []),
-                    'visibility' => PageVisibility::from((string) $blockData['visibility']),
+                    'content' => $this->rewriteMediaIds((array) ($blockData['content'] ?? []), $sourceIdToLocalId),
+                    'visibility' => $this->parseVisibility((string) $blockData['visibility']),
                 ]);
             }
         }
+    }
+
+    /**
+     * Vervangt in de block-content alle keys eindigend op `media_asset_id`
+     * met de lokale ID die bij de UUID hoort. Ontbrekende assets → null.
+     *
+     * @param  array<string, mixed>  $content
+     * @param  array<int, int>  $sourceIdToLocalId
+     * @return array<string, mixed>
+     */
+    /**
+     * Oude exports kennen nog de waarde `leden`; die is samengevoegd met
+     * `beperkt` (zie 2026_07_11_120000_migrate_leden_visibility_to_beperkt).
+     */
+    private function parseVisibility(string $raw): PageVisibility
+    {
+        if ($raw === 'leden') {
+            return PageVisibility::Restricted;
+        }
+
+        return PageVisibility::from($raw);
+    }
+
+    private function rewriteMediaIds(array $content, array $sourceIdToLocalId): array
+    {
+        foreach ($content as $key => $value) {
+            if (! str_ends_with((string) $key, 'media_asset_id') || $value === null || $value === '') {
+                continue;
+            }
+            $sourceId = (int) $value;
+            $content[$key] = $sourceIdToLocalId[$sourceId] ?? null;
+        }
+
+        return $content;
     }
 }

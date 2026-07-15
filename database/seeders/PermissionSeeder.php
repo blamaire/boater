@@ -23,40 +23,42 @@ class PermissionSeeder extends Seeder
     }
 
     /**
+     * Alleen permissies die daadwerkelijk worden afgedwongen — via een route/
+     * view/component, als `bypass_permission` in een review-policy, of impliciet
+     * via lidmaatschap. Rechten voor nog niet gebouwde modules worden bewust
+     * niet vooruit geseed; ze komen terug zodra de bijbehorende feature er is.
+     * Uitzondering: de governance-primitieven `impersonate` en `proposals.bypass`
+     * (§8/§26) blijven gereserveerd.
+     *
      * @return array<int, array<string, mixed>>
      */
     private function catalog(): array
     {
         $entries = [];
 
-        $crud = ['view', 'create', 'update', 'delete'];
-        $contentLifecycle = ['view', 'create', 'update', 'publish', 'approve', 'delete'];
-        $proposalLifecycle = ['view', 'create', 'update', 'approve', 'delete'];
-
         $modules = [
-            'persons' => $crud,
-            'memberships' => array_merge($crud, ['approve']),
-            'roles' => $crud,
-            'activities' => $contentLifecycle,
-            'reservations' => $proposalLifecycle,
-            'damage_reports' => ['view', 'create', 'update', 'resolve'],
-            'pages' => array_merge($contentLifecycle, ['push']),
-            'invoices' => $crud,
-            'ledger' => ['view', 'update'],
-            'mailings' => ['view', 'create', 'send'],
-            'documents' => $crud,
-            'imports' => ['view', 'create', 'run'],
-            'volunteer_tasks' => array_merge($crud, ['sign_up']),
-            'communication_log' => ['view', 'create'],
+            // persons.update en memberships.approve worden als bypass_permission
+            // in de review-policies gebruikt (zie ReviewPolicySeeder).
+            'persons' => ['update'],
+            'memberships' => ['approve'],
+            'roles' => ['view', 'create', 'update', 'delete'],
+            'activities' => ['view', 'update'],
+            'reservations' => ['view', 'create', 'update', 'approve'],
+            'damage_reports' => ['view', 'create'],
+            'pages' => ['view', 'create', 'update', 'publish', 'delete', 'push'],
+            // Financiën — Fase 3. Productbeheer (producten, prijzen, rekening-
+            // koppeling) en facturatie (posten, facturen, journaalposten).
+            'products' => ['manage'],
+            'invoices' => ['manage'],
             'audit_trail' => ['view'],
-            'review_settings' => ['update'],
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
             'menu' => ['manage'],
             'site_settings' => ['manage'],
-            'ice_contacts' => ['view'],
             'environments' => ['manage'],
             'users' => ['manage'],
+            'reservable_objects' => ['manage'],
+            'approver_groups' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -68,13 +70,6 @@ class PermissionSeeder extends Seeder
                 ];
             }
         }
-
-        $entries[] = [
-            'key' => 'persons.search',
-            'module' => 'persons',
-            'action' => 'search',
-            'description' => 'Andere leden opzoeken (Leden zoeken)',
-        ];
 
         $entries[] = [
             'key' => 'impersonate',
@@ -92,6 +87,16 @@ class PermissionSeeder extends Seeder
             'is_sensitive' => true,
         ];
 
+        // Een lid mag content-wijzigingen op CMS-pagina's voorstellen (§5, §26.4).
+        // Wordt in EffectivePermissions automatisch verleend aan iedereen met
+        // een actief lidmaatschap; hoeft dus niet op een rol te staan.
+        $entries[] = [
+            'key' => 'pages.propose',
+            'module' => 'pages',
+            'action' => 'propose',
+            'description' => 'Een wijziging aan een CMS-pagina voorstellen (gaat via de goedkeuringsmotor)',
+        ];
+
         return $entries;
     }
 
@@ -105,22 +110,17 @@ class PermissionSeeder extends Seeder
             'reservations' => 'Reserveringen',
             'damage_reports' => 'Schademeldingen',
             'pages' => 'Pagina\'s',
-            'invoices' => 'Facturen',
-            'ledger' => 'Grootboek',
-            'mailings' => 'Mailings',
-            'documents' => 'Documenten',
-            'imports' => 'Imports',
-            'volunteer_tasks' => 'Vrijwilligerstaken',
-            'communication_log' => 'Communicatielogboek',
+            'products' => 'Producten',
+            'invoices' => 'Facturatie',
             'audit_trail' => 'Auditlogboek',
-            'review_settings' => 'Reviewinstellingen',
             'media' => 'Media',
             'queue' => 'Queue',
             'menu' => 'Publiek menu',
             'site_settings' => 'Site-instellingen',
-            'ice_contacts' => 'ICE-contacten',
             'environments' => 'Omgevingen',
             'users' => 'Gebruikers',
+            'reservable_objects' => 'Objecten (reserveren)',
+            'approver_groups' => 'Goedkeuringsgroepen',
             default => ucfirst($module),
         };
 
@@ -131,13 +131,9 @@ class PermissionSeeder extends Seeder
             'delete' => "{$moduleLabel} verwijderen",
             'publish' => "{$moduleLabel} publiceren",
             'approve' => "{$moduleLabel} goedkeuren",
-            'resolve' => "{$moduleLabel} afhandelen",
-            'send' => "{$moduleLabel} versturen",
-            'run' => "{$moduleLabel} uitvoeren",
-            'sign_up' => "Inschrijven op {$moduleLabel}",
             'push' => "{$moduleLabel} naar een andere omgeving pushen",
             'upload' => "{$moduleLabel} uploaden",
-            'manage' => "{$moduleLabel} beheren (failed jobs opnieuw uitvoeren of verwijderen)",
+            'manage' => "{$moduleLabel} beheren",
             default => "{$action} op {$moduleLabel}",
         };
     }

@@ -58,7 +58,7 @@ it('lists active roles and groups effective permissions by module', function () 
 
     PersonPermission::create([
         'person_id' => $person->id,
-        'permission_id' => Permission::where('key', 'persons.search')->value('id'),
+        'permission_id' => Permission::where('key', 'persons.update')->value('id'),
         'status' => 'active',
     ]);
 
@@ -67,7 +67,7 @@ it('lists active roles and groups effective permissions by module', function () 
     $response->assertSee('Beheerder')
         ->assertSee('Auditlogboek bekijken')
         ->assertSee('Rollen wijzigen')
-        ->assertSee('Andere leden opzoeken')
+        ->assertSee('Personen wijzigen')
         ->assertSee('Audit trail')
         ->assertSee('Rollen beheren');
 });

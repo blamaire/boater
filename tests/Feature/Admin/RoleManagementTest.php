@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\PersonPermissionBeheer;
 use App\Models\Permission;
 use App\Models\Person;
 use App\Models\PersonPermission;
@@ -8,6 +9,7 @@ use App\Models\RoleAssignment;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
@@ -94,7 +96,7 @@ it('laat gebruiker met roles.update een niet-systeem-rol wijzigen', function () 
     $user = loginWithPermissions(['roles.view', 'roles.update']);
     $role = Role::create(['name' => 'Voorloper', 'description' => 'Oude naam', 'is_system' => false]);
 
-    $newPermission = Permission::query()->where('key', 'persons.view')->value('id');
+    $newPermission = Permission::query()->where('key', 'persons.update')->value('id');
 
     $this->actingAs($user)
         ->patch('/beheer/rollen/'.$role->id, [
@@ -106,7 +108,7 @@ it('laat gebruiker met roles.update een niet-systeem-rol wijzigen', function () 
 
     $role->refresh();
     expect($role->name)->toBe('Nieuwe rolnaam')
-        ->and($role->permissions->pluck('key')->all())->toContain('persons.view');
+        ->and($role->permissions->pluck('key')->all())->toContain('persons.update');
 });
 
 it('weigert wijziging van de Beheerder-systeem-rol', function () {
@@ -166,8 +168,8 @@ it('valideert dat rolnaam uniek is', function () {
         ->assertSessionHasErrors('name');
 });
 
-it('kan een nieuwe rol aan een persoon koppelen', function () {
-    $user = loginWithPermissions(['roles.view', 'roles.create', 'roles.update']);
+it('kan een nieuwe rol aan een persoon koppelen via de gecombineerde beheer-UI', function () {
+    $user = loginWithPermissions(['roles.view', 'roles.create', 'roles.update', 'users.manage']);
     $doelPerson = Person::create([
         'first_name' => 'Doel',
         'last_name' => 'Persoon',
@@ -185,13 +187,14 @@ it('kan een nieuwe rol aan een persoon koppelen', function () {
 
     $role = Role::query()->where('name', 'Reserveringsleider')->firstOrFail();
 
-    // Koppel de rol aan de doelpersoon.
-    $this->actingAs($user)
-        ->post('/beheer/personen/'.$doelPerson->id.'/rollen', [
-            'role_id' => $role->id,
-            'reason' => 'Nieuwe verantwoordelijke',
-        ])
-        ->assertRedirect(route('admin.person-roles.index', $doelPerson));
+    // Koppel de rol aan de doelpersoon via het gecombineerde rollen-en-rechten-scherm.
+    $this->actingAs($user);
+
+    Livewire::test(PersonPermissionBeheer::class, ['person' => $doelPerson])
+        ->set('newRoleId', $role->id)
+        ->set('newRoleReason', 'Nieuwe verantwoordelijke')
+        ->call('assignRole')
+        ->assertHasNoErrors();
 
     $assignment = RoleAssignment::query()
         ->where('person_id', $doelPerson->id)
@@ -204,7 +207,7 @@ it('kan een nieuwe rol aan een persoon koppelen', function () {
 });
 
 it('deactiveert een assignment en zet status en deactivated_at', function () {
-    $user = loginWithPermissions(['roles.view', 'roles.update']);
+    $user = loginWithPermissions(['roles.view', 'roles.update', 'users.manage']);
     $doelPerson = Person::create([
         'first_name' => 'Doel',
         'last_name' => 'Persoon',
@@ -217,26 +220,24 @@ it('deactiveert een assignment en zet status en deactivated_at', function () {
         'assigned_at' => now(),
     ]);
 
-    $this->actingAs($user)
-        ->delete('/beheer/personen/'.$doelPerson->id.'/rollen/'.$assignment->id)
-        ->assertRedirect(route('admin.person-roles.index', $doelPerson));
+    $this->actingAs($user);
+
+    Livewire::test(PersonPermissionBeheer::class, ['person' => $doelPerson])
+        ->call('deactivateAssignment', $assignment->id);
 
     $assignment->refresh();
     expect($assignment->status)->toBe('deactivated')
         ->and($assignment->deactivated_at)->not->toBeNull();
 });
 
-it('weigert toewijzen zonder roles.update', function () {
+it('weigert de gecombineerde beheer-pagina zonder users.manage', function () {
     $user = loginWithPermissions(['roles.view']);
     $doelPerson = Person::create([
         'first_name' => 'Doel',
         'last_name' => 'Persoon',
     ]);
-    $role = Role::create(['name' => 'Iets', 'is_system' => false]);
 
     $this->actingAs($user)
-        ->post('/beheer/personen/'.$doelPerson->id.'/rollen', [
-            'role_id' => $role->id,
-        ])
+        ->get('/beheer/personen/'.$doelPerson->id.'/rechten')
         ->assertForbidden();
 });

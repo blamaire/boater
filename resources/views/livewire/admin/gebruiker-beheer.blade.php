@@ -3,6 +3,9 @@
         Beheer alle inlog-accounts van de vereniging: leden, ouders/verzorgers en externe functionarissen. Bij aanmaken kun je een uitnodigingsmail met wachtwoord-link versturen.
     </p>
 
+    <x-policy-reference subject="membership.application" />
+    <x-policy-reference subject="person.field_update" />
+
     @if ($statusMessage)
         <div class="rounded-md bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2" role="status">
             {{ $statusMessage }}
@@ -176,8 +179,7 @@
                         </td>
                         <td class="px-4 py-2 text-right space-x-2 whitespace-nowrap">
                             @if ($person)
-                                <a href="{{ route('admin.person-roles.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rollen</a>
-                                <a href="{{ route('admin.person-permissions.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rechten</a>
+                                <a href="{{ route('admin.person-permissions.index', $person) }}" class="text-rzvg-600 hover:text-rzvg-800">Rollen &amp; rechten</a>
                             @endif
                             <button type="button" wire:click="resendInvitation({{ $user->id }})"
                                 class="text-gray-600 hover:text-gray-800">

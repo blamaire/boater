@@ -4,6 +4,16 @@
 # - MySQL + media persistent op named volumes.
 # - Restart policies op alle services zodat de stack na reboot vanzelf start.
 # - Queue-worker en scheduler als aparte services.
+#
+# Env-scheiding:
+# - Alle test-vars staan in `.env.tst` (naast dit bestand op de host).
+# - Laravel in de container leest `.env`; die wordt bind-gemount vanuit
+#   `.env.tst` zodat dotenv altijd het test-bestand oppikt.
+# - Voor `${VAR}`-substitutie in dit compose-bestand (bv. `${DB_DATABASE}`)
+#   moet je docker compose starten met `--env-file .env.tst`. `deploy.sh`
+#   doet dat automatisch.
+# - De gedeelde Caddy leest zowel `.env.acc` (optioneel, voor ACC_DOMAIN) als
+#   `.env.tst`; bij conflict wint `.env.tst` (later in de lijst).
 
 services:
   app:
@@ -12,9 +22,10 @@ services:
       dockerfile: docker/php/Dockerfile
     container_name: rzvg-app
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -27,18 +38,27 @@ services:
     image: caddy:2-alpine
     container_name: rzvg-caddy
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: /var/www/rzvg-acc/.env.acc
+        required: false
+      - path: .env.tst
+        required: true
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - .:/var/www/html
-      # Caddy serveert /storage/media/... rechtstreeks als static file via
-      # de symlink public/storage → storage/app/public. Zonder deze mount ziet
-      # caddy een lege map en levert 404 op elke thumbnail/asset-URL, terwijl
-      # Laravel de upload wél schrijft naar het (alleen aan app gemounte)
-      # media_data-volume.
+      # Zie fix in PR #55: caddy serveert /storage/media/... als static file
+      # via de symlink public/storage → storage/app/public. Zonder deze mount
+      # ziet caddy een lege map en levert 404 op elke thumbnail.
       - media_data:/var/www/html/storage/app/public/media
+      # Acceptatie-stack: caddy serveert ook rzvg-acc.lamaire.nl door in
+      # dezelfde container ook de acc-repo en acc-media te mounten. Deze paden
+      # zijn optioneel: als de acc-stack niet is opgezet blijft caddy dit
+      # gewoon negeren (Caddyfile-block start alleen op als `${ACC_DOMAIN}`
+      # gezet is en het pad bestaat).
+      - /var/www/rzvg-acc:/var/www/html-acc:ro
+      - acc_media_data:/var/www/html-acc/storage/app/public/media
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
@@ -46,6 +66,9 @@ services:
       - app
     networks:
       - rzvg
+      # Extern netwerk waar de acceptatie-app op zit, zodat caddy 'm kan
+      # bereiken. Zie docker-compose.acc.yml.
+      - rzvg_shared
 
   db:
     image: mysql:8.0
@@ -73,9 +96,10 @@ services:
     container_name: rzvg-queue
     restart: unless-stopped
     command: php artisan queue:work database --tries=3 --sleep=3 --timeout=90
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -91,9 +115,10 @@ services:
     container_name: rzvg-scheduler
     restart: unless-stopped
     command: php artisan schedule:work
-    env_file: .env
+    env_file: .env.tst
     volumes:
       - .:/var/www/html
+      - ./.env.tst:/var/www/html/.env:ro
       - media_data:/var/www/html/storage/app/public/media
       - storage_logs:/var/www/html/storage/logs
     depends_on:
@@ -108,7 +133,16 @@ volumes:
   storage_logs:
   caddy_data:
   caddy_config:
+  # Extern volume dat door de acc-stack wordt aangemaakt (met vaste naam).
+  # Caddy mount 'm zodat /storage/media/... werkt voor acc-domain.
+  acc_media_data:
+    external: true
+    name: rzvg_acc_media_data
 
 networks:
   rzvg:
     driver: bridge
+  # Gedeeld netwerk tussen test-caddy en acc-app-containers. Wordt handmatig
+  # aangemaakt bij ACC-provisioning (`docker network create rzvg_shared`).
+  rzvg_shared:
+    external: true

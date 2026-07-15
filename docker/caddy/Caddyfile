@@ -1,8 +1,7 @@
-# Caddy config voor de test/prod-server. Domein wordt uit een env-variabele
-# gelezen zodat je APP_DOMAIN in .env kunt aanpassen zonder deze file te editen.
-# Voorbeeld: APP_DOMAIN=test.rzvg.lamaire.nl
-#
-# Caddy regelt automatisch een Let's Encrypt-certificaat en HTTPS-redirect.
+# Caddy config voor test + acceptatie op één host. Elk site-block heeft
+# eigen root, eigen php_fastcgi-upstream (naar de bijbehorende app-container)
+# en eigen Let's Encrypt-certificaat. Caddy expandt {$VAR} uit environment
+# variabelen (env_file: .env in docker-compose.prod.yml).
 
 {$APP_DOMAIN} {
     root * /var/www/html/public
@@ -20,7 +19,36 @@
         -Server
     }
 
-    # Verberg gevoelige paden.
+    @dotfiles {
+        path /.*
+        not path /.well-known/*
+    }
+    respond @dotfiles 403
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+# Acceptatie-omgeving. Alleen actief als ACC_DOMAIN gezet is in de .env van
+# de test-stack; anders start dit block niet (Caddy negeert lege placeholder).
+{$ACC_DOMAIN} {
+    root * /var/www/html-acc/public
+    encode zstd gzip
+
+    php_fastcgi rzvg-acc-app:9000
+
+    file_server
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
     @dotfiles {
         path /.*
         not path /.well-known/*

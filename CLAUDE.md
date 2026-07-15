@@ -14,8 +14,11 @@ De app draait volledig in Docker; er is geen lokale PHP-, Composer- of Node-inst
 
 Services in `docker-compose.yml`: `app` (php-fpm), `web` (nginx, http://localhost:8000), `db` (mysql:8), `node` (vite dev-server op :5173). Bind-mount is de hele repo; bestanden die in de container ontstaan zijn root-owned op de Windows-host — dat is bewust (zie `docker/php/Dockerfile`).
 
+Voor snelheid op Windows staan `vendor/`, `node_modules/`, `bootstrap/cache/` en `storage/framework/` in **named volumes** (leven binnen docker, niet op /mnt/c). Consequentie: de host ziet deze mappen leeg en `composer install` / `npm install` moet je in de container draaien.
+
 ```sh
 docker compose up -d --build              # eerste keer
+docker compose exec app composer install  # vult vendor-volume
 docker compose exec app php artisan migrate
 docker compose up -d / docker compose down
 ```
@@ -33,6 +36,7 @@ Alles via `docker compose exec app …`:
 | Eén testbestand | `vendor/bin/pest tests/Feature/Proposals/ProposalEngineTest.php` |
 | Eén test op naam | `vendor/bin/pest --filter="approves stap voor stap"` |
 | Migrate (lokaal MySQL) | `php artisan migrate` |
+| Lokale DB resetten + seeden | `composer db-reset` — draait `migrate:fresh --seed`. Gebruik dit altijd i.p.v. los `migrate:fresh`, anders heb je geen home-pagina en geen dev-users (zie `LocalDevUserSeeder`) en werkt inloggen niet. |
 | Een user tot Beheerder maken (alle permissies) | `php artisan rzvg:make-admin <email>` — vereist bestaande user; maakt zo nodig een Person aan en koppelt de rol `Beheerder`. |
 
 Tests draaien op een **in-memory SQLite** (`phpunit.xml`), dus PHPStan en Pest werken zonder dat de MySQL-container draait — alleen migraties tegen echte data hebben `db` nodig.

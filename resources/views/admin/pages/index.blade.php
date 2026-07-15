@@ -2,6 +2,8 @@
     <x-slot name="header">Pagina's</x-slot>
 
     <div class="py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        <x-policy-reference subject="cms.page_version" />
+
         @can('pages.create')
             <div class="flex justify-end">
                 <a href="{{ route('admin.pages.create') }}" class="inline-flex items-center px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 transition">

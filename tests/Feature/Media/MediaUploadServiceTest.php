@@ -69,7 +69,7 @@ it('marks assets private and requires signed URL', function () {
     $file = UploadedFile::fake()->image('geheim.png');
     $asset = app(MediaUploadService::class)->store(
         file: $file,
-        visibility: PageVisibility::Members,
+        visibility: PageVisibility::Restricted,
     );
 
     expect($asset->isPublic())->toBeFalse();

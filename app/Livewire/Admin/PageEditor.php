@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
+use App\Enums\PageVisibility;
 use App\Models\Band;
 use App\Models\Block;
 use App\Models\PageVersion;
@@ -21,6 +22,12 @@ class PageEditor extends Component
 
     /** @var array<string, mixed> */
     public array $editingContent = [];
+
+    public bool $showJsonPanel = false;
+
+    public string $importJsonText = '';
+
+    public ?string $jsonStatus = null;
 
     public function mount(int $versionId): void
     {
@@ -270,6 +277,100 @@ class PageEditor extends Component
         });
 
         unset($this->version);
+    }
+
+    public function toggleJsonPanel(): void
+    {
+        $this->showJsonPanel = ! $this->showJsonPanel;
+        if ($this->showJsonPanel) {
+            $this->importJsonText = $this->currentJson();
+            $this->jsonStatus = null;
+        }
+    }
+
+    /**
+     * Serialiseert de huidige versie tot een pagina-broncode JSON: de
+     * complete banden- en blokstructuur zonder database-IDs, zodat je 'm
+     * elders terug kunt importeren.
+     */
+    public function currentJson(): string
+    {
+        $version = $this->version();
+        $version->load(['bands.blocks']);
+
+        $payload = [
+            'bands' => $version->bands->sortBy('sort_order')->values()->map(fn (Band $band) => [
+                'zone' => $band->zone,
+                'layout' => $band->layout->value,
+                'sort_order' => $band->sort_order,
+                'blocks' => $band->blocks->sortBy('sort_order')->values()->map(fn (Block $block) => [
+                    'type' => $block->type->value,
+                    'column_index' => $block->column_index,
+                    'sort_order' => $block->sort_order,
+                    'content' => $block->content,
+                    'visibility' => $block->visibility->value,
+                ])->all(),
+            ])->all(),
+        ];
+
+        return json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '{}';
+    }
+
+    /**
+     * Vervangt de banden- en blokstructuur van de huidige (bewerkbare) versie
+     * door de meegegeven JSON. Bestaande bands en blocks van deze versie
+     * worden verwijderd — dit is een replace-import, geen merge.
+     */
+    public function applyImportedJson(): void
+    {
+        $this->guardEditable();
+
+        $decoded = json_decode($this->importJsonText, true);
+        if (! is_array($decoded) || ! isset($decoded['bands']) || ! is_array($decoded['bands'])) {
+            $this->jsonStatus = 'Kon de JSON niet lezen. Zorg dat je een object met een "bands"-lijst plakt.';
+
+            return;
+        }
+
+        DB::transaction(function () use ($decoded): void {
+            $version = $this->version();
+            // Bestaande bands (en cascade hun blocks) opruimen.
+            foreach ($version->bands as $band) {
+                $band->delete();
+            }
+
+            foreach ($decoded['bands'] as $bandData) {
+                if (! is_array($bandData)) {
+                    continue;
+                }
+                $band = $version->bands()->create([
+                    'zone' => (string) ($bandData['zone'] ?? 'hoofd'),
+                    'layout' => BandLayout::from((int) ($bandData['layout'] ?? 1)),
+                    'sort_order' => (int) ($bandData['sort_order'] ?? 0),
+                ]);
+
+                $blocks = $bandData['blocks'] ?? [];
+                if (! is_array($blocks)) {
+                    continue;
+                }
+                foreach ($blocks as $blockData) {
+                    if (! is_array($blockData)) {
+                        continue;
+                    }
+                    Block::create([
+                        'band_id' => $band->id,
+                        'column_index' => (int) ($blockData['column_index'] ?? 0),
+                        'sort_order' => (int) ($blockData['sort_order'] ?? 0),
+                        'type' => BlockType::from((string) ($blockData['type'] ?? 'tekst')),
+                        'content' => (array) ($blockData['content'] ?? []),
+                        'visibility' => PageVisibility::from((string) ($blockData['visibility'] ?? 'public')),
+                    ]);
+                }
+            }
+        });
+
+        unset($this->version);
+        $this->jsonStatus = 'Broncode toegepast op deze conceptversie.';
     }
 
     public function render(): View

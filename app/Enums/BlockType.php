@@ -19,6 +19,7 @@ enum BlockType: string
     case Hero = 'hero';
     case Video = 'video';
     case FeatureSection = 'feature_sectie';
+    case Agenda = 'agenda';
 
     public function label(): string
     {
@@ -38,6 +39,7 @@ enum BlockType: string
             self::Hero => 'Hero (grote foto met tekst)',
             self::Video => 'Video (uit bibliotheek)',
             self::FeatureSection => 'Feature-sectie (foto + tekst + CTA)',
+            self::Agenda => 'Agenda (activiteitenlijst)',
         };
     }
 
@@ -76,6 +78,19 @@ enum BlockType: string
                 'cta_label' => '',
                 'cta_href' => '',
                 'image_side' => 'left',
+            ],
+            self::Agenda => [
+                'title' => 'Agenda',
+                // Voorfilter — laat leeg om geen restrictie te leggen.
+                'category_ids' => [],
+                // Aantal dagen vooruit; 0 = geen limiet.
+                'period_days' => 30,
+                // Historie (starts_at < nu) verbergen; standaard aan.
+                'hide_history' => true,
+                // Max aantal items dat het block toont.
+                'limit' => 20,
+                // Sta filter-controls in de browser toe (zoek/categorie/hide-history-toggle).
+                'allow_user_filter' => true,
             ],
         };
     }

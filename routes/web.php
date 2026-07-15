@@ -1,23 +1,38 @@
 <?php
 
+use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\FailedJobsController;
+use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
 use App\Http\Controllers\Admin\PagePushController;
-use App\Http\Controllers\Admin\PersonRoleController;
+use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Livewire\Admin\ActiviteitBeheer;
+use App\Livewire\Admin\ActivityCategoryBeheer;
+use App\Livewire\Admin\Auditlogboek;
 use App\Livewire\Admin\EnvironmentBeheer;
+use App\Livewire\Admin\FacturatieBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
+use App\Livewire\Admin\GoedkeuringsgroepBeheer;
 use App\Livewire\Admin\MenuBeheer;
+use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
+use App\Livewire\Admin\ProductBeheer;
+use App\Livewire\Admin\ReservableObjectBeheer;
+use App\Livewire\Admin\ReserveringBeheer;
+use App\Livewire\Admin\ReserveringsregelBeheer;
+use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Portal\MijnLidmaatschap;
+use App\Livewire\Portal\Reserveren;
+use App\Livewire\Portal\SchadeMelden;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +46,14 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
     });
+
+Route::middleware(['auth', 'verified', 'can:reservations.create'])
+    ->get('/reserveren', Reserveren::class)
+    ->name('portal.reserveren');
+
+Route::middleware(['auth', 'verified', 'can:damage_reports.create'])
+    ->get('/schade-melden', SchadeMelden::class)
+    ->name('portal.schade-melden');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,12 +71,17 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{page}/instellingen', [AdminPageController::class, 'edit'])->middleware('can:pages.update')->name('edit');
         Route::patch('/{page}/instellingen', [AdminPageController::class, 'update'])->middleware('can:pages.update')->name('update');
         Route::delete('/{page}', [AdminPageController::class, 'destroy'])->middleware('can:pages.delete')->name('destroy');
-        Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.update')->name('editor');
-        Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.update')->name('versions.store');
-        Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.update')->name('versions.submit');
+        // De editor + versie-indienen staan open voor leden met `pages.propose`
+        // (impliciet via een actief lidmaatschap). Redacteurs/beheerders met
+        // `pages.update` krijgen `pages.propose` automatisch (impliceerregel
+        // in EffectivePermissions). De uiteindelijke bypass-check (direct
+        // publiceren i.p.v. via motor) zit op de policy (`pages.publish`).
+        Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.propose')->name('editor');
+        Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.propose')->name('versions.store');
+        Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.propose')->name('versions.submit');
 
         Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
-            ->middleware('can:pages.update')
+            ->middleware('can:pages.propose')
             ->name('conflict.show');
 
         Route::post('/{page}/push', PagePushController::class)->middleware('can:pages.push')->name('push');
@@ -75,22 +103,67 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.delete')->name('destroy');
     });
 
-Route::middleware(['auth', 'verified'])
-    ->prefix('beheer/personen/{person}/rollen')
-    ->name('admin.person-roles.')
-    ->group(function () {
-        Route::get('/', [PersonRoleController::class, 'index'])->middleware('can:roles.update')->name('index');
-        Route::post('/', [PersonRoleController::class, 'store'])->middleware('can:roles.update')->name('store');
-        Route::delete('/{assignment}', [PersonRoleController::class, 'destroy'])->middleware('can:roles.update')->name('destroy');
-    });
-
 Route::middleware(['auth', 'verified', 'can:users.manage'])
     ->get('/beheer/gebruikers', GebruikerBeheer::class)
     ->name('admin.users.index');
 
+Route::middleware(['auth', 'verified', 'can:approver_groups.manage'])
+    ->get('/beheer/goedkeuringsgroepen', GoedkeuringsgroepBeheer::class)
+    ->name('admin.approver-groups.index');
+
 Route::middleware(['auth', 'verified', 'can:users.manage'])
     ->get('/beheer/personen/{person}/rechten', PersonPermissionBeheer::class)
     ->name('admin.person-permissions.index');
+
+Route::middleware(['auth', 'verified', 'can:activities.view'])
+    ->get('/beheer/activiteiten', ActiviteitBeheer::class)
+    ->name('admin.activities.index');
+
+Route::middleware(['auth', 'verified', 'can:activities.update'])
+    ->get('/beheer/activiteiten/categorieen', ActivityCategoryBeheer::class)
+    ->name('admin.activity-categories.index');
+
+Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
+    ->get('/beheer/objectcategorieen', ObjectCategoryBeheer::class)
+    ->name('admin.object-categories.index');
+
+Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
+    ->get('/beheer/objecten', ReservableObjectBeheer::class)
+    ->name('admin.reservable-objects.index');
+
+Route::middleware(['auth', 'verified', 'can:reservations.view'])
+    ->get('/beheer/reserveringen', ReserveringBeheer::class)
+    ->name('admin.reservations.index');
+
+Route::middleware(['auth', 'verified', 'can:reservations.update'])
+    ->get('/beheer/reserveringsregels', ReserveringsregelBeheer::class)
+    ->name('admin.reservation-rules.index');
+
+Route::middleware(['auth', 'verified', 'can:damage_reports.view'])
+    ->get('/beheer/schademeldingen', SchademeldingBeheer::class)
+    ->name('admin.damage-reports.index');
+
+Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
+    ->get('/beheer/auditlogboek', Auditlogboek::class)
+    ->name('admin.audit.index');
+
+// Read-only voorstel-inzage, ontsloten vanuit het auditlogboek. Zelfde
+// permissie als het auditlogboek zelf (governance-inzage).
+Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
+    ->get('/beheer/voorstellen/{proposal}', [ProposalController::class, 'show'])
+    ->name('admin.proposals.show');
+
+Route::middleware(['auth', 'verified', 'can:products.manage'])
+    ->get('/beheer/producten', ProductBeheer::class)
+    ->name('admin.products.index');
+
+Route::middleware(['auth', 'verified', 'can:invoices.manage'])
+    ->get('/beheer/facturatie', FacturatieBeheer::class)
+    ->name('admin.billing.index');
+
+Route::middleware(['auth', 'verified', 'can:invoices.manage'])
+    ->get('/beheer/facturen/{invoice}', [InvoiceController::class, 'show'])
+    ->name('admin.invoices.show');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)
@@ -125,6 +198,7 @@ require __DIR__.'/auth.php';
 
 Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
+Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')
     ->name('public.page');
