@@ -46,8 +46,8 @@ zodat Laravel altijd de juiste config leest.
 # Als rzvg
 sudo install -d -o rzvg -g rzvg /var/www
 cd /var/www
-git clone https://github.com/blamaire/boater.git rzvg
-cd rzvg
+git clone https://github.com/blamaire/boater.git rzvg-tst
+cd rzvg-tst
 
 cp .env.tst.example .env.tst
 nano .env.tst   # vul minimaal APP_KEY, APP_DOMAIN, DB_PASSWORD,
@@ -77,7 +77,7 @@ om het Let's Encrypt-certificaat op te halen.
 ## 4. Eerste deploy
 
 ```sh
-cd /var/www/rzvg
+cd /var/www/rzvg-tst
 bash scripts/deploy.sh
 ```
 
@@ -97,7 +97,7 @@ Bij elke code-wijziging op `main` (of welke branch je op de server hebt uitgeche
 
 ```sh
 ssh rzvg@<server-ip>
-cd /var/www/rzvg
+cd /var/www/rzvg-tst
 bash scripts/deploy.sh
 ```
 
@@ -117,7 +117,7 @@ Voeg toe:
 
 ```
 # Elke minuut kijken of origin/test nieuwe commits heeft en deployen.
-* * * * * flock -n /tmp/rzvg-auto-deploy.lock bash /var/www/rzvg/scripts/auto-deploy.sh >> /var/log/rzvg-auto-deploy.log 2>&1
+* * * * * flock -n /tmp/rzvg-auto-deploy.lock bash /var/www/rzvg-tst/scripts/auto-deploy.sh >> /var/log/rzvg-auto-deploy.log 2>&1
 ```
 
 De `flock` voorkomt overlappende deploys. Standaard is `DEPLOY_BRANCH=test`;
@@ -172,7 +172,7 @@ stap 2 hierboven). Kies andere waardes dan test — deze omgevingen delen niets.
 Zodat de Caddy de nieuwe env-mount en Caddyfile-uitbreiding oppikt:
 
 ```sh
-cd /var/www/rzvg
+cd /var/www/rzvg-tst
 docker compose --env-file .env.tst -f docker-compose.prod.yml up -d --force-recreate caddy
 ```
 
@@ -239,7 +239,7 @@ Voeg toe:
 
 ```
 # Elke nacht om 03:00 een backup + retention-cleanup.
-0 3 * * * bash /var/www/rzvg/scripts/backup.sh >> /var/log/rzvg-backup.log 2>&1
+0 3 * * * bash /var/www/rzvg-tst/scripts/backup.sh >> /var/log/rzvg-backup.log 2>&1
 ```
 
 Bestanden die het aanmaakt:
