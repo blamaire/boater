@@ -86,6 +86,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    ports:
+      # Alleen op localhost van de server, nooit publiek — bedoeld voor
+      # DB-toegang via een SSH-tunnel (bv. DBeaver), niet vanaf buitenaf.
+      - "127.0.0.1:3306:3306"
     networks:
       - rzvg
 
