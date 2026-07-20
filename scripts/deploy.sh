@@ -68,7 +68,10 @@ echo "==> Composer install (--no-dev)"
 $COMPOSE exec -T app composer install --no-dev --optimize-autoloader --no-interaction
 
 echo "==> Storage-link"
-$COMPOSE exec -T app php artisan storage:link || true
+# --relative: caddy mount deze map onder een andere naam dan de app-container
+# (/var/www/html-acc i.p.v. /var/www/html voor de acc-stack) — een absolute
+# symlink resolvet dan verkeerd. Relatief werkt ongeacht de mount-naam.
+$COMPOSE exec -T app php artisan storage:link --relative || true
 
 echo "==> Migreren"
 $COMPOSE exec -T app php artisan migrate --force
