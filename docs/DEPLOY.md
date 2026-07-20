@@ -196,7 +196,13 @@ docker compose --env-file .env.acc -f docker-compose.acc.yml exec app \
 
 #### Stap 6 — Auto-deploy voor acc
 
-Voeg een tweede cron-regel toe aan `crontab -e` (als `rzvg`):
+`/var/log` is root-owned; zonder onderstaande `touch`/`chown` kan `rzvg` het logbestand niet aanmaken en faalt de hele cron-regel **stil** (geen lock-file, geen log, geen foutmelding — er is geen MTA geïnstalleerd, dus cron gooit de output gewoon weg):
+
+```sh
+sudo touch /var/log/rzvg-acc-deploy.log && sudo chown rzvg:rzvg /var/log/rzvg-acc-deploy.log
+```
+
+Voeg daarna een tweede cron-regel toe aan `crontab -e` (als `rzvg`):
 
 ```
 * * * * * DEPLOY_STACK=acc DEPLOY_BRANCH=acceptatie REPO_DIR=/var/www/rzvg-acc flock -n /tmp/rzvg-acc-deploy.lock bash /var/www/rzvg-acc/scripts/auto-deploy.sh >> /var/log/rzvg-acc-deploy.log 2>&1
