@@ -2,7 +2,7 @@
 # Dagelijkse backup van MySQL + media naar /home/rzvg/backups.
 # Standaard retention: 30 dagen. Wordt vanuit cron gedraaid.
 #
-#   0 3 * * * bash /var/www/rzvg/scripts/backup.sh >> /var/log/rzvg-backup.log 2>&1
+#   0 3 * * * bash /var/www/rzvg-tst/scripts/backup.sh >> /var/log/rzvg-backup.log 2>&1
 
 set -euo pipefail
 
