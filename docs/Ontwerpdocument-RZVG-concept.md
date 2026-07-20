@@ -47,6 +47,7 @@
 - 34\. Implementatie- en faseringsvoorstel
 - 35\. Niet-functionele eisen
 - 36\. Rapportage en dashboards
+- 37\. Module Hulptours — detailuitwerking
 
 ---
 
@@ -300,6 +301,7 @@ Elke goedgekeurde of direct doorgevoerde wijziging levert een **nieuwe versie** 
 - 3.13 Audit trail.
 - 3.14 Reviewinstellingen.
 - 3.15 Website zien als een andere gebruiker (support).
+- 3.16 Hulptours — help-rondleidingen per pagina beheren.
 
 *(Nummering volgens de aangeleverde opzet; in de detailfase wordt de nummering opgeschoond.)*
 
@@ -980,6 +982,8 @@ Alle entiteiten gegroepeerd per domein; `PERSON` is de centrale, gedeelde entite
 
 **Migratie** — IMPORT_RUN, IMPORT_MAPPING, IMPORT_RECORD (plus herkomst-ID's `ecaptain_id`/`wordpress_id` op de doelentiteiten).
 
+**Hulptours** — HELP_TOUR, HELP_TOUR_STEP, HELP_TOUR_DISMISSAL.
+
 ### Kernrelaties en dwarsverbanden
 
 - `PERSON` is de spil: lidmaatschap(pen), roltoewijzingen, inschrijvingen, reserveringen, facturen (als betaler), aanmeldingen en kwalificaties hangen eraan.
@@ -1094,6 +1098,37 @@ Cross-cutting overzichten voor bestuur en functionarissen.
 ### 36.3 Koppelingen
 
 Lidmaatschap, Financiën, Activiteiten, Reserveren, Schade melden en Vrijwilligersplanning (databronnen), Rechten (toegang) en de Audit trail.
+
+---
+
+## 37. Module Hulptours — detailuitwerking
+
+Een hulpmiddel dwars door de andere modules heen: geen eigen contentpagina, maar een stap-voor-stap rondleiding die op bestaande pagina's kan worden ingezet om leden en beheerders te helpen de functionaliteit ervan te ontdekken.
+
+### 37.1 Front-end-weergaven
+
+- Een permanente "help"-knop in de top-header, zichtbaar op elke geauthenticeerde pagina waarvoor een tour bestaat. Klikken start een stap-voor-stap rondleiding: relevante schermelementen worden na elkaar gemarkeerd met een korte toelichting, met "volgende"/"vorige"/"klaar"-navigatie.
+- Geen tour beschikbaar voor de huidige pagina → de help-knop verschijnt niet.
+- Bij een tour die de gebruiker nog niet eerder heeft gezien, toont de knop een subtiele visuele nudge om op het bestaan van de hulpfunctie te wijzen — de tour start daarbij nooit automatisch, alleen na een bewuste klik. De nudge verdwijnt zodra de gebruiker de tour een keer opent.
+
+### 37.2 Beheeraspecten (3.16)
+
+- Een beheerscherm waarin een beheerder tours en hun stappen onderhoudt: per tour een naam en de gekoppelde pagina, per stap een titel, toelichtende tekst, een koppeling naar het te markeren schermelement en de volgorde.
+- Geen aparte rol nodig — het bestaande rechtenmodel (hoofdstuk 6/26) volstaat met één nieuwe permissie voor dit scherm.
+- Geleidelijke uitrol: niet alle pagina's krijgen in één keer een tour. Uitbreiden naar een volgende pagina is puur contentwerk via het beheerscherm, geen ontwikkelwerk.
+
+### 37.3 Datamodel
+
+- **HELP_TOUR** — `id`, `name`, `route_name` (koppelt de tour aan precies één pagina), `is_active`.
+- **HELP_TOUR_STEP** — `id`, `help_tour_id`, `target_key` (koppelt aan een gemarkeerd element op de pagina), `title`, `body`, `sort_order`.
+- **HELP_TOUR_DISMISSAL** — `id`, `person_id`, `help_tour_id`, `dismissed_at` — houdt per persoon, per tour bij of de nudge al gezien is.
+
+### 37.4 Vastgestelde gedragsregels
+
+- **Eén tour per pagina** (`route_name` uniek): voldoende voor de eerste uitrol; pagina's met meerdere interne weergaven kunnen dit later verfijnen zonder herontwerp van het datamodel.
+- **Nudge is per persoon én per tour**, niet één globale "al eens hulp gezien"-vlag: zo blijft een nieuwe tour op een andere pagina alsnog opgemerkt, ook als een gebruiker eerdere tours al heeft weggeklikt.
+- **Ontbrekend schermelement breekt de tour niet**: verwijst een stap naar een element dat (nog) niet op de pagina staat, dan wordt alleen die stap overgeslagen in plaats van de hele tour te laten mislukken.
+- **Startpunt is kant-en-klare content, niet een lege lei**: de eerste tours worden vooraf ingevuld met bruikbare content; een beheerder kan die vervolgens zelf bijstellen of uitbreiden.
 
 ---
 
