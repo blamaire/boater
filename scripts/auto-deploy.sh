@@ -2,7 +2,7 @@
 # Auto-deploy watcher voor de test-branch. Draait vanuit cron elke minuut
 # en deployt zodra er nieuwe commits op origin/test staan.
 #
-#   * * * * * flock -n /tmp/rzvg-auto-deploy.lock bash /var/www/rzvg/scripts/auto-deploy.sh >> /var/log/rzvg-auto-deploy.log 2>&1
+#   * * * * * flock -n /tmp/rzvg-auto-deploy.lock bash /var/www/rzvg-tst/scripts/auto-deploy.sh >> /var/log/rzvg-auto-deploy.log 2>&1
 #
 # flock voorkomt dat een lang-lopende deploy een tweede parallelle start
 # krijgt bij het volgende cron-tick.
