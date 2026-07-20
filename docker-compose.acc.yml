@@ -49,6 +49,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    ports:
+      # Alleen op localhost van de server, nooit publiek — bedoeld voor
+      # DB-toegang via een SSH-tunnel (bv. DBeaver), niet vanaf buitenaf.
+      # Andere hostpoort dan test (3306), want beide stacks draaien op
+      # dezelfde server.
+      - "127.0.0.1:3307:3306"
     networks:
       - rzvg_acc
 
