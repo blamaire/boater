@@ -74,6 +74,14 @@ services:
     image: mysql:8.0
     container_name: rzvg-db
     restart: unless-stopped
+    # Geheugen-tuning voor deze kleine VPS (~2GB, gedeeld met de acc- en
+    # mailserver-stack): performance_schema kost 100-150MB en is voor een
+    # low-traffic test-omgeving niet nodig; buffer pool en max-connections
+    # staan op MySQL's algemene defaults, ruim boven wat deze app gebruikt.
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --max-connections=50
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
