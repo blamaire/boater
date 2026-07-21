@@ -37,6 +37,11 @@ services:
     image: mysql:8.0
     container_name: rzvg-acc-db
     restart: unless-stopped
+    # Geheugen-tuning, zie docker-compose.prod.yml voor de motivatie.
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --max-connections=50
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
@@ -49,6 +54,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    ports:
+      # Alleen op localhost van de server, nooit publiek — bedoeld voor
+      # DB-toegang via een SSH-tunnel (bv. DBeaver), niet vanaf buitenaf.
+      # Andere hostpoort dan test (3306), want beide stacks draaien op
+      # dezelfde server.
+      - "127.0.0.1:3307:3306"
     networks:
       - rzvg_acc
 

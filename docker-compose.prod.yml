@@ -74,6 +74,14 @@ services:
     image: mysql:8.0
     container_name: rzvg-db
     restart: unless-stopped
+    # Geheugen-tuning voor deze kleine VPS (~2GB, gedeeld met de acc- en
+    # mailserver-stack): performance_schema kost 100-150MB en is voor een
+    # low-traffic test-omgeving niet nodig; buffer pool en max-connections
+    # staan op MySQL's algemene defaults, ruim boven wat deze app gebruikt.
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --max-connections=50
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
@@ -86,6 +94,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    ports:
+      # Alleen op localhost van de server, nooit publiek — bedoeld voor
+      # DB-toegang via een SSH-tunnel (bv. DBeaver), niet vanaf buitenaf.
+      - "127.0.0.1:3306:3306"
     networks:
       - rzvg
 
@@ -128,11 +140,20 @@ services:
       - rzvg
 
 volumes:
+  # Expliciete name: (zonder compose-projectprefix) zodat deze volumes
+  # gekoppeld blijven als de host-map ooit hernoemd wordt — Compose leidt de
+  # projectnaam anders af van de mapnaam en zou bij een andere mapnaam stille
+  # nieuwe lege volumes aanmaken i.p.v. de bestaande data te hergebruiken.
   db_data:
+    name: rzvg_db_data
   media_data:
+    name: rzvg_media_data
   storage_logs:
+    name: rzvg_storage_logs
   caddy_data:
+    name: rzvg_caddy_data
   caddy_config:
+    name: rzvg_caddy_config
   # Extern volume dat door de acc-stack wordt aangemaakt (met vaste naam).
   # Caddy mount 'm zodat /storage/media/... werkt voor acc-domain.
   acc_media_data:
@@ -141,6 +162,7 @@ volumes:
 
 networks:
   rzvg:
+    name: rzvg
     driver: bridge
   # Gedeeld netwerk tussen test-caddy en acc-app-containers. Wordt handmatig
   # aangemaakt bij ACC-provisioning (`docker network create rzvg_shared`).

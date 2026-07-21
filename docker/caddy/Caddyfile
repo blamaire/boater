@@ -34,10 +34,20 @@
 # Acceptatie-omgeving. Alleen actief als ACC_DOMAIN gezet is in de .env van
 # de test-stack; anders start dit block niet (Caddy negeert lege placeholder).
 {$ACC_DOMAIN} {
+    # Caddy mount de acc-repo als /var/www/html-acc (zie docker-compose.prod.yml),
+    # maar de rzvg-acc-app-container zelf mount dezelfde map als /var/www/html
+    # (zijn eigen docker-compose.acc.yml). Zonder de root-override hieronder
+    # stuurt Caddy een SCRIPT_FILENAME die alleen binnen Caddy's eigen container
+    # bestaat; PHP-FPM antwoordt dan met zijn eigen "File not found." — geen
+    # Laravel-404, een kale PHP-FPM-fout op een pad dat de app-container niet
+    # kent. De root hier bepaalt alleen wat naar de FastCGI-backend gaat; de
+    # root hierboven blijft gelden voor Caddy's eigen file_server.
     root * /var/www/html-acc/public
     encode zstd gzip
 
-    php_fastcgi rzvg-acc-app:9000
+    php_fastcgi rzvg-acc-app:9000 {
+        root /var/www/html/public
+    }
 
     file_server
 
@@ -59,4 +69,20 @@
         output stdout
         format console
     }
+}
+
+# Certificaat-houder voor de zelfgehoste mailserver (docker-mailserver,
+# los van deze repo in /opt/mailserver op dezelfde VPS). Geen routering
+# nodig — Caddy trekt hier alleen een Let's Encrypt-certificaat voor op,
+# dat de mailserver zelf leest uit het rzvg_caddy_data-volume (SSL_TYPE=
+# manual), zodat er geen tweede ACME-cliënt nodig is naast Caddy.
+mail.lamaire.nl {
+    respond 404
+}
+
+# Webmail (Roundcube) voor diezelfde mailserver-stack. Roundcube zit op
+# het gedeelde rzvg_shared-netwerk (zelfde constructie als de acc-app),
+# zodat Caddy er rechtstreeks naartoe kan proxyen.
+webmail.lamaire.nl {
+    reverse_proxy roundcube:80
 }
