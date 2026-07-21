@@ -70,3 +70,19 @@
         format console
     }
 }
+
+# Certificaat-houder voor de zelfgehoste mailserver (docker-mailserver,
+# los van deze repo in /opt/mailserver op dezelfde VPS). Geen routering
+# nodig — Caddy trekt hier alleen een Let's Encrypt-certificaat voor op,
+# dat de mailserver zelf leest uit het rzvg_caddy_data-volume (SSL_TYPE=
+# manual), zodat er geen tweede ACME-cliënt nodig is naast Caddy.
+mail.lamaire.nl {
+    respond 404
+}
+
+# Webmail (Roundcube) voor diezelfde mailserver-stack. Roundcube zit op
+# het gedeelde rzvg_shared-netwerk (zelfde constructie als de acc-app),
+# zodat Caddy er rechtstreeks naartoe kan proxyen.
+webmail.lamaire.nl {
+    reverse_proxy roundcube:80
+}
