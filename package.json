@@ -18,5 +18,8 @@
     },
     "dependencies": {
         "trix": "^2.1.19"
+    },
+    "overrides": {
+        "shell-quote": "^1.10.0"
     }
 }
