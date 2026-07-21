@@ -37,6 +37,11 @@ services:
     image: mysql:8.0
     container_name: rzvg-acc-db
     restart: unless-stopped
+    # Geheugen-tuning, zie docker-compose.prod.yml voor de motivatie.
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --max-connections=50
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
