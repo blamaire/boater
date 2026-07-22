@@ -145,3 +145,12 @@ it('shows a friendly notice when the user is not linked to a person', function (
         ->assertOk()
         ->assertSee('Je account is nog niet gekoppeld aan een persoon.');
 });
+
+it('shows the environment label and a build version in the sidebar', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertOk()
+        ->assertSee('Lokaal');
+});
