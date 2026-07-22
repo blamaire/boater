@@ -14,7 +14,8 @@ RUN install-php-extensions \
     exif
 
 # ffmpeg voor video-thumbnails in de mediabibliotheek.
-RUN apk add --no-cache ffmpeg
+# git voor `git describe` (versie-info in de sidebar, zie BuildInfoComposer).
+RUN apk add --no-cache ffmpeg git
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
