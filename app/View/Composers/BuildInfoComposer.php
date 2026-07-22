@@ -24,7 +24,15 @@ class BuildInfoComposer
     private function resolveVersion(): string
     {
         try {
-            $process = new Process(['git', 'describe', '--tags', '--always'], base_path());
+            // PHP-FPM draait als root in de container (zie docker/php/Dockerfile),
+            // terwijl de gemounte repo op test/acc eigendom is van de deploy-user
+            // `rzvg`. Git 2.35+ weigert dan met "dubious ownership" tenzij dit
+            // expliciet wordt toegestaan — `*` is veilig hier: de repo-inhoud komt
+            // sowieso al uit onze eigen git-checkout, geen extern vertrouwen nodig.
+            $process = new Process(
+                ['git', '-c', 'safe.directory=*', 'describe', '--tags', '--always'],
+                base_path()
+            );
             $process->run();
 
             if (! $process->isSuccessful()) {
