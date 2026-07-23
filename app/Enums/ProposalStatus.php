@@ -26,4 +26,19 @@ enum ProposalStatus: string
     {
         return ! $this->isOpen();
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Draft => 'Concept',
+            self::Submitted => 'Ingediend',
+            self::InReview => 'In review',
+            self::Approved => 'Goedgekeurd',
+            self::Applied => 'Toegepast',
+            self::Rejected => 'Afgewezen',
+            self::Returned => 'Teruggestuurd',
+            self::Withdrawn => 'Ingetrokken',
+            self::Conflicted => 'Conflict',
+        };
+    }
 }

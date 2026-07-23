@@ -13,6 +13,7 @@ use App\Models\ReviewPolicy;
 use App\Models\ReviewStep;
 use App\Services\Audit\AuditLogger;
 use App\Services\Authorization\EffectivePermissions;
+use App\Services\Proposals\Contracts\WithdrawableProposalHandler;
 use App\Services\Proposals\Exceptions\ProposalConflictException;
 use App\Services\Proposals\Exceptions\ProposalStateException;
 use Illuminate\Support\Carbon;
@@ -32,6 +33,12 @@ class ProposalEngine
      *   1. bypass-permissie → direct toepassen (gelogd);
      *   2. auto_apply binnen beleid → direct toepassen;
      *   3. anders reviewstappen aanmaken.
+     *
+     * $ignoreBypass slaat uitsluitend stap 1 over (de persoonsgebonden
+     * bypass-permissie) — een expliciete "toch via goedkeuring indienen"-
+     * keuze voor iemand die eigenlijk direct zou mogen toepassen. De
+     * beleidsbrede auto_apply-vlag (stap 2) blijft ongemoeid: die geldt voor
+     * iedereen, ongeacht wie indient.
      */
     public function submit(
         string $subjectType,
@@ -40,8 +47,9 @@ class ProposalEngine
         ?Person $proposer = null,
         ?int $subjectId = null,
         ?ReviewPolicy $policy = null,
+        bool $ignoreBypass = false,
     ): Proposal {
-        return DB::transaction(function () use ($subjectType, $changeType, $payload, $proposer, $subjectId, $policy) {
+        return DB::transaction(function () use ($subjectType, $changeType, $payload, $proposer, $subjectId, $policy, $ignoreBypass) {
             $policy ??= $this->resolvePolicy($subjectType);
 
             $proposal = Proposal::create([
@@ -57,7 +65,7 @@ class ProposalEngine
 
             $this->audit->log('proposal.submitted', $proposal, after: $this->snapshot($proposal));
 
-            if ($policy && $proposer && $policy->bypass_permission && $this->permissions->has($proposer, $policy->bypass_permission)) {
+            if (! $ignoreBypass && $policy && $proposer && $policy->bypass_permission && $this->permissions->has($proposer, $policy->bypass_permission)) {
                 $this->audit->log('proposal.bypassed', $proposal, context: [
                     'bypass_permission' => $policy->bypass_permission,
                 ]);
@@ -273,9 +281,46 @@ class ProposalEngine
 
             $proposal->update(['status' => ProposalStatus::Withdrawn]);
 
+            // Alleen aanroepen als er een handler geregistreerd is — withdraw()
+            // moet ook blijven werken voor ad-hoc/niet-geregistreerde subject_types.
+            if ($this->handlers->has($proposal->subject_type)) {
+                $handler = $this->handlers->for($proposal->subject_type);
+                if ($handler instanceof WithdrawableProposalHandler) {
+                    $handler->onWithdrawn($proposal);
+                }
+            }
+
             $this->audit->log('proposal.withdrawn', $proposal, context: ['actor_id' => $actor->id]);
 
             $proposal->load('steps');
+
+            return $proposal;
+        });
+    }
+
+    /**
+     * Markeer een afgehandeld (gesloten) voorstel als gearchiveerd — puur
+     * een zichtbaarheidsvlag voor de indiener bij "Mijn voorstellen"
+     * (§20-uitbreiding: afgewezen voorstellen blijven zichtbaar totdat de
+     * indiener kiest tussen opnieuw indienen en archiveren). Verandert de
+     * status zelf niet en heeft geen effect op de onderliggende data.
+     */
+    public function archive(Proposal $proposal, Person $actor): Proposal
+    {
+        return DB::transaction(function () use ($proposal, $actor) {
+            $proposal = Proposal::query()->lockForUpdate()->findOrFail($proposal->id);
+
+            if ($proposal->status->isOpen()) {
+                throw new ProposalStateException('Alleen afgehandelde voorstellen kunnen worden gearchiveerd.');
+            }
+
+            if ($actor->id !== $proposal->proposed_by_person_id) {
+                throw new ProposalStateException('Alleen de indiener kan een voorstel archiveren.');
+            }
+
+            $proposal->update(['archived_at' => Carbon::now()]);
+
+            $this->audit->log('proposal.archived', $proposal, context: ['actor_id' => $actor->id]);
 
             return $proposal;
         });
