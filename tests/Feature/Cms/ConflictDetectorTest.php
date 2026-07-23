@@ -155,3 +155,32 @@ it('flags new-in-both-without-base as an edit-edit conflict', function () {
     expect($report->hasConflicts())->toBeFalse();
     expect($report->autoMerges())->toHaveCount(2);
 });
+
+it('markeert een blok als unchanged bij een base-loze two-way diff met identieke inhoud', function () {
+    $mine = makeVersion($this->page, PageVersionStatus::Draft);
+    $band = withBand($mine);
+    $block = withBlock($band, ['title' => 'zelfde']);
+
+    $theirs = makeVersion($this->page, PageVersionStatus::Draft);
+    $theirBand = withBand($theirs, originBandId: $band->id);
+    withBlock($theirBand, ['title' => 'zelfde'], originBlockId: $block->id);
+
+    $report = $this->detector->detect($mine, $theirs, null);
+
+    expect($report->entries->first()->type)->toBe('unchanged');
+    expect($report->entries->first()->isNoop())->toBeTrue();
+});
+
+it('meldt nog steeds een edit-edit-conflict bij een base-loze two-way diff met afwijkende inhoud', function () {
+    $mine = makeVersion($this->page, PageVersionStatus::Draft);
+    $band = withBand($mine);
+    $block = withBlock($band, ['title' => 'variant A']);
+
+    $theirs = makeVersion($this->page, PageVersionStatus::Draft);
+    $theirBand = withBand($theirs, originBandId: $band->id);
+    withBlock($theirBand, ['title' => 'variant B'], originBlockId: $block->id);
+
+    $report = $this->detector->detect($mine, $theirs, null);
+
+    expect($report->entries->first()->type)->toBe('conflict_edit_edit');
+});

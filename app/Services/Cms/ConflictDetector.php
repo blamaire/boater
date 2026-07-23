@@ -70,10 +70,16 @@ class ConflictDetector
     {
         $signature = ($base ? 'B' : '-').($mine ? 'M' : '-').($theirs ? 'T' : '-');
 
-        // Zelfde origin_block_id in mine en theirs zonder base = zeldzaam (parallel toegevoegd);
-        // behandel als edit-edit-conflict.
+        // Zelfde origin_block_id in mine en theirs zonder base: bij een
+        // base-loze two-way diff (history-diff/proposal-diff, detect(..., null))
+        // is dit juist de normale situatie voor een ongewijzigd blok — dan is de
+        // inhoud identiek. Verschilt de inhoud wél, dan is de herkomst onbekend
+        // (parallel toegevoegd of een echte wijziging) en behandelen we het
+        // voorzichtigheidshalve als edit-edit-conflict.
         if ($signature === '-MT') {
-            return new BlockDiff($originId, 'conflict_edit_edit', null, $mine, $theirs, array_keys($mine->content));
+            return $this->contentEquals($mine->content, $theirs->content)
+                ? new BlockDiff($originId, 'unchanged', null, $mine, $theirs, [])
+                : new BlockDiff($originId, 'conflict_edit_edit', null, $mine, $theirs, array_keys($mine->content));
         }
 
         if ($signature === '-M-') {

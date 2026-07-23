@@ -35,7 +35,7 @@
                                 @endif
                             </h3>
                             <p class="text-xs text-gray-500">
-                                Type: {{ $diff->type }}
+                                Type: {{ $diff->label() }}
                                 @if ($diff->conflictingKeys)
                                     · botsende velden: {{ implode(', ', $diff->conflictingKeys) }}
                                 @endif
@@ -120,7 +120,7 @@
             <h3 class="font-medium text-sm mb-2 text-gray-700">Automatisch samengevoegd ({{ $autoMerges->count() }} blok(ken))</h3>
             <ul class="text-xs text-gray-500 list-disc ps-4 space-y-0.5">
                 @foreach ($autoMerges as $diff)
-                    <li>Blok #{{ $diff->originBlockId }} — {{ $diff->type }}</li>
+                    <li>Blok #{{ $diff->originBlockId }} — {{ $diff->label('jouw versie', 'de gepubliceerde versie') }}</li>
                 @endforeach
             </ul>
         </section>
