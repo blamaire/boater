@@ -8,6 +8,7 @@ use App\Models\Page;
 use App\Models\PageVersion;
 use App\Services\Cms\ConflictDetector;
 use App\Services\Cms\PageVersionDiffSerializer;
+use App\Services\Cms\TextDiffer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +31,7 @@ class PageHistoryController extends Controller
         PageVersion $other,
         ConflictDetector $detector,
         PageVersionDiffSerializer $serializer,
+        TextDiffer $textDiffer,
     ): View {
         abort_unless($version->page_id === $page->id, 404);
         abort_unless($other->page_id === $page->id, 404);
@@ -37,14 +39,18 @@ class PageHistoryController extends Controller
         // Two-way diff: geen gemeenschappelijke voorouder, dus base=null.
         $report = $detector->detect($version, $other, null);
 
+        $rawAJson = (string) json_encode($serializer->raw($version), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $rawBJson = (string) json_encode($serializer->raw($other), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         return view('admin.pages.history-diff', [
             'page' => $page,
             'a' => $version,
             'b' => $other,
             'report' => $report,
             'structuredDiff' => $serializer->structured($report),
-            'rawA' => $serializer->raw($version),
-            'rawB' => $serializer->raw($other),
+            'rawAJson' => $rawAJson,
+            'rawBJson' => $rawBJson,
+            'textDiff' => $textDiffer->diffLines($rawAJson, $rawBJson),
         ]);
     }
 
