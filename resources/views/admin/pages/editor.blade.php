@@ -4,15 +4,23 @@
     <div class="py-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="mb-4 flex items-baseline justify-between">
             <div class="flex items-baseline gap-3 text-sm">
-                <a href="{{ route('admin.pages.index') }}" class="text-gray-600 hover:text-gray-800">← Alle pagina's</a>
+                @can('pages.view')
+                    <a href="{{ route('admin.pages.index') }}" class="text-gray-600 hover:text-gray-800">← Alle pagina's</a>
+                @else
+                    <a href="{{ $page->publicUrl() }}" class="text-gray-600 hover:text-gray-800">← Terug naar pagina</a>
+                @endcan
                 <p class="text-gray-500">Concept · v{{ $version->version_no }}</p>
                 @if ($hasUnpublishedChanges)
                     <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Niet gepubliceerd</span>
                 @endif
             </div>
             <div class="flex items-center gap-3 text-sm">
-                <a href="{{ route('admin.pages.history', $page) }}" class="text-gray-600 hover:text-gray-800">Historie</a>
-                <a href="{{ route('admin.pages.edit', $page) }}" class="text-gray-600 hover:text-gray-800">Instellingen</a>
+                @can('pages.view')
+                    <a href="{{ route('admin.pages.history', $page) }}" class="text-gray-600 hover:text-gray-800">Historie</a>
+                @endcan
+                @can('pages.update')
+                    <a href="{{ route('admin.pages.edit', $page) }}" class="text-gray-600 hover:text-gray-800">Instellingen</a>
+                @endcan
             </div>
         </div>
         @if (session('status'))

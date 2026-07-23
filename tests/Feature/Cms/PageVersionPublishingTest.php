@@ -97,6 +97,81 @@ it('publishes a page when the proposal is approved', function () {
     expect($page->fresh()->published_version_id)->toBe($version->id);
 });
 
+it('gaat ook voor een indiener met pages.publish via review i.p.v. direct bypassen (indienen-knop)', function () {
+    [$publisherUser, $publisherPerson] = makePublisher();
+
+    $page = Page::create([
+        'slug' => 'bypass-toch-review',
+        'title' => 'Bypass toch review',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $publisherPerson->id,
+    ]);
+
+    $this->actingAs($publisherUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertRedirect();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::InReview);
+    expect($page->fresh()->published_version_id)->toBeNull();
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->status)->toBe(ProposalStatus::InReview);
+});
+
+it('publiceert direct zonder goedkeuring via de expliciete knop, voor iemand met pages.publish', function () {
+    [$publisherUser, $publisherPerson] = makePublisher();
+
+    $page = Page::create([
+        'slug' => 'direct-publiceren',
+        'title' => 'Direct publiceren',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $publisherPerson->id,
+    ]);
+
+    $this->actingAs($publisherUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren")
+        ->assertRedirect();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::Published);
+    expect($page->fresh()->published_version_id)->toBe($version->id);
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->status)->toBe(ProposalStatus::Applied);
+});
+
+it('weigert de directe publicatie-route voor iemand zonder pages.publish', function () {
+    [$editorUser, $editorPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'geen-publish-recht',
+        'title' => 'Geen publish-recht',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $editorPerson->id,
+    ]);
+
+    $this->actingAs($editorUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren")
+        ->assertForbidden();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::Draft);
+    expect(Proposal::count())->toBe(0);
+});
+
 it('refuses to submit a non-draft version', function () {
     [$user, $person] = makeEditor();
     $page = Page::create([
@@ -132,6 +207,18 @@ function makeEditor(): array
             'status' => 'active',
         ]);
     }
+
+    return [$user, $person];
+}
+
+function makePublisher(): array
+{
+    [$user, $person] = makeEditor();
+    PersonPermission::create([
+        'person_id' => $person->id,
+        'permission_id' => Permission::where('key', 'pages.publish')->value('id'),
+        'status' => 'active',
+    ]);
 
     return [$user, $person];
 }

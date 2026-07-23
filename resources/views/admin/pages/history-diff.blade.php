@@ -22,38 +22,8 @@
                 class="px-3 py-2 border-b-2 -mb-px">JSON — beide versies rauw</button>
         </div>
 
-        <div x-show="tab === 'visual'" class="space-y-3">
-            @foreach ($report->entries as $diff)
-                <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2" wire:key="diff-{{ $diff->originBlockId }}">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
-                        <span class="text-xs text-gray-500">{{ $diff->type }}</span>
-                    </div>
-
-                    @unless ($diff->isNoop())
-                        <div class="grid gap-3 md:grid-cols-2">
-                            <div class="border border-gray-200 rounded p-2">
-                                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $a->version_no }}</div>
-                                @if ($diff->mine)
-                                    @include('cms.blocks.preview', ['block' => $diff->mine])
-                                @else
-                                    <p class="text-xs text-gray-400 italic">— bestaat niet in deze versie —</p>
-                                @endif
-                            </div>
-                            <div class="border border-gray-200 rounded p-2">
-                                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $b->version_no }}</div>
-                                @if ($diff->theirs)
-                                    @include('cms.blocks.preview', ['block' => $diff->theirs])
-                                @else
-                                    <p class="text-xs text-gray-400 italic">— bestaat niet in deze versie —</p>
-                                @endif
-                            </div>
-                        </div>
-                    @else
-                        <p class="text-xs text-gray-400 italic">Ongewijzigd tussen beide versies.</p>
-                    @endunless
-                </div>
-            @endforeach
+        <div x-show="tab === 'visual'">
+            @include('cms.blocks.diff', ['report' => $report, 'a' => $a, 'b' => $b])
         </div>
 
         <div x-show="tab === 'json_diff'" x-cloak class="space-y-2">

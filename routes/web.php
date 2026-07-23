@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
+use App\Http\Controllers\Portal\ProposalDiffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\ActiviteitBeheer;
@@ -30,9 +31,12 @@ use App\Livewire\Admin\ReserveringBeheer;
 use App\Livewire\Admin\ReserveringsregelBeheer;
 use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
+use App\Livewire\Portal\LidmaatschapsaanvraagBewerken;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
+use App\Livewire\Portal\ReserveringBewerken;
 use App\Livewire\Portal\SchadeMelden;
+use App\Livewire\Portal\Wijzigingsvoorstellen;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +49,10 @@ Route::middleware(['auth', 'verified'])
     ->name('portal.')
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
+        Route::get('/wijzigingsvoorstellen', Wijzigingsvoorstellen::class)->name('wijzigingsvoorstellen');
+        Route::get('/wijzigingsvoorstellen/{proposal}/diff', [ProposalDiffController::class, 'show'])->name('wijzigingsvoorstellen.diff');
+        Route::get('/wijzigingsvoorstellen/{proposal}/aanvraag-aanpassen', LidmaatschapsaanvraagBewerken::class)->name('wijzigingsvoorstellen.membership-application.edit');
+        Route::get('/wijzigingsvoorstellen/{proposal}/reservering-aanpassen', ReserveringBewerken::class)->name('wijzigingsvoorstellen.reservation.edit');
     });
 
 Route::middleware(['auth', 'verified', 'can:reservations.create'])
@@ -74,11 +82,14 @@ Route::middleware(['auth', 'verified'])
         // De editor + versie-indienen staan open voor leden met `pages.propose`
         // (impliciet via een actief lidmaatschap). Redacteurs/beheerders met
         // `pages.update` krijgen `pages.propose` automatisch (impliceerregel
-        // in EffectivePermissions). De uiteindelijke bypass-check (direct
-        // publiceren i.p.v. via motor) zit op de policy (`pages.publish`).
+        // in EffectivePermissions). "Indienen" gaat altijd via de motor (ook
+        // met bypass-rechten — ProposalEngine::submit(ignoreBypass: true));
+        // wie ook `pages.publish` heeft krijgt daarnaast de expliciete
+        // "direct publiceren"-knop/route hieronder.
         Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.propose')->name('editor');
         Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.propose')->name('versions.store');
         Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.propose')->name('versions.submit');
+        Route::post('/{page}/versies/{version}/publiceren', [PageEditorController::class, 'publishDirectly'])->middleware('can:pages.publish')->name('versions.publish');
 
         Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
             ->middleware('can:pages.propose')

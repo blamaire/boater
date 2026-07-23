@@ -1,22 +1,4 @@
 @php
-    $statusLabels = [
-        'draft' => 'Concept',
-        'submitted' => 'Ingediend',
-        'in_review' => 'In review',
-        'approved' => 'Goedgekeurd',
-        'applied' => 'Toegepast',
-        'rejected' => 'Afgewezen',
-        'returned' => 'Teruggestuurd',
-        'withdrawn' => 'Ingetrokken',
-        'conflicted' => 'Conflict',
-    ];
-    $stepLabels = [
-        'pending' => 'In afwachting',
-        'approved' => 'Goedgekeurd',
-        'rejected' => 'Afgewezen',
-        'returned' => 'Teruggestuurd',
-        'skipped' => 'Overgeslagen',
-    ];
     $changeLabels = ['create' => 'Aanmaken', 'update' => 'Wijzigen', 'delete' => 'Verwijderen'];
     $assigneeLabels = ['role' => 'Rol', 'group' => 'Groep', 'person' => 'Persoon'];
 @endphp
@@ -40,7 +22,7 @@
                     <div class="text-sm text-gray-500 mt-1">
                         Ingediend door
                         @if ($proposal->proposedBy)
-                            {{ $proposal->proposedBy->first_name }} {{ $proposal->proposedBy->last_name }}
+                            {{ $proposal->proposedBy->fullName() }}
                         @else
                             <span class="italic">onbekend</span>
                         @endif
@@ -50,7 +32,7 @@
                     </div>
                 </div>
                 <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-700 whitespace-nowrap">
-                    {{ $statusLabels[$proposal->status->value] ?? $proposal->status->value }}
+                    {{ $proposal->status->label() }}
                 </span>
             </div>
 
@@ -99,12 +81,12 @@
                         <tr>
                             <td class="px-4 py-2 text-gray-700">{{ $step->sequence }}</td>
                             <td class="px-4 py-2 text-gray-700">
-                                {{ $assigneeLabels[$step->assignee_type->value] ?? $step->assignee_type->value }} #{{ $step->assignee_id }}
+                                {{ $assigneeLabels[$step->assignee_type->value] ?? $step->assignee_type->value }} · {{ $step->assigneeName() }}
                             </td>
-                            <td class="px-4 py-2 text-gray-700">{{ $stepLabels[$step->status->value] ?? $step->status->value }}</td>
+                            <td class="px-4 py-2 text-gray-700">{{ $step->status->label() }}</td>
                             <td class="px-4 py-2 text-gray-700">
                                 @if ($step->decidedBy)
-                                    {{ $step->decidedBy->first_name }} {{ $step->decidedBy->last_name }}
+                                    {{ $step->decidedBy->fullName() }}
                                 @else
                                     <span class="text-gray-400">—</span>
                                 @endif

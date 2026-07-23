@@ -10,7 +10,7 @@
         auth()->user()?->can('damage_reports.create')
             ? $item(route('portal.schade-melden'), 'Schade melden', request()->routeIs('portal.schade-melden'))
             : $item(null, 'Schade melden', false, true),
-        $item(null, 'Voorstellen', false, true),
+        $item(route('portal.wijzigingsvoorstellen'), 'Wijzigingsvoorstellen', request()->routeIs('portal.wijzigingsvoorstellen*')),
     ];
 @endphp
 

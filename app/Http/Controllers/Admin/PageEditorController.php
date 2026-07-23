@@ -47,7 +47,28 @@ class PageEditorController extends Controller
             ->with('status', 'Nieuwe concept-versie aangemaakt.');
     }
 
+    /**
+     * Standaardknop: altijd via de goedkeuringsmotor, ook voor wie een
+     * bypass-permissie (`pages.publish`) heeft — die krijgt in plaats
+     * daarvan de expliciete {@see publishDirectly()}-knop ernaast.
+     */
     public function submit(Request $request, Page $page, PageVersion $version): RedirectResponse
+    {
+        return $this->submitVersion($request, $page, $version, ignoreBypass: true, successMessage: 'Versie ingediend ter goedkeuring.');
+    }
+
+    /**
+     * Expliciete knop voor wie `pages.publish` heeft (route-middleware):
+     * dezelfde motor, maar met de bypass-permissie juist wél in werking —
+     * publiceert direct zonder review, in plaats van dat impliciet te laten
+     * gebeuren via de standaard "indienen"-knop.
+     */
+    public function publishDirectly(Request $request, Page $page, PageVersion $version): RedirectResponse
+    {
+        return $this->submitVersion($request, $page, $version, ignoreBypass: false, successMessage: 'Versie direct gepubliceerd zonder goedkeuring.');
+    }
+
+    private function submitVersion(Request $request, Page $page, PageVersion $version, bool $ignoreBypass, string $successMessage): RedirectResponse
     {
         abort_unless($version->page_id === $page->id, 404);
 
@@ -84,10 +105,11 @@ class PageEditorController extends Controller
             payload: ['page_id' => $page->id],
             proposer: $person,
             subjectId: $version->id,
+            ignoreBypass: $ignoreBypass,
         );
 
-        return redirect()->route('admin.pages.editor', $page)
-            ->with('status', 'Versie ingediend ter goedkeuring.');
+        return redirect()->route('portal.wijzigingsvoorstellen')
+            ->with('status', $successMessage);
     }
 
     /**

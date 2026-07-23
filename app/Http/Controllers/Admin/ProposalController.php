@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\PageVersion;
 use App\Models\Proposal;
-use App\Services\Proposals\Handlers\PageVersionProposalHandler;
+use App\Services\Proposals\ProposalPresenter;
 use Illuminate\View\View;
 
 /**
@@ -14,6 +13,8 @@ use Illuminate\View\View;
  */
 class ProposalController extends Controller
 {
+    public function __construct(private readonly ProposalPresenter $presenter) {}
+
     public function show(Proposal $proposal): View
     {
         $proposal->load(['proposedBy', 'policy', 'steps.decidedBy']);
@@ -34,31 +35,21 @@ class ProposalController extends Controller
      */
     private function cmsChange(Proposal $proposal): ?array
     {
-        if ($proposal->subject_type !== PageVersionProposalHandler::SUBJECT_TYPE || $proposal->subject_id === null) {
+        $ctx = $this->presenter->pageVersionDiffContext($proposal);
+        if ($ctx === null) {
             return null;
         }
 
-        $version = PageVersion::query()->with(['page', 'baseVersion'])->find($proposal->subject_id);
-        if ($version === null) {
-            return null;
-        }
-
-        $page = $version->page;
-        // De versie waarop de bewerking is gebaseerd is doorgaans de toen
-        // gepubliceerde pagina; valt terug op de nu gepubliceerde versie.
-        $previous = $version->baseVersion ?? $page->publishedVersion;
-
-        $diffUrl = null;
-        if ($previous !== null && $previous->id !== $version->id) {
-            $diffUrl = route('admin.pages.history.diff', [
-                'page' => $page,
-                'version' => $previous,
-                'other' => $version,
-            ]);
-        }
+        $diffUrl = $ctx['previous'] !== null
+            ? route('admin.pages.history.diff', [
+                'page' => $ctx['page'],
+                'version' => $ctx['previous'],
+                'other' => $ctx['version'],
+            ])
+            : null;
 
         return [
-            'label' => "{$page->title} — v{$version->version_no}",
+            'label' => $ctx['label'],
             'diffUrl' => $diffUrl,
         ];
     }

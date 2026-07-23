@@ -21,6 +21,13 @@
                     @csrf
                     <button type="submit" class="px-3 py-1.5 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Indienen ter publicatie</button>
                 </form>
+                @can('pages.publish')
+                    <form method="POST" action="{{ route('admin.pages.versions.publish', [$version->page, $version]) }}"
+                        onsubmit="return confirm('Deze versie meteen publiceren, zonder goedkeuring?');">
+                        @csrf
+                        <button type="submit" class="px-3 py-1.5 bg-white border border-rzvg-500 text-rzvg-700 text-sm rounded-md hover:bg-rzvg-50">Direct publiceren</button>
+                    </form>
+                @endcan
             @else
                 <form method="POST" action="{{ route('admin.pages.versions.store', $version->page) }}">
                     @csrf
@@ -117,8 +124,8 @@
                                         </div>
                                     @endif
                                 </div>
-                                <div class="text-sm text-gray-700">
-                                    @include('cms.blocks.preview', ['block' => $block])
+                                <div class="text-sm text-gray-700 overflow-hidden">
+                                    @include('cms.blocks.preview', ['block' => $block, 'fullBleed' => false])
                                 </div>
                             </div>
                         @endforeach
