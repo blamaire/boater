@@ -15,9 +15,14 @@
 
     @foreach ($report->entries as $diff)
         @if ($diff->isNoop())
-            <details class="bg-white border border-gray-200 rounded-lg p-4" wire:key="diff-{{ $diff->originBlockId }}">
-                <summary class="flex items-center justify-between text-sm cursor-pointer select-none">
-                    <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
+            <details class="group bg-white border border-gray-200 rounded-lg p-4" wire:key="diff-{{ $diff->originBlockId }}">
+                <summary class="flex items-center justify-between text-sm cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                    <span class="flex items-center gap-2">
+                        <svg width="16" height="16" class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
+                    </span>
                     <span class="text-xs text-gray-500">{{ $diff->label() }}</span>
                 </summary>
 
@@ -45,13 +50,18 @@
                 @endif
             </details>
         @else
-            <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2" wire:key="diff-{{ $diff->originBlockId }}">
-                <div class="flex items-center justify-between text-sm">
-                    <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
+            <details class="group bg-white border border-gray-200 rounded-lg p-4 space-y-2" open wire:key="diff-{{ $diff->originBlockId }}">
+                <summary class="flex items-center justify-between text-sm cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                    <span class="flex items-center gap-2">
+                        <svg width="16" height="16" class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
+                    </span>
                     <span class="text-xs text-gray-500">{{ $diff->label() }}</span>
-                </div>
+                </summary>
 
-                <div class="grid gap-3 md:grid-cols-2">
+                <div class="grid gap-3 md:grid-cols-2 mt-2">
                     <div class="border border-gray-200 rounded p-2 overflow-hidden">
                         <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $a->version_no }}</div>
                         @if ($diff->mine)
@@ -69,7 +79,7 @@
                         @endif
                     </div>
                 </div>
-            </div>
+            </details>
         @endif
     @endforeach
 </div>

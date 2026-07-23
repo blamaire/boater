@@ -50,11 +50,19 @@ it('klapt ongewijzigde blokken dicht en toont Nederlandse omschrijvingen i.p.v. 
         ->toContain('Conflict — beide gewijzigd op hetzelfde veld')
         ->not->toContain('conflict_edit_edit')
         ->not->toContain('added_by_theirs')
-        // Geen enkel blok staat standaard opengeklapt.
-        ->not->toContain('<details class="bg-white border border-gray-200 rounded-lg p-4" open')
+        // Elk blok toont een pijltje dat aangeeft of het in- of uitgeklapt is.
+        ->toContain('group-open:rotate-90')
         // De inhoud van het ongewijzigde blok wordt wél getoond (in het
         // dichtgeklapte <details>-blok, klaar om te tonen bij het openklappen).
         ->toContain('zelfde inhoud');
+
+    // Het ongewijzigde blok staat standaard dichtgeklapt...
+    preg_match('/<details[^>]*wire:key="diff-'.$unchangedBlockA->id.'"[^>]*>/', $html, $unchangedTag);
+    expect($unchangedTag[0])->not->toContain(' open');
+
+    // ...maar het gewijzigde blok, met de eigenlijke verschillen, staat standaard open.
+    preg_match('/<details[^>]*wire:key="diff-'.$changedBlockA->id.'"[^>]*>/', $html, $changedTag);
+    expect($changedTag[0])->toContain(' open');
 });
 
 it('toont "de linkerversie"/"de rechterversie" i.p.v. "versie A"/"versie B"', function () {
