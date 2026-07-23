@@ -39,4 +39,31 @@ final readonly class BlockDiff
     {
         return in_array($this->type, ['unchanged', 'deleted_both'], true);
     }
+
+    /**
+     * Leesbare Nederlandse omschrijving van $type, voor weergave in de
+     * diff-viewer en conflictresolver. $mineLabel/$theirsLabel maken de
+     * omschrijving van "mine"/"theirs" context-afhankelijk: de diff-viewer
+     * vergelijkt twee arbitraire versies naast elkaar (default:
+     * "linkerversie"/"rechterversie"), terwijl de conflictresolver een
+     * eigen concept tegenover de gepubliceerde versie zet en daar dus
+     * "jouw versie"/"de gepubliceerde versie" moet doorgeven.
+     */
+    public function label(string $mineLabel = 'de linkerversie', string $theirsLabel = 'de rechterversie'): string
+    {
+        return match ($this->type) {
+            'unchanged' => 'Ongewijzigd',
+            'added_by_me' => "Toegevoegd in {$mineLabel}",
+            'added_by_theirs' => "Toegevoegd in {$theirsLabel}",
+            'deleted_by_me' => "Verwijderd in {$mineLabel}",
+            'deleted_by_theirs' => "Verwijderd in {$theirsLabel}",
+            'deleted_both' => 'Verwijderd in beide versies',
+            'edited_by_me' => "Gewijzigd in {$mineLabel}",
+            'edited_by_theirs' => "Gewijzigd in {$theirsLabel}",
+            'auto_mergeable' => 'Beide gewijzigd, automatisch samengevoegd',
+            'conflict_edit_edit' => 'Conflict — beide gewijzigd op hetzelfde veld',
+            'conflict_delete_edit' => 'Conflict — verwijderd aan één kant, gewijzigd aan de andere',
+            default => $this->type,
+        };
+    }
 }
