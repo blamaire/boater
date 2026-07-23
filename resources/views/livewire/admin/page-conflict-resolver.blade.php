@@ -47,7 +47,7 @@
                         <div class="border border-gray-200 rounded p-3 bg-gray-50 space-y-2">
                             <div class="text-xs uppercase text-gray-500 font-semibold">Basis</div>
                             @if ($diff->base)
-                                @include('cms.blocks.preview', ['block' => $diff->base])
+                                @include('cms.blocks.preview', ['block' => $diff->base, 'fullBleed' => false])
                                 <details class="text-xs text-gray-500 pt-2 border-t">
                                     <summary class="cursor-pointer">Ruwe JSON</summary>
                                     <pre class="mt-1 whitespace-pre-wrap break-all bg-white border border-gray-200 rounded p-2">{{ json_encode($diff->base->content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
@@ -67,7 +67,7 @@
                                 Jouw versie
                             </label>
                             @if ($diff->mine)
-                                @include('cms.blocks.preview', ['block' => $diff->mine])
+                                @include('cms.blocks.preview', ['block' => $diff->mine, 'fullBleed' => false])
                                 <details class="text-xs text-gray-500 pt-2 border-t">
                                     <summary class="cursor-pointer">Ruwe JSON</summary>
                                     <pre class="mt-1 whitespace-pre-wrap break-all bg-white border border-gray-200 rounded p-2">{{ json_encode($diff->mine->content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
@@ -87,7 +87,7 @@
                                 Gepubliceerde versie
                             </label>
                             @if ($diff->theirs)
-                                @include('cms.blocks.preview', ['block' => $diff->theirs])
+                                @include('cms.blocks.preview', ['block' => $diff->theirs, 'fullBleed' => false])
                                 <details class="text-xs text-gray-500 pt-2 border-t">
                                     <summary class="cursor-pointer">Ruwe JSON</summary>
                                     <pre class="mt-1 whitespace-pre-wrap break-all bg-white border border-gray-200 rounded p-2">{{ json_encode($diff->theirs->content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
