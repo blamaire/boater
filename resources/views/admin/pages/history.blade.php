@@ -26,7 +26,9 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach ($versions as $v)
                             <tr>
-                                <td class="px-4 py-2 font-mono">v{{ $v->version_no }}</td>
+                                <td class="px-4 py-2 font-mono">
+                                    <a href="{{ route('admin.pages.versions.preview', [$page, $v]) }}" target="_blank" rel="noopener" class="text-rzvg-600 hover:text-rzvg-800 underline">v{{ $v->version_no }}</a>
+                                </td>
                                 <td class="px-4 py-2 text-sm">
                                     <span @class([
                                         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
@@ -40,7 +42,7 @@
                                     @if ($v->createdBy)
                                         {{ $v->createdBy->first_name }} {{ $v->createdBy->last_name }}
                                     @else
-                                        —
+                                        Systeem
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ $v->created_at?->translatedFormat('j M Y H:i') }}</td>

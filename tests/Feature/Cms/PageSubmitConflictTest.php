@@ -10,8 +10,10 @@ use App\Models\PageVersion;
 use App\Models\Permission;
 use App\Models\Person;
 use App\Models\PersonPermission;
+use App\Models\Proposal;
 use App\Models\Template;
 use App\Models\User;
+use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReviewPolicySeeder;
 
@@ -69,7 +71,7 @@ it('redirects to the conflict resolver when submit finds a newer published versi
     $page->update(['published_version_id' => $v3->id]);
 
     $this->actingAs($user)
-        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect(route('admin.pages.conflict.show', [
             'page' => $page,
             'version' => $mine,
@@ -90,7 +92,7 @@ it('lets submit proceed normally when there is no newer published version', func
     ]);
 
     $this->actingAs($user)
-        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect($mine->fresh()->status)->toBe(PageVersionStatus::InReview);
@@ -111,4 +113,82 @@ it('gives each editor their own draft version', function () {
     $draftsB = PageVersion::where('page_id', $page->id)->where('created_by_person_id', $personB->id)->count();
 
     expect($draftsA)->toBe(1)->and($draftsB)->toBe(1);
+});
+
+it('automatically rebases the draft when the intervening publish does not overlap', function () {
+    [$user, $person] = editorWith(['pages.view', 'pages.update']);
+
+    $page = Page::create(['slug' => 'p4', 'title' => 'P', 'template_id' => $this->template->id]);
+
+    // v1: gepubliceerd op 't moment jouw concept vertakt
+    $v1 = PageVersion::create(['page_id' => $page->id, 'version_no' => 1, 'status' => PageVersionStatus::Published]);
+    $band1 = Band::create(['page_version_id' => $v1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    $block1 = Block::create(['band_id' => $band1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>oud</p>']]);
+    $page->update(['published_version_id' => $v1->id]);
+
+    // jouw concept vertakt van v1 en wijzigt blok X
+    $mine = PageVersion::create([
+        'page_id' => $page->id, 'version_no' => 2, 'status' => PageVersionStatus::Draft,
+        'base_version_id' => $v1->id, 'created_by_person_id' => $person->id,
+    ]);
+    $myBand = Band::create(['page_version_id' => $mine->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $myBand->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>mijn edit</p>']]);
+
+    // Intussen wordt v3 gepubliceerd met een nieuw blok Y — blok X blijft ongewijzigd t.o.v. v1
+    $v3 = PageVersion::create(['page_id' => $page->id, 'version_no' => 3, 'status' => PageVersionStatus::Published]);
+    $band3 = Band::create(['page_version_id' => $v3->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $band3->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>oud</p>']]);
+    Block::create(['band_id' => $band3->id, 'column_index' => 0, 'sort_order' => 1, 'type' => BlockType::Text, 'content' => ['html' => '<p>nieuw blok</p>']]);
+    $page->update(['published_version_id' => $v3->id]);
+
+    $this->actingAs($user)
+        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect(route('portal.wijzigingsvoorstellen'));
+
+    $proposal = Proposal::where('subject_type', PageVersionProposalHandler::SUBJECT_TYPE)->latest('id')->first();
+    expect($proposal)->not->toBeNull();
+    expect($proposal->subject_id)->not->toBe($mine->id);
+
+    $rebased = PageVersion::find($proposal->subject_id);
+    expect($rebased)->not->toBeNull();
+    expect($rebased->base_version_id)->toBe($v3->id);
+
+    $htmlValues = $rebased->bands()->with('blocks')->get()
+        ->flatMap(fn (Band $band) => $band->blocks)
+        ->map(fn (Block $block) => $block->content['html'] ?? null)
+        ->filter()
+        ->values()
+        ->all();
+
+    expect($htmlValues)->toContain('<p>mijn edit</p>')
+        ->toContain('<p>nieuw blok</p>');
+});
+
+it('shows a rebase notice on the confirmation page when the draft was automatically rebased', function () {
+    [$user, $person] = editorWith(['pages.view', 'pages.update']);
+
+    $page = Page::create(['slug' => 'p5', 'title' => 'P', 'template_id' => $this->template->id]);
+
+    $v1 = PageVersion::create(['page_id' => $page->id, 'version_no' => 1, 'status' => PageVersionStatus::Published]);
+    $band1 = Band::create(['page_version_id' => $v1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    $block1 = Block::create(['band_id' => $band1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>oud</p>']]);
+    $page->update(['published_version_id' => $v1->id]);
+
+    $mine = PageVersion::create([
+        'page_id' => $page->id, 'version_no' => 2, 'status' => PageVersionStatus::Draft,
+        'base_version_id' => $v1->id, 'created_by_person_id' => $person->id,
+    ]);
+    $myBand = Band::create(['page_version_id' => $mine->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $myBand->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>mijn edit</p>']]);
+
+    $v3 = PageVersion::create(['page_id' => $page->id, 'version_no' => 3, 'status' => PageVersionStatus::Published]);
+    $band3 = Band::create(['page_version_id' => $v3->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $band3->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>oud</p>']]);
+    Block::create(['band_id' => $band3->id, 'column_index' => 0, 'sort_order' => 1, 'type' => BlockType::Text, 'content' => ['html' => '<p>nieuw blok</p>']]);
+    $page->update(['published_version_id' => $v3->id]);
+
+    $this->actingAs($user)
+        ->get("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen")
+        ->assertOk()
+        ->assertSee('is automatisch bijgewerkt met tussentijdse wijzigingen van versie');
 });

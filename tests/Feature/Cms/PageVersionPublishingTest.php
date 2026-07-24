@@ -46,7 +46,7 @@ it('submits a draft to the proposal engine when "indienen" is pressed', function
     ]);
 
     $this->actingAs($proposerUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::InReview);
@@ -85,7 +85,7 @@ it('publishes a page when the proposal is approved', function () {
     ]);
 
     $this->actingAs($proposerUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
@@ -113,7 +113,7 @@ it('gaat ook voor een indiener met pages.publish via review i.p.v. direct bypass
     ]);
 
     $this->actingAs($publisherUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::InReview);
@@ -139,7 +139,7 @@ it('publiceert direct zonder goedkeuring via de expliciete knop, voor iemand met
     ]);
 
     $this->actingAs($publisherUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::Published);
@@ -165,11 +165,109 @@ it('weigert de directe publicatie-route voor iemand zonder pages.publish', funct
     ]);
 
     $this->actingAs($editorUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren", ['note' => 'Testomschrijving van de wijziging'])
         ->assertForbidden();
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::Draft);
     expect(Proposal::count())->toBe(0);
+});
+
+it('weigert indienen zonder omschrijving en maakt geen voorstel aan', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'zonder-omschrijving',
+        'title' => 'Zonder omschrijving',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", [])
+        ->assertSessionHasErrors('note');
+
+    expect(Proposal::where('subject_id', $version->id)->count())->toBe(0);
+});
+
+it('slaat de opgegeven omschrijving op bij het aangemaakte voorstel', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'met-omschrijving',
+        'title' => 'Met omschrijving',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect();
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->note)->toBe('Testomschrijving van de wijziging');
+});
+
+it('toont de bevestigingspagina met diff-viewer wanneer de pagina al gepubliceerd is', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'confirm-met-gepubliceerde-versie',
+        'title' => 'Confirm met gepubliceerde versie',
+        'template_id' => $this->template->id,
+    ]);
+    $published = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Published,
+    ]);
+    $page->update(['published_version_id' => $published->id]);
+
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 2,
+        'status' => PageVersionStatus::Draft,
+        'base_version_id' => $published->id,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Omschrijving van de wijziging')
+        ->assertSee('v1')
+        ->assertSee('v2');
+});
+
+it('toont de bevestigingspagina zonder diff-viewer wanneer de pagina nog nooit gepubliceerd is', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'confirm-zonder-gepubliceerde-versie',
+        'title' => 'Confirm zonder gepubliceerde versie',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Omschrijving van de wijziging')
+        ->assertDontSee('Alles uitklappen');
 });
 
 it('refuses to submit a non-draft version', function () {
@@ -186,7 +284,7 @@ it('refuses to submit a non-draft version', function () {
     ]);
 
     $this->actingAs($user)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect(Proposal::count())->toBe(0);

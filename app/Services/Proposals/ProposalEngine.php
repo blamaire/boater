@@ -48,8 +48,9 @@ class ProposalEngine
         ?int $subjectId = null,
         ?ReviewPolicy $policy = null,
         bool $ignoreBypass = false,
+        ?string $note = null,
     ): Proposal {
-        return DB::transaction(function () use ($subjectType, $changeType, $payload, $proposer, $subjectId, $policy, $ignoreBypass) {
+        return DB::transaction(function () use ($subjectType, $changeType, $payload, $note, $proposer, $subjectId, $policy, $ignoreBypass) {
             $policy ??= $this->resolvePolicy($subjectType);
 
             $proposal = Proposal::create([
@@ -57,6 +58,7 @@ class ProposalEngine
                 'subject_id' => $subjectId,
                 'change_type' => $changeType,
                 'payload' => $payload,
+                'note' => $note,
                 'proposed_by_person_id' => $proposer?->id,
                 'status' => ProposalStatus::Submitted,
                 'policy_id' => $policy?->id,
@@ -436,6 +438,7 @@ class ProposalEngine
             'change_type' => $proposal->change_type->value,
             'status' => $proposal->status->value,
             'policy_id' => $proposal->policy_id,
+            'note' => $proposal->note,
         ];
     }
 }

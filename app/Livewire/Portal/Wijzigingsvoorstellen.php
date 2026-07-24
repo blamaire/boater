@@ -14,7 +14,7 @@ use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalEngine;
 use App\Services\Proposals\ReviewerResolver;
 use Closure;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -35,6 +35,8 @@ class Wijzigingsvoorstellen extends Component
     public string $statusMessage = '';
 
     public string $errorMessage = '';
+
+    public bool $hideApplied = true;
 
     /** @var array<int, string> */
     public array $reasonInputs = [];
@@ -254,13 +256,38 @@ class Wijzigingsvoorstellen extends Component
             ->get();
     }
 
+    /**
+     * Alle rijen voor de samengevoegde tabel: eigen ingediende voorstellen +
+     * stappen waarop dit lid nu moet beslissen — nieuwste eerst. $hideApplied
+     * filtert alleen ProposalStatus::Applied uit "mine"-rijen (nooit uit
+     * decidable-rijen, die zijn per definitie nog open).
+     *
+     * @return Collection<int, array{proposal: Proposal, step: ?ReviewStep}>
+     */
+    #[Computed]
+    public function tableRows(): Collection
+    {
+        $mine = $this->myProposals()->map(fn (Proposal $p) => ['proposal' => $p, 'step' => null]);
+        $decidable = $this->decidableSteps()->map(fn (ReviewStep $s) => ['proposal' => $s->proposal, 'step' => $s]);
+
+        // Larastan geeft hieronder een vals-positieve invariantiefout op
+        // Collection<int, array-shape> — reproduceerbaar met elk array-shape
+        // TValue, los van onze eigen types, zie
+        // https://phpstan.org/blog/whats-up-with-template-covariant
+        // @phpstan-ignore return.type
+        return $mine->concat($decidable)
+            // @phpstan-ignore return.type, argument.type
+            ->when($this->hideApplied, fn ($rows) => $rows->reject(
+                fn (array $row) => $row['step'] === null && $row['proposal']->status === ProposalStatus::Applied
+            ))
+            ->sortByDesc('proposal.created_at')
+            ->values();
+    }
+
     public function render(): View
     {
         return view('livewire.portal.wijzigingsvoorstellen', [
-            'myOpenProposals' => $this->myOpenProposals(),
-            'myRejectedProposals' => $this->myRejectedProposals(),
-            'myClosedProposals' => $this->myClosedProposals(),
-            'decidableSteps' => $this->decidableSteps(),
+            'tableRows' => $this->tableRows(),
         ]);
     }
 

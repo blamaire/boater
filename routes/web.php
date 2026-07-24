@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
+use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\Admin\PagePushController;
 use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
@@ -88,12 +89,18 @@ Route::middleware(['auth', 'verified'])
         // "direct publiceren"-knop/route hieronder.
         Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.propose')->name('editor');
         Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.propose')->name('versions.store');
+        Route::get('/{page}/versies/{version}/indienen', [PageEditorController::class, 'confirmSubmit'])->middleware('can:pages.propose')->name('versions.submit.confirm');
         Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.propose')->name('versions.submit');
+        Route::get('/{page}/versies/{version}/publiceren', [PageEditorController::class, 'confirmPublish'])->middleware('can:pages.publish')->name('versions.publish.confirm');
         Route::post('/{page}/versies/{version}/publiceren', [PageEditorController::class, 'publishDirectly'])->middleware('can:pages.publish')->name('versions.publish');
 
         Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
             ->middleware('can:pages.propose')
             ->name('conflict.show');
+
+        Route::get('/{page}/versies/{version}/voorvertoning', PagePreviewController::class)
+            ->middleware('can:pages.propose')
+            ->name('versions.preview');
 
         Route::post('/{page}/push', PagePushController::class)->middleware('can:pages.push')->name('push');
 

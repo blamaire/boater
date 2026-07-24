@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $subject_id
  * @property ChangeType $change_type
  * @property array<string, mixed> $payload
+ * @property string|null $note
  * @property int|null $proposed_by_person_id
  * @property ProposalStatus $status
  * @property int|null $policy_id
@@ -35,6 +36,7 @@ class Proposal extends Model
         'subject_id',
         'change_type',
         'payload',
+        'note',
         'proposed_by_person_id',
         'status',
         'policy_id',

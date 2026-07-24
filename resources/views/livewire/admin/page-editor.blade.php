@@ -12,21 +12,20 @@
             </span>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('admin.pages.versions.preview', [$version->page, $version]) }}" target="_blank" rel="noopener"
+                class="px-3 py-1.5 bg-white border border-gray-300 text-sm rounded-md hover:bg-gray-50 inline-block">
+                Voorvertoning
+            </a>
             <button type="button" wire:click="toggleJsonPanel"
                 class="px-3 py-1.5 bg-white border border-gray-300 text-sm rounded-md hover:bg-gray-50">
                 &lt;/&gt; Broncode
             </button>
             @if ($version->status->isEditable())
-                <form method="POST" action="{{ route('admin.pages.versions.submit', [$version->page, $version]) }}">
-                    @csrf
-                    <button type="submit" class="px-3 py-1.5 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Indienen ter publicatie</button>
-                </form>
+                <a href="{{ route('admin.pages.versions.submit.confirm', [$version->page, $version]) }}"
+                    class="inline-block px-3 py-1.5 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Indienen ter publicatie</a>
                 @can('pages.publish')
-                    <form method="POST" action="{{ route('admin.pages.versions.publish', [$version->page, $version]) }}"
-                        onsubmit="return confirm('Deze versie meteen publiceren, zonder goedkeuring?');">
-                        @csrf
-                        <button type="submit" class="px-3 py-1.5 bg-white border border-rzvg-500 text-rzvg-700 text-sm rounded-md hover:bg-rzvg-50">Direct publiceren</button>
-                    </form>
+                    <a href="{{ route('admin.pages.versions.publish.confirm', [$version->page, $version]) }}"
+                        class="inline-block px-3 py-1.5 bg-white border border-rzvg-500 text-rzvg-700 text-sm rounded-md hover:bg-rzvg-50">Direct publiceren</a>
                 @endcan
             @else
                 <form method="POST" action="{{ route('admin.pages.versions.store', $version->page) }}">

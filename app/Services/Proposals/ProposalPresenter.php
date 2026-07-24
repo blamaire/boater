@@ -32,6 +32,22 @@ class ProposalPresenter
         'membership_type_id' => 'Lidmaatschapsvorm',
     ];
 
+    /**
+     * Korte Nederlandse naam voor het soort wijziging, voor gebruik in
+     * overzichtstabellen (bv. de "Type"-kolom op de portaalpagina
+     * Wijzigingsvoorstellen).
+     */
+    public function typeLabel(Proposal $proposal): string
+    {
+        return match ($proposal->subject_type) {
+            PageVersionProposalHandler::SUBJECT_TYPE => 'Paginawijziging',
+            PersonFieldUpdateHandler::SUBJECT_TYPE => 'Profielwijziging',
+            MembershipApplicationHandler::SUBJECT_TYPE => 'Lidmaatschapsaanvraag',
+            ReservationProposalHandler::SUBJECT_TYPE => 'Reservering',
+            default => class_basename($proposal->subject_type),
+        };
+    }
+
     public function summary(Proposal $proposal): string
     {
         return match ($proposal->subject_type) {

@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Block;
 use App\Models\PersonPermission;
 use App\Models\RoleAssignment;
 use App\Models\User;
+use App\Observers\BlockObserver;
 use App\Observers\PersonPermissionObserver;
 use App\Observers\RoleAssignmentObserver;
 use App\Services\Authorization\EffectivePermissions;
@@ -42,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
 
         RoleAssignment::observe(RoleAssignmentObserver::class);
         PersonPermission::observe(PersonPermissionObserver::class);
+        Block::observe(BlockObserver::class);
 
         app(ProposalHandlerRegistry::class)->register(
             PageVersionProposalHandler::SUBJECT_TYPE,
