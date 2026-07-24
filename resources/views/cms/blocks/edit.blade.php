@@ -7,6 +7,7 @@
                 showSource: false,
                 init() {
                     this.$refs.trixInput.value = this.value ?? '';
+                    this.$refs.editor.editor.loadHTML(this.value ?? '');
                     this.$refs.editor.addEventListener('trix-change', () => {
                         if (! this.showSource) {
                             this.value = this.$refs.trixInput.value;

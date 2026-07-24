@@ -43,25 +43,28 @@ it('toont een afgewezen voorstel als actie-nodig totdat het gearchiveerd wordt',
         'current_step' => 0,
     ]);
 
-    // Zolang niet gearchiveerd staat het voorstel in de "actie nodig"-sectie
-    // met een Archiveren-knop, buiten de ingeklapte "Afgehandeld"-lijst.
+    // Zolang niet gearchiveerd staat het voorstel in de samengevoegde tabel
+    // met een Archiveren-knop.
     Livewire::actingAs($user)
         ->test(Wijzigingsvoorstellen::class)
         ->assertSee('past niet bij beleid')
-        ->assertSee('Afgewezen — actie nodig')
-        ->assertSee('Archiveren')
-        ->assertDontSee('Afgehandeld (');
+        ->assertSee('Toegepaste voorstellen verbergen')
+        ->assertSee('Archiveren');
 
     Livewire::actingAs($user)
         ->test(Wijzigingsvoorstellen::class)
         ->call('archive', $rejected->id);
 
-    expect($rejected->refresh()->archived_at)->not->toBeNull();
+    expect($rejected->refresh())
+        ->archived_at->not->toBeNull()
+        ->status->toBe(ProposalStatus::Rejected);
 
+    // Na archiveren is de rij nog zichtbaar (status blijft Rejected, dus de
+    // hideApplied-filter — die alleen Applied verbergt — grijpt niet aan),
+    // maar de actie-knop is weg omdat needsRejectionAction() nu false is.
     Livewire::actingAs($user)
         ->test(Wijzigingsvoorstellen::class)
-        ->assertDontSee('Afgewezen — actie nodig')
-        ->assertSee('Afgehandeld (1)');
+        ->assertDontSee('Archiveren');
 });
 
 it('toont een eigen open voorstel en verbergt een gesloten voorstel niet uit de DOM', function () {
