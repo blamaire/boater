@@ -152,9 +152,11 @@ class PageEditor extends Component
 
         $block = Block::query()->findOrFail($this->editingBlockId);
 
-        Block::query()
-            ->whereKey($this->editingBlockId)
-            ->update(['content' => $this->serializeOnSave($block->type, $this->editingContent)]);
+        // Via het model (niet Block::query()->update()) op te slaan, zodat
+        // BlockObserver::saving() — en daarmee BlockContentSanitizer —
+        // daadwerkelijk vuurt; een query-builder mass-update slaat Eloquent-
+        // events over en zou de sanitisatie van vrije-HTML-velden omzeilen.
+        $block->update(['content' => $this->serializeOnSave($block->type, $this->editingContent)]);
 
         $this->editingBlockId = null;
         $this->editingContent = [];

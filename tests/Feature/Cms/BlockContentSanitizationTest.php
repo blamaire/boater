@@ -124,6 +124,27 @@ it('laat de content van een kop-blok ongewijzigd bij het opslaan', function () {
     expect($fresh->content['text'])->toBe('<script>alert(1)</script>Titel');
 });
 
+it('saniteert ook bij het renderen, als vangnet mocht een opslagroute de saniteer-observer ooit omzeilen', function () {
+    $band = makeSanitizationBand();
+
+    // Simuleer content die de opslag-sanitisatie omzeild heeft (bv. een
+    // toekomstige nieuwe opslagroute die niet via het model saved) door de
+    // observer bewust over te slaan — de preview-partial moet dit zelf ook
+    // nog saniteren (defense-in-depth), niet enkel op saving() vertrouwen.
+    $block = Block::withoutEvents(fn () => Block::create([
+        'band_id' => $band->id,
+        'column_index' => 0,
+        'sort_order' => 0,
+        'type' => BlockType::Text,
+        'content' => ['html' => '<p>Hallo</p><script>alert(1)</script>'],
+        'visibility' => 'publiek',
+    ]));
+
+    $html = view('cms.blocks.preview', ['block' => $block])->render();
+
+    expect($html)->not->toContain('<script>')->toContain('Hallo');
+});
+
 it('behoudt legitieme opmaak in een tekst-blok functioneel intact', function () {
     $band = makeSanitizationBand();
 
