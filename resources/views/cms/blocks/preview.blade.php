@@ -1,4 +1,7 @@
-@php($c = $block->content)
+{{-- Defense-in-depth: saniteer ook hier de vrije-HTML-velden (tekst/html,
+     feature_sectie/body), zodat een eventueel gemiste opslagroute (nu of in
+     de toekomst) geen ongesaniteerde HTML alsnog op de site laat verschijnen. --}}
+@php($c = app(\App\Services\Cms\BlockContentSanitizer::class)->sanitize($block->type, $block->content))
 @php($fullBleed = $fullBleed ?? true)
 @switch($block->type->value)
     @case('tekst')
