@@ -7,8 +7,11 @@ use App\Models\Invoice;
 use App\Models\Person;
 use App\Models\Product;
 use App\Services\Finance\BillingService;
+use App\Services\Finance\ContributionRunLine;
+use App\Services\Finance\ContributionRunService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -30,6 +33,54 @@ class FacturatieBeheer extends Component
     public ?string $chargeDueAt = null;
 
     public ?string $statusMessage = null;
+
+    public int $contributionYear;
+
+    public ?Collection $contributionPreview = null;
+
+    public function mount(): void
+    {
+        $this->contributionYear = Carbon::now()->year;
+    }
+
+    public function previewContributionRun(ContributionRunService $service): void
+    {
+        $this->contributionPreview = $this->toPreviewRows($service->preview($this->contributionYear));
+    }
+
+    public function runContributionRun(ContributionRunService $service): void
+    {
+        $result = $service->run($this->contributionYear);
+
+        $this->statusMessage = "Contributie-run {$this->contributionYear}: {$result['created']} posten aangemaakt".
+            ' (€ '.number_format((float) $result['total'], 2, ',', '.').'), '.
+            "{$result['skipped']} overgeslagen (al gefactureerd of geen tarief bekend).";
+
+        $this->contributionPreview = $this->toPreviewRows($service->preview($this->contributionYear));
+    }
+
+    /**
+     * Livewire kan geen losse DTO's als publieke property synthesizen; hier
+     * platgeslagen naar arrays voor weergave in de view.
+     *
+     * @param  Collection<int, ContributionRunLine>  $lines
+     */
+    private function toPreviewRows(Collection $lines): Collection
+    {
+        return $lines->map(function (ContributionRunLine $line): array {
+            $payer = $line->membership->billingPerson ?? $line->membership->person;
+
+            return [
+                'membership_id' => $line->membership->id,
+                'person_name' => "{$line->membership->person->last_name}, {$line->membership->person->first_name}",
+                'type_name' => $line->membership->type->name,
+                'payer_name' => "{$payer->last_name}, {$payer->first_name}",
+                'is_half_rate' => $line->isHalfRate,
+                'amount' => $line->amount,
+                'already_charged' => $line->alreadyCharged,
+            ];
+        });
+    }
 
     /**
      * Bij het kiezen van een product: bedrag en omschrijving voorvullen op basis
