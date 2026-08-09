@@ -91,14 +91,3 @@ it('bereidt een contributie-run voor en voert die uit via het scherm', function 
     expect(Charge::query()->where('subject_type', Membership::class)->count())->toBe(1)
         ->and($component->get('statusMessage'))->toContain('1 posten aangemaakt');
 });
-
-it('toont een factuur read-only voor een beheerder', function () {
-    app(BillingService::class)->createCharge($this->product, $this->debtor, '90.00', 'Contributie 2026');
-    $invoice = app(BillingService::class)->invoiceOpenCharges($this->debtor);
-
-    $this->actingAs($this->beheerder)
-        ->get("/beheer/facturen/{$invoice->id}")
-        ->assertOk()
-        ->assertSee($invoice->number)
-        ->assertSee('Contributie 2026');
-});

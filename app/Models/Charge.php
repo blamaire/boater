@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $subject_id
  * @property string $description
  * @property string $amount
+ * @property string $credited_amount
  * @property string|null $period
  * @property ChargeStatus $status
  * @property int|null $invoice_id
@@ -34,6 +35,7 @@ class Charge extends Model
         'subject_id',
         'description',
         'amount',
+        'credited_amount',
         'period',
         'status',
         'invoice_id',
@@ -44,6 +46,7 @@ class Charge extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'credited_amount' => 'decimal:2',
             'status' => ChargeStatus::class,
             'due_at' => 'date',
         ];
@@ -77,5 +80,10 @@ class Charge extends Model
     public function scopeOpen(Builder $query): void
     {
         $query->where('status', ChargeStatus::Open->value);
+    }
+
+    public function remainingCreditable(): string
+    {
+        return number_format((float) $this->amount - (float) $this->credited_amount, 2, '.', '');
     }
 }
