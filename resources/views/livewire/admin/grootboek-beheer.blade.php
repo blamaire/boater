@@ -48,10 +48,14 @@
                             <td class="py-1.5 pr-4 text-gray-500 w-24">{{ $hv->code }}</td>
                             <td class="py-1.5 text-gray-800">{{ $hv->name }}</td>
                             <td class="py-1.5 text-right whitespace-nowrap">
-                                <button type="button" wire:click="editHoofdverdichting({{ $hv->id }})" class="text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
+                                <button type="button" wire:click="editHoofdverdichting({{ $hv->id }})" title="Bewerken" class="text-rzvg-600 hover:text-rzvg-800">
+                                    <x-action-icon name="pencil" />
+                                </button>
                                 <button type="button" wire:click="deleteHoofdverdichting({{ $hv->id }})"
                                     onclick="return confirm('Hoofdverdichting verwijderen?');"
-                                    class="ml-2 text-red-600 hover:text-red-800 text-xs">Verwijderen</button>
+                                    title="Verwijderen" class="ml-2 text-red-600 hover:text-red-800">
+                                    <x-action-icon name="trash" />
+                                </button>
                             </td>
                         </tr>
                     @endforeach
@@ -104,10 +108,14 @@
                             <td class="py-1.5 text-gray-800">{{ $v->name }}</td>
                             <td class="py-1.5 text-gray-500 text-xs">{{ $v->hoofdverdichting->code }} · {{ $v->hoofdverdichting->name }}</td>
                             <td class="py-1.5 text-right whitespace-nowrap">
-                                <button type="button" wire:click="editVerdichting({{ $v->id }})" class="text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
+                                <button type="button" wire:click="editVerdichting({{ $v->id }})" title="Bewerken" class="text-rzvg-600 hover:text-rzvg-800">
+                                    <x-action-icon name="pencil" />
+                                </button>
                                 <button type="button" wire:click="deleteVerdichting({{ $v->id }})"
                                     onclick="return confirm('Verdichting verwijderen?');"
-                                    class="ml-2 text-red-600 hover:text-red-800 text-xs">Verwijderen</button>
+                                    title="Verwijderen" class="ml-2 text-red-600 hover:text-red-800">
+                                    <x-action-icon name="trash" />
+                                </button>
                             </td>
                         </tr>
                     @endforeach
@@ -194,10 +202,14 @@
                                 {{ $account->verdichting ? $account->verdichting->code.' · '.$account->verdichting->name : '—' }}
                             </td>
                             <td class="px-4 py-2 text-right whitespace-nowrap">
-                                <button type="button" wire:click="edit({{ $account->id }})" class="text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
+                                <button type="button" wire:click="edit({{ $account->id }})" title="Bewerken" class="text-rzvg-600 hover:text-rzvg-800">
+                                    <x-action-icon name="pencil" />
+                                </button>
                                 <button type="button" wire:click="delete({{ $account->id }})"
                                     onclick="return confirm('Grootboekrekening verwijderen?');"
-                                    class="ml-2 text-red-600 hover:text-red-800 text-xs">Verwijderen</button>
+                                    title="Verwijderen" class="ml-2 text-red-600 hover:text-red-800">
+                                    <x-action-icon name="trash" />
+                                </button>
                             </td>
                         </tr>
                     @empty

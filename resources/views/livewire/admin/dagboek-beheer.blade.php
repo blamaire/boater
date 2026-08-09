@@ -83,12 +83,18 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2 text-right whitespace-nowrap">
-                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="text-gray-600 hover:text-gray-900 text-xs">Bekijken</a>
-                                <button type="button" wire:click="edit({{ $dagboek->id }})" class="ml-2 text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
+                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" title="Bekijken" class="text-gray-600 hover:text-gray-900">
+                                    <x-action-icon name="eye" />
+                                </a>
+                                <button type="button" wire:click="edit({{ $dagboek->id }})" title="Bewerken" class="ml-2 text-rzvg-600 hover:text-rzvg-800">
+                                    <x-action-icon name="pencil" />
+                                </button>
                                 @unless ($dagboek->type->isSingleton())
                                     <button type="button" wire:click="delete({{ $dagboek->id }})"
                                         onclick="return confirm('Dagboek verwijderen?');"
-                                        class="ml-2 text-red-600 hover:text-red-800 text-xs">Verwijderen</button>
+                                        title="Verwijderen" class="ml-2 text-red-600 hover:text-red-800">
+                                        <x-action-icon name="trash" />
+                                    </button>
                                 @endunless
                             </td>
                         </tr>
