@@ -8,9 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // §23.6 B3: cumulatief gecrediteerd bedrag van een post (basis-creditnota's).
+        // Snapshot van de BTW-code die gold toen de post ontstond (tarieven
+        // kunnen later wijzigen; een creditering moet met hetzelfde tarief blijven rekenen).
         Schema::table('charges', function (Blueprint $table) {
-            $table->decimal('credited_amount', 10, 2)->default(0)->after('amount');
+            $table->foreignId('btw_code_id')->nullable()->after('product_id')->constrained('btw_codes')->nullOnDelete();
         });
     }
 };

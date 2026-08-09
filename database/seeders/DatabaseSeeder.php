@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
             ApproverGroupSeeder::class,
             ReviewPolicySeeder::class,
             LedgerAccountSeeder::class,
+            DagboekSeeder::class,
+            BtwCodeSeeder::class,
             MembershipTypeSeeder::class,
             ActivityCategorySeeder::class,
             // Alleen actief bij APP_ENV=local (interne guard); seed nooit

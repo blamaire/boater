@@ -18,6 +18,8 @@ use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\Auditlogboek;
+use App\Livewire\Admin\BtwCodeBeheer;
+use App\Livewire\Admin\DagboekBeheer;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\FacturatieBeheer;
 use App\Livewire\Admin\FactuurDetail;
@@ -174,6 +176,14 @@ Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
 Route::middleware(['auth', 'verified', 'can:products.manage'])
     ->get('/beheer/producten', ProductBeheer::class)
     ->name('admin.products.index');
+
+Route::middleware(['auth', 'verified', 'can:dagboeken.manage'])
+    ->get('/beheer/dagboeken', DagboekBeheer::class)
+    ->name('admin.dagboeken.index');
+
+Route::middleware(['auth', 'verified', 'can:btw_codes.manage'])
+    ->get('/beheer/btw-codes', BtwCodeBeheer::class)
+    ->name('admin.btw-codes.index');
 
 Route::middleware(['auth', 'verified', 'can:invoices.manage'])
     ->get('/beheer/facturatie', FacturatieBeheer::class)

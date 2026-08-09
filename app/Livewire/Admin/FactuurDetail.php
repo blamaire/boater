@@ -27,6 +27,8 @@ class FactuurDetail extends Component
 
     public ?string $statusMessage = null;
 
+    public ?int $lastCreditInvoiceId = null;
+
     public function mount(Invoice $invoice): void
     {
         $this->invoice = $invoice;
@@ -49,16 +51,17 @@ class FactuurDetail extends Component
             "creditReason.{$chargeId}" => ['required', 'string', 'max:200'],
         ]);
 
-        $billing->creditCharge($charge, $data['creditAmount'][$chargeId], $data['creditReason'][$chargeId]);
+        $creditInvoice = $billing->creditCharge($charge, $data['creditAmount'][$chargeId], $data['creditReason'][$chargeId]);
 
         unset($this->creditAmount[$chargeId], $this->creditReason[$chargeId]);
-        $this->invoice->refresh();
-        $this->statusMessage = 'Post gecrediteerd.';
+        $this->lastCreditInvoiceId = $creditInvoice->id;
+        $this->statusMessage = 'Creditfactuur '.$creditInvoice->number.' aangemaakt (-€ '.
+            number_format(-(float) $creditInvoice->total, 2, ',', '.').').';
     }
 
     public function render(): View
     {
-        $this->invoice->load(['debtor', 'charges.product']);
+        $this->invoice->load(['debtor', 'charges.product', 'charges.credits.invoice']);
 
         foreach ($this->invoice->charges as $charge) {
             $remaining = $charge->remainingCreditable();
