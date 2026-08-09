@@ -63,6 +63,7 @@
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Soort</th>
                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
@@ -71,7 +72,10 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($dagboeken as $dagboek)
                         <tr wire:key="dagboek-{{ $dagboek->id }}" @class(['bg-rzvg-50' => $editingId === $dagboek->id])>
-                            <td class="px-4 py-2 font-medium text-gray-900">{{ $dagboek->name }}</td>
+                            <td class="px-4 py-2 text-gray-500">{{ $dagboek->number }}</td>
+                            <td class="px-4 py-2 font-medium text-gray-900">
+                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="hover:underline">{{ $dagboek->name }}</a>
+                            </td>
                             <td class="px-4 py-2 text-gray-700">
                                 {{ $dagboek->type->label() }}
                                 @if ($dagboek->type->isSingleton())
@@ -79,7 +83,8 @@
                                 @endif
                             </td>
                             <td class="px-4 py-2 text-right whitespace-nowrap">
-                                <button type="button" wire:click="edit({{ $dagboek->id }})" class="text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
+                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="text-gray-600 hover:text-gray-900 text-xs">Bekijken</a>
+                                <button type="button" wire:click="edit({{ $dagboek->id }})" class="ml-2 text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
                                 @unless ($dagboek->type->isSingleton())
                                     <button type="button" wire:click="delete({{ $dagboek->id }})"
                                         onclick="return confirm('Dagboek verwijderen?');"
@@ -88,7 +93,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">Nog geen dagboeken.</td></tr>
+                        <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Nog geen dagboeken.</td></tr>
                     @endforelse
                 </tbody>
             </table>

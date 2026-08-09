@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin;
 
-use App\Enums\BtwCodeDirection;
 use App\Models\BtwCode;
 use App\Models\Charge;
 use App\Models\LedgerAccount;
@@ -13,8 +12,9 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
- * Beheer-UI voor BTW-codes: percentage, richting, gekoppelde grootboek-
- * rekening en geldigheidsperiode. Permissie: `btw_codes.manage`.
+ * Beheer-UI voor BTW-codes: percentage, gekoppelde grootboekrekeningen
+ * (af te dragen bij verkoop, voor te vorderen bij inkoop — beide tegelijk
+ * te koppelen) en geldigheidsperiode. Permissie: `btw_codes.manage`.
  */
 #[Layout('layouts.app', ['header' => 'BTW-codes'])]
 class BtwCodeBeheer extends Component
@@ -25,9 +25,9 @@ class BtwCodeBeheer extends Component
 
     public string $percentage = '';
 
-    public string $direction = 'af_te_dragen';
+    public ?int $afTeDragenLedgerAccountId = null;
 
-    public ?int $ledgerAccountId = null;
+    public ?int $voorTeVorderenLedgerAccountId = null;
 
     public ?string $validFrom = null;
 
@@ -48,16 +48,15 @@ class BtwCodeBeheer extends Component
         $this->editingId = $code->id;
         $this->name = $code->name;
         $this->percentage = (string) $code->percentage;
-        $this->direction = $code->direction->value;
-        $this->ledgerAccountId = $code->ledger_account_id;
+        $this->afTeDragenLedgerAccountId = $code->af_te_dragen_ledger_account_id;
+        $this->voorTeVorderenLedgerAccountId = $code->voor_te_vorderen_ledger_account_id;
         $this->validFrom = $code->valid_from->toDateString();
         $this->validUntil = $code->valid_until?->toDateString();
     }
 
     public function resetForm(): void
     {
-        $this->reset(['editingId', 'name', 'percentage', 'ledgerAccountId', 'validUntil']);
-        $this->direction = 'af_te_dragen';
+        $this->reset(['editingId', 'name', 'percentage', 'afTeDragenLedgerAccountId', 'voorTeVorderenLedgerAccountId', 'validUntil']);
         $this->validFrom = now()->toDateString();
     }
 
@@ -68,17 +67,23 @@ class BtwCodeBeheer extends Component
         $data = $this->validate([
             'name' => ['required', 'string', 'max:150'],
             'percentage' => ['required', 'numeric', 'min:0', 'max:100'],
-            'direction' => ['required', 'in:'.implode(',', array_column(BtwCodeDirection::cases(), 'value'))],
-            'ledgerAccountId' => ['required', 'integer', 'exists:ledger_accounts,id'],
+            'afTeDragenLedgerAccountId' => ['nullable', 'integer', 'exists:ledger_accounts,id'],
+            'voorTeVorderenLedgerAccountId' => ['nullable', 'integer', 'exists:ledger_accounts,id'],
             'validFrom' => ['required', 'date'],
             'validUntil' => ['nullable', 'date', 'after_or_equal:validFrom'],
         ]);
 
+        if ($data['afTeDragenLedgerAccountId'] === null && $data['voorTeVorderenLedgerAccountId'] === null) {
+            $this->addError('voorTeVorderenLedgerAccountId', 'Koppel minstens één van de twee rekeningen (af te dragen of voor te vorderen).');
+
+            return;
+        }
+
         $attributes = [
             'name' => $data['name'],
             'percentage' => $data['percentage'],
-            'direction' => $data['direction'],
-            'ledger_account_id' => $data['ledgerAccountId'],
+            'af_te_dragen_ledger_account_id' => $data['afTeDragenLedgerAccountId'],
+            'voor_te_vorderen_ledger_account_id' => $data['voorTeVorderenLedgerAccountId'],
             'valid_from' => $data['validFrom'],
             'valid_until' => $data['validUntil'],
         ];
@@ -124,8 +129,7 @@ class BtwCodeBeheer extends Component
     public function render(): View
     {
         return view('livewire.admin.btw-code-beheer', [
-            'codes' => BtwCode::query()->with('ledgerAccount')->orderByDesc('valid_from')->get(),
-            'directions' => BtwCodeDirection::cases(),
+            'codes' => BtwCode::query()->with(['afTeDragenLedgerAccount', 'voorTeVorderenLedgerAccount'])->orderByDesc('valid_from')->get(),
             'ledgerAccounts' => LedgerAccount::query()->orderBy('code')->get(),
         ]);
     }

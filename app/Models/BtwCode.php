@@ -2,28 +2,32 @@
 
 namespace App\Models;
 
-use App\Enums\BtwCodeDirection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
+ * Eén BTW-code dekt desgewenst beide richtingen tegelijk: hetzelfde
+ * percentage boekt bij verkoop op een andere rekening dan bij inkoop.
+ * Minstens één van de twee rekeningen moet gezet zijn.
+ *
  * @property int $id
  * @property string $name
  * @property string $percentage
- * @property BtwCodeDirection $direction
- * @property int $ledger_account_id
+ * @property int|null $af_te_dragen_ledger_account_id
+ * @property int|null $voor_te_vorderen_ledger_account_id
  * @property Carbon $valid_from
  * @property Carbon|null $valid_until
- * @property-read LedgerAccount $ledgerAccount
+ * @property-read LedgerAccount|null $afTeDragenLedgerAccount
+ * @property-read LedgerAccount|null $voorTeVorderenLedgerAccount
  */
 class BtwCode extends Model
 {
     protected $fillable = [
         'name',
         'percentage',
-        'direction',
-        'ledger_account_id',
+        'af_te_dragen_ledger_account_id',
+        'voor_te_vorderen_ledger_account_id',
         'valid_from',
         'valid_until',
     ];
@@ -32,16 +36,21 @@ class BtwCode extends Model
     {
         return [
             'percentage' => 'decimal:2',
-            'direction' => BtwCodeDirection::class,
             'valid_from' => 'date',
             'valid_until' => 'date',
         ];
     }
 
     /** @return BelongsTo<LedgerAccount, $this> */
-    public function ledgerAccount(): BelongsTo
+    public function afTeDragenLedgerAccount(): BelongsTo
     {
-        return $this->belongsTo(LedgerAccount::class);
+        return $this->belongsTo(LedgerAccount::class, 'af_te_dragen_ledger_account_id');
+    }
+
+    /** @return BelongsTo<LedgerAccount, $this> */
+    public function voorTeVorderenLedgerAccount(): BelongsTo
+    {
+        return $this->belongsTo(LedgerAccount::class, 'voor_te_vorderen_ledger_account_id');
     }
 
     public function isActiveOn(Carbon $date): bool

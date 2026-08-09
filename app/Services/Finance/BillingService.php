@@ -228,7 +228,10 @@ class BillingService
 
         $lines = [['account_id' => $revenueAccountId, $side => number_format($net, 2, '.', '')]];
         if ($btw > 0.0) {
-            $lines[] = ['account_id' => $btwCode->ledger_account_id, $side => number_format($btw, 2, '.', '')];
+            if ($btwCode->af_te_dragen_ledger_account_id === null) {
+                throw new \RuntimeException("BTW-code [{$btwCode->name}] heeft geen af-te-dragen-rekening; kan niet gebruikt worden voor verkoop.");
+            }
+            $lines[] = ['account_id' => $btwCode->af_te_dragen_ledger_account_id, $side => number_format($btw, 2, '.', '')];
         }
 
         return $lines;

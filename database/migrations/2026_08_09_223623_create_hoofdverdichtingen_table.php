@@ -8,11 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Dagboeken: Verkoop/Inkoop/Memoriaal singleton, Bank/Kas meerdere mogelijk.
-        Schema::create('dagboeken', function (Blueprint $table) {
+        // Hoogste groeperingsniveau boven het grootboek (RGS-achtig):
+        // hoofdverdichting > verdichting > grootboekrekening.
+        Schema::create('hoofdverdichtingen', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('number')->unique();
-            $table->string('type');
+            $table->string('code')->unique();
             $table->string('name');
             $table->timestamps();
         });

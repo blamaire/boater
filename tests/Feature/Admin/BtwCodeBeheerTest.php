@@ -38,22 +38,37 @@ it('rendert de geseede standaardcodes voor een beheerder', function () {
         ->assertSee('0% vrijgesteld');
 });
 
-it('maakt een nieuwe BTW-code aan', function () {
-    $account = LedgerAccount::query()->where('code', '1600')->firstOrFail();
+it('maakt een nieuwe BTW-code aan met beide rekeningen tegelijk gekoppeld', function () {
+    $afTeDragen = LedgerAccount::query()->where('code', '1600')->firstOrFail();
+    $voorTeVorderen = LedgerAccount::query()->where('code', '1500')->firstOrFail();
     $this->actingAs($this->beheerder);
 
     Livewire::test(BtwCodeBeheer::class)
         ->set('name', '13% overgangstarief')
         ->set('percentage', '13.00')
-        ->set('direction', 'af_te_dragen')
-        ->set('ledgerAccountId', $account->id)
+        ->set('afTeDragenLedgerAccountId', $afTeDragen->id)
+        ->set('voorTeVorderenLedgerAccountId', $voorTeVorderen->id)
         ->set('validFrom', '2026-01-01')
         ->call('save')
         ->assertHasNoErrors();
 
     $code = BtwCode::query()->where('name', '13% overgangstarief')->firstOrFail();
     expect((float) $code->percentage)->toBe(13.0)
-        ->and($code->ledger_account_id)->toBe($account->id);
+        ->and($code->af_te_dragen_ledger_account_id)->toBe($afTeDragen->id)
+        ->and($code->voor_te_vorderen_ledger_account_id)->toBe($voorTeVorderen->id);
+});
+
+it('weigert een BTW-code zonder een van beide rekeningen', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(BtwCodeBeheer::class)
+        ->set('name', 'Zonder rekening')
+        ->set('percentage', '10.00')
+        ->set('validFrom', '2026-01-01')
+        ->call('save')
+        ->assertHasErrors(['voorTeVorderenLedgerAccountId']);
+
+    expect(BtwCode::query()->where('name', 'Zonder rekening')->exists())->toBeFalse();
 });
 
 it('weigert verwijderen van een BTW-code die aan een product gekoppeld is', function () {

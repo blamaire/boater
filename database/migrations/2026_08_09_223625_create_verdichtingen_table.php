@@ -8,11 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Dagboeken: Verkoop/Inkoop/Memoriaal singleton, Bank/Kas meerdere mogelijk.
-        Schema::create('dagboeken', function (Blueprint $table) {
+        Schema::create('verdichtingen', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('number')->unique();
-            $table->string('type');
+            $table->foreignId('hoofdverdichting_id')->constrained('hoofdverdichtingen')->restrictOnDelete();
+            $table->string('code')->unique();
             $table->string('name');
             $table->timestamps();
         });

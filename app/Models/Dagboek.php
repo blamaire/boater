@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
+ * @property int $number
  * @property DagboekType $type
  * @property string $name
  * @property-read Collection<int, JournalEntry> $journalEntries
@@ -18,6 +19,7 @@ class Dagboek extends Model
     protected $table = 'dagboeken';
 
     protected $fillable = [
+        'number',
         'type',
         'name',
     ];

@@ -2,21 +2,21 @@
 
 namespace Database\Seeders;
 
-use App\Enums\BtwCodeDirection;
 use App\Models\BtwCode;
 use App\Models\LedgerAccount;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Standaard BTW-codes (verkoop). Inkoop/crediteuren bestaat nog niet, dus
- * er is nu nog geen "voor te vorderen"-code nodig.
+ * Standaard BTW-codes, meteen gekoppeld aan zowel de af-te-dragen- als de
+ * voor-te-vorderen-rekening (hetzelfde percentage geldt voor beide richtingen).
  */
 class BtwCodeSeeder extends Seeder
 {
     public function run(): void
     {
-        $account = LedgerAccount::query()->where('code', '1600')->firstOrFail();
+        $afTeDragen = LedgerAccount::query()->where('code', '1600')->firstOrFail();
+        $voorTeVorderen = LedgerAccount::query()->where('code', '1500')->firstOrFail();
 
         $codes = [
             ['name' => '21% hoog tarief', 'percentage' => '21.00'],
@@ -29,8 +29,8 @@ class BtwCodeSeeder extends Seeder
                 ['name' => $code['name']],
                 [
                     'percentage' => $code['percentage'],
-                    'direction' => BtwCodeDirection::AfTeDragen,
-                    'ledger_account_id' => $account->id,
+                    'af_te_dragen_ledger_account_id' => $afTeDragen->id,
+                    'voor_te_vorderen_ledger_account_id' => $voorTeVorderen->id,
                     'valid_from' => Carbon::create(2024, 1, 1),
                 ],
             );

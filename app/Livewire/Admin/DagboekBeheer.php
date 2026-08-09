@@ -58,9 +58,10 @@ class DagboekBeheer extends Component
         }
 
         if ($creating) {
+            $data['number'] = (int) Dagboek::query()->max('number') + 1;
             $dagboek = Dagboek::create($data);
             $audit->log('dagboek.created', $dagboek, after: $data);
-            $this->statusMessage = "Dagboek [{$dagboek->name}] aangemaakt.";
+            $this->statusMessage = "Dagboek {$dagboek->number} [{$dagboek->name}] aangemaakt.";
         } else {
             $dagboek = Dagboek::query()->findOrFail($this->editingId);
             $before = ['name' => $dagboek->name];
@@ -101,7 +102,7 @@ class DagboekBeheer extends Component
     public function render(): View
     {
         return view('livewire.admin.dagboek-beheer', [
-            'dagboeken' => Dagboek::query()->orderBy('type')->orderBy('name')->get(),
+            'dagboeken' => Dagboek::query()->orderBy('number')->get(),
             'createableTypes' => array_filter(DagboekType::cases(), fn (DagboekType $t): bool => ! $t->isSingleton()),
         ]);
     }

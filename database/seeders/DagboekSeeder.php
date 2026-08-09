@@ -14,17 +14,17 @@ class DagboekSeeder extends Seeder
     public function run(): void
     {
         $dagboeken = [
-            ['type' => 'verkoop', 'name' => 'Verkoopboek'],
-            ['type' => 'inkoop', 'name' => 'Inkoopboek'],
-            ['type' => 'memoriaal', 'name' => 'Memoriaal'],
-            ['type' => 'bank', 'name' => 'Bank'],
-            ['type' => 'kas', 'name' => 'Kas'],
+            ['number' => 1, 'type' => 'verkoop', 'name' => 'Verkoopboek'],
+            ['number' => 2, 'type' => 'inkoop', 'name' => 'Inkoopboek'],
+            ['number' => 3, 'type' => 'bank', 'name' => 'Bank'],
+            ['number' => 4, 'type' => 'kas', 'name' => 'Kas'],
+            ['number' => 5, 'type' => 'memoriaal', 'name' => 'Memoriaal'],
         ];
 
         foreach ($dagboeken as $dagboek) {
             Dagboek::updateOrCreate(
                 ['type' => $dagboek['type'], 'name' => $dagboek['name']],
-                [],
+                ['number' => $dagboek['number']],
             );
         }
     }
