@@ -75,7 +75,7 @@ it('maakt charges aan voor de run en boekt ze via BillingService', function () {
         ->and($charge->period)->toBe('2026');
 });
 
-it('slaat een lidmaatschap over dat voor dit jaar al gefactureerd is', function () {
+it('slaat een lidmaatschap over waarvoor dit jaar al een post bestaat', function () {
     maakLid('Herhaal', '2026-03-01');
 
     $eerste = $this->run->run(2026);

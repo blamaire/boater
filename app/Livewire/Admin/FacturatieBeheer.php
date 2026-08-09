@@ -54,7 +54,7 @@ class FacturatieBeheer extends Component
 
         $this->statusMessage = "Contributie-run {$this->contributionYear}: {$result['created']} posten aangemaakt".
             ' (€ '.number_format((float) $result['total'], 2, ',', '.').'), '.
-            "{$result['skipped']} overgeslagen (al gefactureerd of geen tarief bekend).";
+            "{$result['skipped']} overgeslagen (post bestond al of geen tarief bekend).";
 
         $this->contributionPreview = $this->toPreviewRows($service->preview($this->contributionYear));
     }

@@ -6,7 +6,7 @@ use App\Models\Membership;
 
 /**
  * Eén regel in de contributie-run-preview (§23, B2): wat een lidmaatschap dit
- * verenigingsjaar zou kosten, en of dat al gefactureerd is.
+ * verenigingsjaar zou kosten, en of daar al een post (Charge) voor bestaat.
  */
 final readonly class ContributionRunLine
 {

@@ -16,8 +16,10 @@ use Illuminate\Support\Collection;
  * het doeljaar betaalt het volle jaartarief, instroom in de tweede helft
  * (jul-dec) de helft. Een doorlopend lidmaatschap (gestart in een eerder
  * jaar) betaalt altijd het volle tarief — de halvering geldt alleen voor het
- * instroomjaar zelf. Bedrag onbekend (geen geldende ProductPrice) of al
- * gefactureerd voor dit jaar: regel wordt getoond maar bij run() overgeslagen.
+ * instroomjaar zelf. Bedrag onbekend (geen geldende ProductPrice) of dit jaar
+ * al een post (Charge) aangemaakt: regel wordt getoond maar bij run()
+ * overgeslagen. Dit maakt alleen de post aan — bundelen tot een factuur
+ * (BillingService::invoiceOpenCharges) is een aparte, latere stap.
  */
 class ContributionRunService
 {

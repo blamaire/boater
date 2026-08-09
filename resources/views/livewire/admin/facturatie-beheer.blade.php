@@ -15,8 +15,9 @@
         <h2 class="font-medium text-gray-900">Contributie-run</h2>
         <p class="text-sm text-gray-500">
             Maakt per actief lidmaatschap een contributiepost aan voor het gekozen verenigingsjaar (= kalenderjaar).
-            Instroom in de tweede helft van het jaar (vanaf juli) betaalt de helft; een lidmaatschap dat al eerder
-            voor dit jaar gefactureerd is, wordt overgeslagen.
+            Instroom in de tweede helft van het jaar (vanaf juli) betaalt de helft; een lidmaatschap waarvoor al een
+            contributiepost voor dit jaar bestaat, wordt overgeslagen. Dit maakt alleen de post aan — bundelen tot
+            een factuur gebeurt daarna nog los, via "Factureer" bij Openstaande posten.
         </p>
         <div class="flex items-end gap-3">
             <label class="block text-sm">
@@ -54,7 +55,7 @@
                                 </td>
                                 <td class="px-4 py-2 text-xs">
                                     @if ($line['already_charged'])
-                                        <span class="text-gray-500">Al gefactureerd</span>
+                                        <span class="text-gray-500">Post al aangemaakt</span>
                                     @elseif ($line['amount'] === null)
                                         <span class="text-red-600">Geen tarief bekend</span>
                                     @else
