@@ -83,6 +83,65 @@ it('geeft null als er niets te factureren valt', function () {
     expect($this->billing->invoiceOpenCharges($this->debtor))->toBeNull();
 });
 
+it('crediteert een post volledig en zet zowel post als factuur op Gecrediteerd', function () {
+    $revenue = LedgerAccount::query()->where('code', '8000')->firstOrFail();
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie', 'ledger_account_id' => $revenue->id]);
+    $charge = $this->billing->createCharge($product, $this->debtor, '100.00', 'Post A');
+    $invoice = $this->billing->invoiceOpenCharges($this->debtor);
+
+    $this->billing->creditCharge($charge->fresh(), '100.00', 'Foutieve inschrijving');
+
+    $charge->refresh();
+    $invoice->refresh();
+
+    expect($charge->status)->toBe(ChargeStatus::Gecrediteerd)
+        ->and((float) $charge->credited_amount)->toBe(100.0)
+        ->and($invoice->status)->toBe(InvoiceStatus::Gecrediteerd);
+
+    $entry = JournalEntry::query()->where('reference', "credit:charge:{$charge->id}")->firstOrFail();
+    $lines = $entry->lines()->with('account')->get();
+    $debit = $lines->firstWhere(fn ($l) => (float) $l->debit > 0);
+    $credit = $lines->firstWhere(fn ($l) => (float) $l->credit > 0);
+
+    expect($debit->account->code)->toBe('8000')
+        ->and((float) $debit->debit)->toBe(100.0)
+        ->and($credit->account->code)->toBe('1300')
+        ->and((float) $credit->credit)->toBe(100.0);
+});
+
+it('crediteert een post gedeeltelijk en zet de factuur op Deels gecrediteerd', function () {
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie']);
+    $charge = $this->billing->createCharge($product, $this->debtor, '100.00', 'Post A');
+    $invoice = $this->billing->invoiceOpenCharges($this->debtor);
+
+    $this->billing->creditCharge($charge->fresh(), '40.00', 'Gedeeltelijke restitutie');
+
+    $charge->refresh();
+    $invoice->refresh();
+
+    expect($charge->status)->toBe(ChargeStatus::Gefactureerd)
+        ->and((float) $charge->credited_amount)->toBe(40.0)
+        ->and($charge->remainingCreditable())->toBe('60.00')
+        ->and($invoice->status)->toBe(InvoiceStatus::DeelsGecrediteerd);
+});
+
+it('weigert crediteren van meer dan het resterende bedrag', function () {
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie']);
+    $charge = $this->billing->createCharge($product, $this->debtor, '100.00', 'Post A');
+    $this->billing->invoiceOpenCharges($this->debtor);
+
+    expect(fn () => $this->billing->creditCharge($charge->fresh(), '150.00', 'Te veel'))
+        ->toThrow(InvalidArgumentException::class);
+});
+
+it('weigert crediteren van een nog niet gefactureerde post', function () {
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie']);
+    $charge = $this->billing->createCharge($product, $this->debtor, '100.00', 'Post A');
+
+    expect(fn () => $this->billing->creditCharge($charge, '100.00', 'Te vroeg'))
+        ->toThrow(InvalidArgumentException::class);
+});
+
 it('weigert een journaalpost die niet in balans is', function () {
     $ledger = app(LedgerService::class);
     $acc = LedgerAccount::query()->where('code', '1300')->firstOrFail();

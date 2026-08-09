@@ -14,6 +14,7 @@ enum InvoiceStatus: string
     case DeelsBetaald = 'deels_betaald';
     case Vervallen = 'vervallen';
     case Gecrediteerd = 'gecrediteerd';
+    case DeelsGecrediteerd = 'deels_gecrediteerd';
 
     public function label(): string
     {
@@ -24,6 +25,7 @@ enum InvoiceStatus: string
             self::DeelsBetaald => 'Deels betaald',
             self::Vervallen => 'Vervallen',
             self::Gecrediteerd => 'Gecrediteerd',
+            self::DeelsGecrediteerd => 'Deels gecrediteerd',
         };
     }
 }

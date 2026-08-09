@@ -118,6 +118,70 @@ class BillingService
         });
     }
 
+    /**
+     * Crediteert een (deel van een) gefactureerde post (§23.6 B3, basis).
+     * Boekt de tegenboeking (debet opbrengst, credit Debiteuren) en werkt de
+     * factuurstatus bij op basis van hoeveel er in totaal is gecrediteerd.
+     */
+    public function creditCharge(Charge $charge, string $amount, string $description): void
+    {
+        if ($charge->invoice_id === null) {
+            throw new \InvalidArgumentException('Alleen een reeds gefactureerde post kan worden gecrediteerd.');
+        }
+
+        $remaining = round((float) $charge->remainingCreditable(), 2);
+        $creditAmount = round((float) $amount, 2);
+
+        if ($creditAmount <= 0.0 || $creditAmount > $remaining) {
+            throw new \InvalidArgumentException("Te crediteren bedrag moet tussen 0 en het resterende bedrag (€{$remaining}) liggen.");
+        }
+
+        DB::transaction(function () use ($charge, $creditAmount, $description): void {
+            $before = ['credited_amount' => $charge->credited_amount, 'status' => $charge->status->value];
+
+            $newCredited = round((float) $charge->credited_amount + $creditAmount, 2);
+            $charge->credited_amount = number_format($newCredited, 2, '.', '');
+            if ($newCredited >= round((float) $charge->amount, 2)) {
+                $charge->status = ChargeStatus::Gecrediteerd;
+            }
+            $charge->save();
+
+            $this->ledger->record(
+                date: Carbon::now(),
+                description: "Creditering: {$description}",
+                reference: "credit:charge:{$charge->id}",
+                lines: [
+                    ['account_id' => $this->revenueAccountFor($charge->product)->id, 'debit' => $creditAmount],
+                    ['account_id' => $this->debtorsAccount()->id, 'credit' => $creditAmount],
+                ],
+            );
+
+            $this->recalculateInvoiceStatus($charge->invoice);
+
+            $this->audit->log('charge.credited', $charge, before: $before, after: [
+                'credited_amount' => $charge->credited_amount,
+                'status' => $charge->status->value,
+            ]);
+        });
+    }
+
+    private function recalculateInvoiceStatus(?Invoice $invoice): void
+    {
+        if ($invoice === null) {
+            return;
+        }
+
+        $creditedTotal = round((float) Charge::query()->where('invoice_id', $invoice->id)->sum('credited_amount'), 2);
+        $invoiceTotal = round((float) $invoice->total, 2);
+
+        if ($creditedTotal <= 0.0) {
+            return;
+        }
+
+        $invoice->status = $creditedTotal >= $invoiceTotal ? InvoiceStatus::Gecrediteerd : InvoiceStatus::DeelsGecrediteerd;
+        $invoice->save();
+    }
+
     private function nextNumber(Carbon $date): string
     {
         $year = $date->year;
