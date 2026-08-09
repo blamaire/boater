@@ -23,22 +23,22 @@
                 <button type="button" wire:click="resetHoofdverdichtingForm" class="text-sm text-rzvg-600 hover:text-rzvg-800">+ Nieuwe hoofdverdichting</button>
             @endif
         </div>
-        <div class="flex flex-wrap items-start gap-3">
+        <div class="grid gap-3 sm:grid-cols-3">
             <label class="text-sm">
                 <span class="text-gray-600 text-xs block">Code</span>
-                <input type="text" wire:model="hvCode" class="mt-1 block w-32 border-gray-300 rounded shadow-sm text-sm" />
+                <input type="text" wire:model="hvCode" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
                 @error('hvCode') <div class="text-red-600 text-xs">{{ $message }}</div> @enderror
             </label>
-            <label class="text-sm flex-1">
+            <label class="text-sm sm:col-span-2">
                 <span class="text-gray-600 text-xs block">Naam</span>
                 <input type="text" wire:model="hvName" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
                 @error('hvName') <div class="text-red-600 text-xs">{{ $message }}</div> @enderror
             </label>
-            <button type="button" wire:click="saveHoofdverdichting"
-                class="mt-5 px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
-                {{ $hvEditingId ? 'Opslaan' : 'Aanmaken' }}
-            </button>
         </div>
+        <button type="button" wire:click="saveHoofdverdichting"
+            class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
+            {{ $hvEditingId ? 'Opslaan' : 'Aanmaken' }}
+        </button>
 
         @if ($hoofdverdichtingen->isNotEmpty())
             <table class="min-w-full text-sm border-t border-gray-100 pt-2">
