@@ -10,6 +10,75 @@
         </div>
     @endif
 
+    {{-- Contributie-run --}}
+    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
+        <h2 class="font-medium text-gray-900">Contributie-run</h2>
+        <p class="text-sm text-gray-500">
+            Maakt per actief lidmaatschap een contributiepost aan voor het gekozen verenigingsjaar (= kalenderjaar).
+            Instroom in de tweede helft van het jaar (vanaf juli) betaalt de helft; een lidmaatschap waarvoor al een
+            contributiepost voor dit jaar bestaat, wordt overgeslagen. Dit maakt alleen de post aan — bundelen tot
+            een factuur gebeurt daarna nog los, via "Factureer" bij Openstaande posten.
+        </p>
+        <div class="flex items-end gap-3">
+            <label class="block text-sm">
+                <span class="text-gray-600">Verenigingsjaar</span>
+                <input type="number" wire:model="contributionYear" class="mt-1 block w-32 border-gray-300 rounded shadow-sm text-sm" />
+            </label>
+            <button type="button" wire:click="previewContributionRun"
+                class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 text-sm">Voorbereiden</button>
+        </div>
+
+        @if ($contributionPreview !== null)
+            @php($nieuw = $contributionPreview->filter(fn ($l) => ! $l['already_charged'] && $l['amount'] !== null))
+            @php($totaal = $nieuw->sum(fn ($l) => (float) $l['amount']))
+            <div class="overflow-x-auto border border-gray-100 rounded-md">
+                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lid</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Lidmaatschapsvorm</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Betaler</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tarief</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Bedrag</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($contributionPreview as $line)
+                            <tr>
+                                <td class="px-4 py-2 text-gray-700">{{ $line['person_name'] }}</td>
+                                <td class="px-4 py-2 text-gray-500 text-xs">{{ $line['type_name'] }}</td>
+                                <td class="px-4 py-2 text-gray-500 text-xs">{{ $line['payer_name'] }}</td>
+                                <td class="px-4 py-2 text-gray-500 text-xs">{{ $line['is_half_rate'] ? 'Half jaar' : 'Volledig jaar' }}</td>
+                                <td class="px-4 py-2 text-right text-gray-700 whitespace-nowrap">
+                                    {{ $line['amount'] !== null ? '€ '.number_format((float) $line['amount'], 2, ',', '.') : '—' }}
+                                </td>
+                                <td class="px-4 py-2 text-xs">
+                                    @if ($line['already_charged'])
+                                        <span class="text-gray-500">Post al aangemaakt</span>
+                                    @elseif ($line['amount'] === null)
+                                        <span class="text-red-600">Geen tarief bekend</span>
+                                    @else
+                                        <span class="text-green-700">Nieuw</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Geen actieve lidmaatschappen gevonden.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">{{ $nieuw->count() }} nieuwe post(en), totaal &euro; {{ number_format($totaal, 2, ',', '.') }}</span>
+                <button type="button" wire:click="runContributionRun" @disabled($nieuw->isEmpty())
+                    class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                    Charges aanmaken
+                </button>
+            </div>
+        @endif
+    </section>
+
     {{-- Nieuwe post --}}
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
         <h2 class="font-medium text-gray-900">Nieuwe post</h2>
