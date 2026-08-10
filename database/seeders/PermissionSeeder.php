@@ -50,6 +50,7 @@ class PermissionSeeder extends Seeder
             // koppeling) en facturatie (posten, facturen, journaalposten).
             'products' => ['manage'],
             'invoices' => ['manage'],
+            'boekjaren' => ['manage'],
             'dagboeken' => ['manage'],
             'btw_codes' => ['manage'],
             'ledger_accounts' => ['manage'],
@@ -115,6 +116,7 @@ class PermissionSeeder extends Seeder
             'pages' => 'Pagina\'s',
             'products' => 'Producten',
             'invoices' => 'Facturatie',
+            'boekjaren' => 'Boekjaren',
             'dagboeken' => 'Dagboeken',
             'btw_codes' => 'BTW-codes',
             'ledger_accounts' => 'Grootboekrekeningen',
