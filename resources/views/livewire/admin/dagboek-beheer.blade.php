@@ -1,7 +1,7 @@
 <div class="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
     <p class="text-sm text-gray-500">
         Dagboeken: Verkoop, Inkoop en Memoriaal staan altijd klaar (één per administratie). Extra Bank- of
-        Kas-dagboeken (bv. per bankrekening of kas) maak je hier zelf aan.
+        Kas-dagboeken (bv. per bankrekening of kas) maak je hieronder zelf aan.
     </p>
 
     @if ($statusMessage)
@@ -15,86 +15,87 @@
         </div>
     @endif
 
-    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="font-medium text-gray-900">{{ $editingId ? 'Dagboek bewerken' : 'Nieuw dagboek' }}</h2>
-            @if ($editingId)
-                <button type="button" wire:click="resetForm" class="text-sm text-rzvg-600 hover:text-rzvg-800">+ Nieuw dagboek</button>
-            @endif
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-            <label class="block text-sm">
-                <span class="text-gray-600">Naam</span>
-                <input type="text" wire:model="name" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
-                @error('name') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Soort</span>
-                @if ($editingId)
-                    <input type="text" disabled value="{{ \App\Enums\DagboekType::from($type)->label() }}"
-                        class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm bg-gray-50 text-gray-500" />
-                @else
-                    <select wire:model="type" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
-                        @foreach ($createableTypes as $t)
-                            <option value="{{ $t->value }}">{{ $t->label() }}</option>
-                        @endforeach
-                    </select>
-                @endif
-                @error('type') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-        </div>
-
-        <div class="flex gap-2">
-            <button type="button" wire:click="save"
-                class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
-                {{ $editingId ? 'Opslaan' : 'Aanmaken' }}
-            </button>
-            @if ($editingId)
-                <button type="button" wire:click="resetForm"
-                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">Sluiten</button>
-            @endif
-        </div>
-    </section>
-
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
+                <colgroup>
+                    <col class="w-16">
+                    <col>
+                    <col class="w-40">
+                    <col class="w-8">
+                    <col class="w-8">
+                    <col class="w-8">
+                </colgroup>
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nr.</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Soort</th>
-                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase" colspan="3">Acties</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    @forelse ($dagboeken as $dagboek)
-                        <tr wire:key="dagboek-{{ $dagboek->id }}" @class(['bg-rzvg-50' => $editingId === $dagboek->id])>
-                            <td class="px-4 py-2 text-gray-500">{{ $dagboek->number }}</td>
-                            <td class="px-4 py-2 font-medium text-gray-900">
-                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="hover:underline">{{ $dagboek->name }}</a>
-                            </td>
-                            <td class="px-4 py-2 text-gray-700">
-                                {{ $dagboek->type->label() }}
-                                @if ($dagboek->type->isSingleton())
-                                    <span class="text-xs text-gray-400">(vast)</span>
+                    @foreach ($dagboeken as $dagboek)
+                        @if ($editingId === $dagboek->id)
+                            <tr wire:key="dagboek-{{ $dagboek->id }}" class="bg-rzvg-50">
+                                <td class="px-4 py-2 text-gray-500">{{ $dagboek->number }}</td>
+                                <td class="px-2 py-2">
+                                    <input type="text" wire:model="name" class="block w-full border-gray-300 rounded shadow-sm text-sm" />
+                                    @error('name') <div class="text-red-600 text-xs">{{ $message }}</div> @enderror
+                                </td>
+                                <td class="px-4 py-2 text-gray-500 text-xs">{{ $dagboek->type->label() }}</td>
+                                <x-action-cell click="save" icon="check" title="Opslaan" variant="success" />
+                                <x-action-cell click="resetForm" icon="xmark" title="Annuleren" />
+                                <td class="w-8"></td>
+                            </tr>
+                        @else
+                            <tr wire:key="dagboek-{{ $dagboek->id }}">
+                                <td class="px-4 py-2 text-gray-500">{{ $dagboek->number }}</td>
+                                <td class="px-4 py-2 font-medium text-gray-900">
+                                    <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="hover:underline">{{ $dagboek->name }}</a>
+                                </td>
+                                <td class="px-4 py-2 text-gray-700">
+                                    {{ $dagboek->type->label() }}
+                                    @if ($dagboek->type->isSingleton())
+                                        <span class="text-xs text-gray-400">(vast)</span>
+                                    @endif
+                                </td>
+                                <x-action-cell href="{{ route('admin.dagboeken.show', $dagboek) }}" icon="eye" title="Bekijken" />
+                                <x-action-cell click="edit({{ $dagboek->id }})" icon="pencil" title="Bewerken" variant="primary" />
+                                @if (! $dagboek->type->isSingleton())
+                                    <x-action-cell click="delete({{ $dagboek->id }})" icon="trash" title="Verwijderen" variant="danger" confirm="Dagboek verwijderen?" />
+                                @else
+                                    <td class="w-8"></td>
                                 @endif
+                            </tr>
+                        @endif
+                    @endforeach
+
+                    {{-- Inline: nieuw dagboek toevoegen (eenvoudige tabel — geen apart formulier/modal nodig) --}}
+                    @if ($editingId === null)
+                        <tr class="bg-gray-50/60 border-t-2 border-dashed border-gray-200">
+                            <td class="px-4 py-2 text-gray-400 text-xs">nieuw</td>
+                            <td class="px-2 py-2">
+                                <input type="text" wire:model="name" placeholder="Naam" class="block w-full border-gray-300 rounded shadow-sm text-sm" />
+                                @error('name') <div class="text-red-600 text-xs">{{ $message }}</div> @enderror
                             </td>
-                            <td class="px-4 py-2 text-right whitespace-nowrap">
-                                <a href="{{ route('admin.dagboeken.show', $dagboek) }}" class="text-gray-600 hover:text-gray-900 text-xs">Bekijken</a>
-                                <button type="button" wire:click="edit({{ $dagboek->id }})" class="ml-2 text-rzvg-600 hover:text-rzvg-800 text-xs">Bewerken</button>
-                                @unless ($dagboek->type->isSingleton())
-                                    <button type="button" wire:click="delete({{ $dagboek->id }})"
-                                        onclick="return confirm('Dagboek verwijderen?');"
-                                        class="ml-2 text-red-600 hover:text-red-800 text-xs">Verwijderen</button>
-                                @endunless
+                            <td class="px-2 py-2">
+                                <select wire:model="type" class="block w-full border-gray-300 rounded shadow-sm text-sm">
+                                    @foreach ($createableTypes as $t)
+                                        <option value="{{ $t->value }}">{{ $t->label() }}</option>
+                                    @endforeach
+                                </select>
+                                @error('type') <div class="text-red-600 text-xs">{{ $message }}</div> @enderror
+                            </td>
+                            <td class="w-8"></td>
+                            <td class="w-8"></td>
+                            <td class="w-8 py-2 text-center">
+                                <button type="button" wire:click="save" title="Dagboek toevoegen" class="text-rzvg-600 hover:text-rzvg-800">
+                                    <x-action-icon name="plus" />
+                                </button>
                             </td>
                         </tr>
-                    @empty
-                        <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Nog geen dagboeken.</td></tr>
-                    @endforelse
+                    @endif
                 </tbody>
             </table>
         </div>
