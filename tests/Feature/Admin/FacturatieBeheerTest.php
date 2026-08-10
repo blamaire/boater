@@ -12,6 +12,7 @@ use App\Models\ProductPrice;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Finance\BillingService;
+use Database\Seeders\DagboekSeeder;
 use Database\Seeders\LedgerAccountSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -21,6 +22,7 @@ beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(LedgerAccountSeeder::class);
+    $this->seed(DagboekSeeder::class);
 
     $this->beheerder = User::factory()->create(['email_verified_at' => now()]);
     Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $this->beheerder->id])

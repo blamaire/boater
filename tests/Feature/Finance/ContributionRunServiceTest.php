@@ -8,10 +8,12 @@ use App\Models\Person;
 use App\Models\Product;
 use App\Models\ProductPrice;
 use App\Services\Finance\ContributionRunService;
+use Database\Seeders\DagboekSeeder;
 use Database\Seeders\LedgerAccountSeeder;
 
 beforeEach(function () {
     $this->seed(LedgerAccountSeeder::class);
+    $this->seed(DagboekSeeder::class);
     $this->run = app(ContributionRunService::class);
 
     $this->product = Product::create(['name' => 'Contributie A-lid', 'type' => 'contributie']);

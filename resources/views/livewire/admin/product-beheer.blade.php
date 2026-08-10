@@ -50,6 +50,17 @@
                 @error('ledgerAccountId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
             </label>
 
+            <label class="block text-sm">
+                <span class="text-gray-600">BTW-code <span class="text-gray-400">(optioneel)</span></span>
+                <select wire:model="btwCodeId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
+                    <option value="">— Onbelast —</option>
+                    @foreach ($btwCodes as $code)
+                        <option value="{{ $code->id }}">{{ $code->name }} ({{ number_format((float) $code->percentage, 2, ',', '.') }}%)</option>
+                    @endforeach
+                </select>
+                @error('btwCodeId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+            </label>
+
             <div class="text-sm">
                 <label class="inline-flex items-center gap-2 h-6">
                     <input type="checkbox" wire:model.live="isRecurring" class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600" />

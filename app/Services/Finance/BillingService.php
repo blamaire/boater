@@ -3,8 +3,11 @@
 namespace App\Services\Finance;
 
 use App\Enums\ChargeStatus;
+use App\Enums\DagboekType;
 use App\Enums\InvoiceStatus;
+use App\Models\BtwCode;
 use App\Models\Charge;
+use App\Models\Dagboek;
 use App\Models\Invoice;
 use App\Models\LedgerAccount;
 use App\Models\Person;
@@ -19,8 +22,12 @@ use Illuminate\Support\Facades\DB;
  * openstaande posten van één betaler bundelen tot een factuur.
  *
  * Boekmoment: bij het aanmaken van de post (accrual) — debet Debiteuren,
- * credit de opbrengstrekening van het product. Facturering bundelt alleen
- * en boekt niet opnieuw. De betaling wordt in de betaal-fase geboekt.
+ * credit de opbrengstrekening van het product (en, bij een gekoppelde
+ * BTW-code, credit de BTW-rekening voor het BTW-deel). Facturering bundelt
+ * alleen en boekt niet opnieuw. De betaling wordt in de betaal-fase geboekt.
+ *
+ * Crediteren (§23.6 B3) levert een nieuwe factuur op — de oorspronkelijke
+ * factuur/post is een vastliggend document en wordt nooit gemuteerd.
  */
 class BillingService
 {
@@ -43,8 +50,12 @@ class BillingService
         ?string $period = null,
     ): Charge {
         return DB::transaction(function () use ($product, $debtor, $amount, $description, $dueAt, $subject, $period): Charge {
+            $now = Carbon::now();
+            $btwCode = $this->activeBtwCodeFor($product, $now);
+
             $charge = Charge::create([
                 'product_id' => $product->id,
+                'btw_code_id' => $btwCode?->id,
                 'debtor_person_id' => $debtor->id,
                 'subject_type' => $subject?->getMorphClass(),
                 'subject_id' => $subject?->getKey(),
@@ -56,13 +67,14 @@ class BillingService
             ]);
 
             $this->ledger->record(
-                date: Carbon::now(),
+                date: $now,
                 description: "Post: {$description}",
                 reference: "charge:{$charge->id}",
                 lines: [
                     ['account_id' => $this->debtorsAccount()->id, 'debit' => $amount],
-                    ['account_id' => $this->revenueAccountFor($product)->id, 'credit' => $amount],
+                    ...$this->revenueLines($product, $amount, 'credit', $btwCode),
                 ],
+                dagboek: $this->verkoopDagboek(),
             );
 
             $this->audit->log('charge.created', $charge, after: [
@@ -120,66 +132,119 @@ class BillingService
 
     /**
      * Crediteert een (deel van een) gefactureerde post (§23.6 B3, basis).
-     * Boekt de tegenboeking (debet opbrengst, credit Debiteuren) en werkt de
-     * factuurstatus bij op basis van hoeveel er in totaal is gecrediteerd.
+     * De oorspronkelijke factuur/post is een vastliggend document en wordt
+     * nooit aangepast: dit maakt een nieuwe creditfactuur met een negatieve
+     * post, met een tegenboeking op dezelfde grootboek-/BTW-rekeningen als
+     * de oorspronkelijke post gebruikte.
      */
-    public function creditCharge(Charge $charge, string $amount, string $description): void
+    public function creditCharge(Charge $originalCharge, string $amount, string $description): Invoice
     {
-        if ($charge->invoice_id === null) {
+        if ($originalCharge->invoice_id === null) {
             throw new \InvalidArgumentException('Alleen een reeds gefactureerde post kan worden gecrediteerd.');
         }
+        if ($originalCharge->subject_type === Charge::class) {
+            throw new \InvalidArgumentException('Een creditregel kan niet zelf gecrediteerd worden.');
+        }
 
-        $remaining = round((float) $charge->remainingCreditable(), 2);
+        $remaining = round((float) $originalCharge->remainingCreditable(), 2);
         $creditAmount = round((float) $amount, 2);
 
         if ($creditAmount <= 0.0 || $creditAmount > $remaining) {
             throw new \InvalidArgumentException("Te crediteren bedrag moet tussen 0 en het resterende bedrag (€{$remaining}) liggen.");
         }
 
-        DB::transaction(function () use ($charge, $creditAmount, $description): void {
-            $before = ['credited_amount' => $charge->credited_amount, 'status' => $charge->status->value];
+        return DB::transaction(function () use ($originalCharge, $creditAmount, $description): Invoice {
+            $now = Carbon::now();
+            $creditAmountStr = number_format($creditAmount, 2, '.', '');
 
-            $newCredited = round((float) $charge->credited_amount + $creditAmount, 2);
-            $charge->credited_amount = number_format($newCredited, 2, '.', '');
-            if ($newCredited >= round((float) $charge->amount, 2)) {
-                $charge->status = ChargeStatus::Gecrediteerd;
-            }
-            $charge->save();
+            $creditInvoice = Invoice::create([
+                'number' => $this->nextNumber($now),
+                'debtor_person_id' => $originalCharge->debtor_person_id,
+                'status' => InvoiceStatus::Verzonden,
+                'issued_at' => $now,
+                'due_at' => $now->copy()->addDays(30),
+                'total' => number_format(-$creditAmount, 2, '.', ''),
+            ]);
+
+            $creditCharge = Charge::create([
+                'product_id' => $originalCharge->product_id,
+                'btw_code_id' => $originalCharge->btw_code_id,
+                'debtor_person_id' => $originalCharge->debtor_person_id,
+                'subject_type' => Charge::class,
+                'subject_id' => $originalCharge->id,
+                'description' => $description,
+                'amount' => number_format(-$creditAmount, 2, '.', ''),
+                'status' => ChargeStatus::Gefactureerd,
+                'invoice_id' => $creditInvoice->id,
+            ]);
 
             $this->ledger->record(
-                date: Carbon::now(),
+                date: $now,
                 description: "Creditering: {$description}",
-                reference: "credit:charge:{$charge->id}",
+                reference: "credit:charge:{$creditCharge->id}",
                 lines: [
-                    ['account_id' => $this->revenueAccountFor($charge->product)->id, 'debit' => $creditAmount],
-                    ['account_id' => $this->debtorsAccount()->id, 'credit' => $creditAmount],
+                    ['account_id' => $this->debtorsAccount()->id, 'credit' => $creditAmountStr],
+                    ...$this->revenueLines($originalCharge->product, $creditAmountStr, 'debit', $originalCharge->btwCode),
                 ],
+                dagboek: $this->verkoopDagboek(),
             );
 
-            $this->recalculateInvoiceStatus($charge->invoice);
-
-            $this->audit->log('charge.credited', $charge, before: $before, after: [
-                'credited_amount' => $charge->credited_amount,
-                'status' => $charge->status->value,
+            $this->audit->log('charge.created', $creditCharge, after: [
+                'debtor_person_id' => $originalCharge->debtor_person_id,
+                'subject_type' => Charge::class,
+                'subject_id' => $originalCharge->id,
+                'amount' => $creditCharge->amount,
             ]);
+            $this->audit->log('invoice.created', $creditInvoice, after: [
+                'debtor_person_id' => $originalCharge->debtor_person_id,
+                'charge_ids' => [$creditCharge->id],
+                'total' => $creditInvoice->total,
+            ]);
+
+            return $creditInvoice;
         });
     }
 
-    private function recalculateInvoiceStatus(?Invoice $invoice): void
+    /**
+     * Journaalregel(s) voor de opbrengstkant van een (bruto) bedrag: zonder
+     * BTW-code één regel op de opbrengstrekening, mét een actieve BTW-code
+     * gesplitst in een netto-regel en een BTW-regel (bedrag wordt als
+     * inclusief BTW behandeld).
+     *
+     * @return list<array{account_id: int, debit?: string, credit?: string}>
+     */
+    private function revenueLines(Product $product, string $grossAmount, string $side, ?BtwCode $btwCode): array
     {
-        if ($invoice === null) {
-            return;
+        $revenueAccountId = $this->revenueAccountFor($product)->id;
+
+        if ($btwCode === null) {
+            return [['account_id' => $revenueAccountId, $side => $grossAmount]];
         }
 
-        $creditedTotal = round((float) Charge::query()->where('invoice_id', $invoice->id)->sum('credited_amount'), 2);
-        $invoiceTotal = round((float) $invoice->total, 2);
+        $pct = (float) $btwCode->percentage;
+        $gross = (float) $grossAmount;
+        $net = round($gross / (1 + $pct / 100), 2);
+        $btw = round($gross - $net, 2);
 
-        if ($creditedTotal <= 0.0) {
-            return;
+        $lines = [['account_id' => $revenueAccountId, $side => number_format($net, 2, '.', '')]];
+        if ($btw > 0.0) {
+            if ($btwCode->af_te_dragen_ledger_account_id === null) {
+                throw new \RuntimeException("BTW-code [{$btwCode->name}] heeft geen af-te-dragen-rekening; kan niet gebruikt worden voor verkoop.");
+            }
+            $lines[] = ['account_id' => $btwCode->af_te_dragen_ledger_account_id, $side => number_format($btw, 2, '.', '')];
         }
 
-        $invoice->status = $creditedTotal >= $invoiceTotal ? InvoiceStatus::Gecrediteerd : InvoiceStatus::DeelsGecrediteerd;
-        $invoice->save();
+        return $lines;
+    }
+
+    private function activeBtwCodeFor(Product $product, Carbon $date): ?BtwCode
+    {
+        $code = $product->btwCode;
+        if ($code === null || ! $code->isActiveOn($date)) {
+            return null;
+        }
+
+        return $code;
     }
 
     private function nextNumber(Carbon $date): string
@@ -205,6 +270,13 @@ class BillingService
 
         return LedgerAccount::query()->where('code', self::DEFAULT_REVENUE_CODE)->firstOr(function (): never {
             throw new \RuntimeException('Standaard opbrengstrekening ('.self::DEFAULT_REVENUE_CODE.') ontbreekt; seed het rekeningschema.');
+        });
+    }
+
+    private function verkoopDagboek(): Dagboek
+    {
+        return Dagboek::query()->where('type', DagboekType::Verkoop->value)->firstOr(function (): never {
+            throw new \RuntimeException('Dagboek Verkoop ontbreekt; seed de dagboeken.');
         });
     }
 }

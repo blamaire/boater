@@ -2,6 +2,7 @@
 
 namespace App\Services\Finance;
 
+use App\Models\Dagboek;
 use App\Models\JournalEntry;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -9,14 +10,14 @@ use Illuminate\Support\Facades\DB;
 /**
  * Schrijft journaalposten weg voor de lichte dubbele boekhouding (§23.3).
  * Een post moet in balans zijn: de som van debet is gelijk aan de som van
- * credit, en groter dan nul.
+ * credit, en groter dan nul. Elke post hoort bij een dagboek.
  */
 class LedgerService
 {
     /**
      * @param  list<array{account_id: int, debit?: numeric-string|float|int, credit?: numeric-string|float|int}>  $lines
      */
-    public function record(Carbon $date, string $description, ?string $reference, array $lines): JournalEntry
+    public function record(Carbon $date, string $description, ?string $reference, array $lines, Dagboek $dagboek): JournalEntry
     {
         $totalDebit = 0.0;
         $totalCredit = 0.0;
@@ -32,8 +33,9 @@ class LedgerService
             throw new \InvalidArgumentException('Journaalpost is niet in balans: debet en credit lopen uiteen.');
         }
 
-        return DB::transaction(function () use ($date, $description, $reference, $lines): JournalEntry {
+        return DB::transaction(function () use ($date, $description, $reference, $lines, $dagboek): JournalEntry {
             $entry = JournalEntry::create([
+                'dagboek_id' => $dagboek->id,
                 'date' => $date,
                 'description' => $description,
                 'reference' => $reference,

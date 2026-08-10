@@ -18,11 +18,15 @@ use App\Http\Controllers\PublicPageController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\Auditlogboek;
+use App\Livewire\Admin\BtwCodeBeheer;
+use App\Livewire\Admin\DagboekBeheer;
+use App\Livewire\Admin\DagboekDetail;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\FacturatieBeheer;
 use App\Livewire\Admin\FactuurDetail;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\GoedkeuringsgroepBeheer;
+use App\Livewire\Admin\GrootboekBeheer;
 use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
@@ -174,6 +178,22 @@ Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
 Route::middleware(['auth', 'verified', 'can:products.manage'])
     ->get('/beheer/producten', ProductBeheer::class)
     ->name('admin.products.index');
+
+Route::middleware(['auth', 'verified', 'can:dagboeken.manage'])
+    ->get('/beheer/dagboeken', DagboekBeheer::class)
+    ->name('admin.dagboeken.index');
+
+Route::middleware(['auth', 'verified', 'can:dagboeken.manage'])
+    ->get('/beheer/dagboeken/{dagboek}', DagboekDetail::class)
+    ->name('admin.dagboeken.show');
+
+Route::middleware(['auth', 'verified', 'can:btw_codes.manage'])
+    ->get('/beheer/btw-codes', BtwCodeBeheer::class)
+    ->name('admin.btw-codes.index');
+
+Route::middleware(['auth', 'verified', 'can:ledger_accounts.manage'])
+    ->get('/beheer/grootboek', GrootboekBeheer::class)
+    ->name('admin.grootboek.index');
 
 Route::middleware(['auth', 'verified', 'can:invoices.manage'])
     ->get('/beheer/facturatie', FacturatieBeheer::class)
