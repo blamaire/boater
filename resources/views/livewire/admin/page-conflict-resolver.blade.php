@@ -38,13 +38,113 @@
     @php
         $conflicts = $report->conflicts();
         $autoMerges = $report->autoMerges();
+        $fieldConflicts = $report->fieldConflicts();
+        $fieldChanges = $report->fieldChanges();
     @endphp
 
-    @if ($conflicts->isEmpty())
+    @if ($fieldConflicts->isNotEmpty())
+        <section class="space-y-4">
+            <h3 class="font-medium text-sm text-gray-700">Conflicten in meta-/OG-velden</h3>
+
+            @foreach ($fieldConflicts as $fieldDiff)
+                <div class="bg-white border border-red-200 rounded-lg p-4 space-y-3" wire:key="field-conflict-{{ $fieldDiff->field }}">
+                    <header>
+                        <h4 class="font-medium">{{ $fieldDiff->fieldLabel() }}</h4>
+                        <p class="text-xs text-gray-500">Type: {{ $fieldDiff->label() }}</p>
+                    </header>
+
+                    @php
+                        $currentFieldChoice = $fieldChoices[$fieldDiff->field] ?? null;
+                    @endphp
+
+                    <div class="grid gap-3 md:grid-cols-3 text-sm">
+                        <div class="border border-gray-200 rounded p-3 bg-gray-50">
+                            <div class="text-xs uppercase text-gray-500 font-semibold mb-1">Basis</div>
+                            @if ($fieldDiff->field === 'og_image_media_asset_id')
+                                @if ($fieldDiff->base)
+                                    <img src="{{ \App\Models\MediaAsset::resolveUrl($fieldDiff->base, null) }}" alt="" class="h-16 w-auto rounded border border-gray-200">
+                                @else
+                                    <p class="text-xs text-gray-400 italic">— geen afbeelding —</p>
+                                @endif
+                            @else
+                                <p class="whitespace-pre-wrap">{{ $fieldDiff->base ?: '—' }}</p>
+                            @endif
+                        </div>
+
+                        <div @class([
+                            'border rounded p-3 space-y-2',
+                            'border-rzvg-500 bg-rzvg-50' => $currentFieldChoice === 'mine',
+                            'border-red-400 bg-white' => $currentFieldChoice === null,
+                            'border-gray-200 bg-white' => $currentFieldChoice !== null && $currentFieldChoice !== 'mine',
+                        ])>
+                            <label class="flex items-center gap-2 text-xs uppercase text-gray-700 font-semibold">
+                                <input type="radio" wire:model.live="fieldChoices.{{ $fieldDiff->field }}" value="mine">
+                                Jouw versie
+                            </label>
+                            @if ($fieldDiff->field === 'og_image_media_asset_id')
+                                @if ($fieldDiff->mine)
+                                    <img src="{{ \App\Models\MediaAsset::resolveUrl($fieldDiff->mine, null) }}" alt="" class="h-16 w-auto rounded border border-gray-200">
+                                @else
+                                    <p class="text-xs text-gray-400 italic">— geen afbeelding —</p>
+                                @endif
+                            @else
+                                <p class="whitespace-pre-wrap">{{ $fieldDiff->mine ?: '—' }}</p>
+                            @endif
+                        </div>
+
+                        <div @class([
+                            'border rounded p-3 space-y-2',
+                            'border-rzvg-500 bg-rzvg-50' => $currentFieldChoice === 'theirs',
+                            'border-red-400 bg-white' => $currentFieldChoice === null,
+                            'border-gray-200 bg-white' => $currentFieldChoice !== null && $currentFieldChoice !== 'theirs',
+                        ])>
+                            <label class="flex items-center gap-2 text-xs uppercase text-gray-700 font-semibold">
+                                <input type="radio" wire:model.live="fieldChoices.{{ $fieldDiff->field }}" value="theirs">
+                                Gepubliceerde versie
+                            </label>
+                            @if ($fieldDiff->field === 'og_image_media_asset_id')
+                                @if ($fieldDiff->theirs)
+                                    <img src="{{ \App\Models\MediaAsset::resolveUrl($fieldDiff->theirs, null) }}" alt="" class="h-16 w-auto rounded border border-gray-200">
+                                @else
+                                    <p class="text-xs text-gray-400 italic">— geen afbeelding —</p>
+                                @endif
+                            @else
+                                <p class="whitespace-pre-wrap">{{ $fieldDiff->theirs ?: '—' }}</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="flex items-center gap-2 text-xs">
+                            <input type="radio" wire:model.live="fieldChoices.{{ $fieldDiff->field }}" value="manual">
+                            Handmatige waarde
+                        </label>
+                        @if ($currentFieldChoice === 'manual')
+                            <textarea wire:model="manualFieldValues.{{ $fieldDiff->field }}" rows="2"
+                                class="w-full text-sm border-gray-300 rounded p-2"></textarea>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </section>
+    @endif
+
+    @if ($fieldChanges->isNotEmpty())
+        <section class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 space-y-1">
+            <p class="font-medium">Meta-/OG-velden automatisch samengevoegd:</p>
+            <ul class="list-disc list-inside">
+                @foreach ($fieldChanges as $fieldDiff)
+                    <li>{{ $fieldDiff->fieldLabel() }} — {{ $fieldDiff->label('jouw versie', 'de gepubliceerde versie') }}</li>
+                @endforeach
+            </ul>
+        </section>
+    @endif
+
+    @if ($conflicts->isEmpty() && $fieldConflicts->isEmpty())
         <section class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
             Geen echte conflicten — alle wijzigingen kunnen automatisch worden samengevoegd. Klik "Resolutie opslaan" om een nieuwe conceptversie aan te maken.
         </section>
-    @else
+    @elseif ($conflicts->isNotEmpty())
         <div class="space-y-4">
             @foreach ($conflicts as $diff)
                 <div class="bg-white border border-red-200 rounded-lg p-4 space-y-3" wire:key="conflict-{{ $diff->originBlockId }}">

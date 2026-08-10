@@ -28,6 +28,20 @@ class PageConflictResolver extends Component
      */
     public array $manualJson = [];
 
+    /**
+     * Keuzes per conflicterend meta-/OG-veld. Key = veldnaam, value = 'mine' | 'theirs' | 'manual'.
+     *
+     * @var array<string, string>
+     */
+    public array $fieldChoices = [];
+
+    /**
+     * Handmatige waarde per meta-/OG-veld (alleen gebruikt als choice == 'manual').
+     *
+     * @var array<string, mixed>
+     */
+    public array $manualFieldValues = [];
+
     public ?string $saveError = null;
 
     public function mount(int $mineId, int $theirsId): void
@@ -80,7 +94,15 @@ class PageConflictResolver extends Component
             }
         }
 
-        $resolved = $merger->merge($mine, $theirs, $report, $person, $this->choices, $this->manualJson);
+        foreach ($report->fieldConflicts() as $fieldDiff) {
+            if (! isset($this->fieldChoices[$fieldDiff->field])) {
+                $this->saveError = 'Kies voor elk conflict een resolutie.';
+
+                return;
+            }
+        }
+
+        $resolved = $merger->merge($mine, $theirs, $report, $person, $this->choices, $this->manualJson, $this->fieldChoices, $this->manualFieldValues);
 
         $this->redirectRoute('admin.pages.versions.submit.confirm', ['page' => $mine->page_id, 'version' => $resolved->id], navigate: false);
     }

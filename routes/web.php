@@ -15,6 +15,7 @@ use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\Portal\ProposalDiffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\SitemapController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\Auditlogboek;
@@ -242,6 +243,7 @@ require __DIR__.'/auth.php';
 Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
 Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')
     ->name('public.page');

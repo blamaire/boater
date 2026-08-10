@@ -102,3 +102,35 @@ it('geeft de rauwe versie-inhoud terug met banden, blokken en volgorde', functio
     expect($raw['bands'][0]['blocks'])->toHaveCount(2);
     expect($raw['bands'][0]['blocks'][0]['content'])->toBe(['html' => '<p>een</p>']);
 });
+
+it('neemt de meta-/OG-velden op in de rauwe versie-inhoud', function () {
+    $v = newVersion($this->page, PageVersionStatus::Draft);
+    $v->update(['meta_description' => 'omschrijving', 'og_title' => 'titel']);
+
+    $raw = $this->serializer->raw($v);
+
+    expect($raw['meta'])->toBe([
+        'meta_description' => 'omschrijving',
+        'og_title' => 'titel',
+        'og_description' => null,
+        'og_image_media_asset_id' => null,
+    ]);
+});
+
+it('serialiseert de meta-/OG-velddiffs met structuredFields()', function () {
+    $a = newVersion($this->page, PageVersionStatus::Draft);
+    $a->update(['og_title' => 'titel A']);
+
+    $b = newVersion($this->page, PageVersionStatus::Draft);
+    $b->update(['og_title' => 'titel B']);
+
+    $report = $this->detector->detect($a, $b, null);
+    $fields = $this->serializer->structuredFields($report);
+
+    $ogTitle = collect($fields)->firstWhere('field', 'og_title');
+
+    expect($ogTitle)->not->toBeNull()
+        ->and($ogTitle['type'])->toBe('conflict_edit_edit')
+        ->and($ogTitle['a'])->toBe('titel A')
+        ->and($ogTitle['b'])->toBe('titel B');
+});

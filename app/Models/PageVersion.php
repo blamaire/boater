@@ -15,6 +15,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property PageVersionStatus $status
  * @property int|null $base_version_id
  * @property int|null $created_by_person_id
+ * @property string|null $meta_description
+ * @property string|null $og_title
+ * @property string|null $og_description
+ * @property int|null $og_image_media_asset_id
  * @property-read Page $page
  * @property-read PageVersion|null $baseVersion
  * @property-read Person|null $createdBy
@@ -28,6 +32,10 @@ class PageVersion extends Model
         'status',
         'base_version_id',
         'created_by_person_id',
+        'meta_description',
+        'og_title',
+        'og_description',
+        'og_image_media_asset_id',
     ];
 
     protected function casts(): array
@@ -96,6 +104,13 @@ class PageVersion extends Model
             ])->all(),
         ])->all();
 
-        return (string) json_encode($bands);
+        $meta = [
+            'meta_description' => $this->meta_description,
+            'og_title' => $this->og_title,
+            'og_description' => $this->og_description,
+            'og_image_media_asset_id' => $this->og_image_media_asset_id,
+        ];
+
+        return (string) json_encode(['bands' => $bands, 'meta' => $meta]);
     }
 }

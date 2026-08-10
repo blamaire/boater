@@ -34,6 +34,14 @@
                     class="absolute top-2 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
                 <pre x-ref="jsonDiff" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($structuredDiff, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
             </div>
+
+            <p class="text-xs text-gray-500">Per meta-/OG-veld hetzelfde, voor v-A en v-B.</p>
+            <div class="relative">
+                <button type="button"
+                    @click="navigator.clipboard.writeText($refs.jsonFieldDiff.innerText)"
+                    class="absolute top-2 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
+                <pre x-ref="jsonFieldDiff" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($structuredFieldDiff, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+            </div>
         </div>
 
         <div x-show="tab === 'json_raw'" x-cloak class="space-y-2">

@@ -9,6 +9,7 @@ use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Person;
 use App\Services\Cms\ConflictDetector;
+use App\Services\Cms\PageVersionCloner;
 use App\Services\Cms\PageVersionMerger;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalEngine;
@@ -22,6 +23,7 @@ class PageEditorController extends Controller
         private readonly ProposalEngine $proposalEngine,
         private readonly ConflictDetector $conflictDetector,
         private readonly PageVersionMerger $merger,
+        private readonly PageVersionCloner $cloner,
     ) {}
 
     public function show(Request $request, Page $page): View
@@ -239,32 +241,9 @@ class PageEditorController extends Controller
         ]);
 
         if ($base !== null) {
-            $this->copyContent($base, $version);
+            $this->cloner->clone($base, $version);
         }
 
         return $version;
-    }
-
-    private function copyContent(PageVersion $source, PageVersion $target): void
-    {
-        foreach ($source->bands()->with('blocks')->get() as $band) {
-            $newBand = $target->bands()->create([
-                'origin_band_id' => $band->origin_band_id ?? $band->id,
-                'zone' => $band->zone,
-                'layout' => $band->layout,
-                'sort_order' => $band->sort_order,
-            ]);
-
-            foreach ($band->blocks as $block) {
-                $newBand->blocks()->create([
-                    'origin_block_id' => $block->origin_block_id ?? $block->id,
-                    'column_index' => $block->column_index,
-                    'sort_order' => $block->sort_order,
-                    'type' => $block->type,
-                    'content' => $block->content,
-                    'visibility' => $block->visibility,
-                ]);
-            }
-        }
     }
 }
