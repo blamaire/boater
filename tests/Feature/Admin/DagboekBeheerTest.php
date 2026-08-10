@@ -6,6 +6,7 @@ use App\Models\JournalEntry;
 use App\Models\Person;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Finance\FiscalYearService;
 use Database\Seeders\DagboekSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
@@ -85,7 +86,8 @@ it('verwijdert een ongebruikt Bank-dagboek', function () {
 
 it('weigert een dagboek met journaalposten te verwijderen', function () {
     $dagboek = Dagboek::query()->where('type', 'bank')->firstOrFail();
-    JournalEntry::create(['dagboek_id' => $dagboek->id, 'date' => now(), 'description' => 'test', 'reference' => null]);
+    $period = app(FiscalYearService::class)->periodForDate(now());
+    JournalEntry::create(['dagboek_id' => $dagboek->id, 'period_id' => $period->id, 'date' => now(), 'description' => 'test', 'reference' => null]);
 
     $this->actingAs($this->beheerder);
 
