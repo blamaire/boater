@@ -153,6 +153,10 @@ class ProductBeheer extends Component
 
         // Blijf op het product staan zodat er direct meer prijzen bij kunnen.
         $this->loadProduct($product->id);
+
+        if ($creating) {
+            $this->dispatch('close-modal', 'product-form');
+        }
     }
 
     /**

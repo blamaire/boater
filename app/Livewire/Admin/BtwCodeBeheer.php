@@ -52,6 +52,8 @@ class BtwCodeBeheer extends Component
         $this->voorTeVorderenLedgerAccountId = $code->voor_te_vorderen_ledger_account_id;
         $this->validFrom = $code->valid_from->toDateString();
         $this->validUntil = $code->valid_until?->toDateString();
+
+        $this->dispatch('open-modal', 'btw-code-form');
     }
 
     public function resetForm(): void
@@ -101,6 +103,7 @@ class BtwCodeBeheer extends Component
         }
 
         $this->resetForm();
+        $this->dispatch('close-modal', 'btw-code-form');
     }
 
     public function delete(int $id, AuditLogger $audit): void

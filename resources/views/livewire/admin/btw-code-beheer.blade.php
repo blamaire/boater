@@ -17,79 +17,25 @@
         </div>
     @endif
 
-    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
-        <div class="flex items-center justify-between">
-            <h2 class="font-medium text-gray-900">{{ $editingId ? 'BTW-code bewerken' : 'Nieuwe BTW-code' }}</h2>
-            @if ($editingId)
-                <button type="button" wire:click="resetForm" class="text-sm text-rzvg-600 hover:text-rzvg-800">+ Nieuwe BTW-code</button>
-            @endif
-        </div>
-
-        <div class="grid gap-4 sm:grid-cols-2">
-            <label class="block text-sm">
-                <span class="text-gray-600">Naam</span>
-                <input type="text" wire:model="name" placeholder="bv. 21% hoog tarief"
-                    class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
-                @error('name') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Percentage</span>
-                <input type="number" step="0.01" min="0" max="100" wire:model="percentage"
-                    class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
-                @error('percentage') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Af te dragen-rekening <span class="text-gray-400">(verkoop)</span></span>
-                <select wire:model="afTeDragenLedgerAccountId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
-                    <option value="">— Geen —</option>
-                    @foreach ($ledgerAccounts as $acc)
-                        <option value="{{ $acc->id }}">{{ $acc->code }} · {{ $acc->name }}</option>
-                    @endforeach
-                </select>
-                @error('afTeDragenLedgerAccountId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Voor te vorderen-rekening <span class="text-gray-400">(inkoop)</span></span>
-                <select wire:model="voorTeVorderenLedgerAccountId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
-                    <option value="">— Geen —</option>
-                    @foreach ($ledgerAccounts as $acc)
-                        <option value="{{ $acc->id }}">{{ $acc->code }} · {{ $acc->name }}</option>
-                    @endforeach
-                </select>
-                @error('voorTeVorderenLedgerAccountId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Geldig vanaf</span>
-                <input type="date" wire:model="validFrom" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
-                @error('validFrom') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-
-            <label class="block text-sm">
-                <span class="text-gray-600">Geldig tot <span class="text-gray-400">(optioneel)</span></span>
-                <input type="date" wire:model="validUntil" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
-                @error('validUntil') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-            </label>
-        </div>
-
-        <div class="flex gap-2">
-            <button type="button" wire:click="save"
-                class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
-                {{ $editingId ? 'Opslaan' : 'Aanmaken' }}
-            </button>
-            @if ($editingId)
-                <button type="button" wire:click="resetForm"
-                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">Sluiten</button>
-            @endif
-        </div>
-    </section>
+    <div class="flex justify-end">
+        <button type="button" x-data="" wire:click="resetForm" x-on:click="$dispatch('open-modal', 'btw-code-form')"
+            class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
+            + Nieuwe BTW-code
+        </button>
+    </div>
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
+                <colgroup>
+                    <col>
+                    <col class="w-28">
+                    <col class="w-40">
+                    <col class="w-40">
+                    <col class="w-56">
+                    <col class="w-8">
+                    <col class="w-8">
+                </colgroup>
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
@@ -97,7 +43,7 @@
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Af te dragen</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Voor te vorderen</th>
                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Geldigheid</th>
-                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Acties</th>
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase" colspan="2">Acties</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -120,22 +66,80 @@
                                     <span class="text-gray-400">(niet actief)</span>
                                 @endunless
                             </td>
-                            <td class="px-4 py-2 text-right whitespace-nowrap">
-                                <button type="button" wire:click="edit({{ $code->id }})" title="Bewerken" class="text-rzvg-600 hover:text-rzvg-800">
-                                    <x-action-icon name="pencil" />
-                                </button>
-                                <button type="button" wire:click="delete({{ $code->id }})"
-                                    onclick="return confirm('BTW-code verwijderen?');"
-                                    title="Verwijderen" class="ml-2 text-red-600 hover:text-red-800">
-                                    <x-action-icon name="trash" />
-                                </button>
-                            </td>
+                            <x-action-cell click="edit({{ $code->id }})" icon="pencil" title="Bewerken" variant="primary" />
+                            <x-action-cell click="delete({{ $code->id }})" icon="trash" title="Verwijderen" variant="danger" confirm="BTW-code verwijderen?" />
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Nog geen BTW-codes.</td></tr>
+                        <tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">Nog geen BTW-codes.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </section>
+
+    {{-- Uitgebreide tabel (6 velden incl. 2 datums) — formulier in een modal i.p.v. inline in de tabel. --}}
+    <x-modal name="btw-code-form" maxWidth="3xl">
+        <div class="p-6 space-y-4">
+            <h2 class="font-medium text-gray-900 text-lg">{{ $editingId ? 'BTW-code bewerken' : 'Nieuwe BTW-code' }}</h2>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <label class="block text-sm">
+                    <span class="text-gray-600">Naam</span>
+                    <input type="text" wire:model="name" placeholder="bv. 21% hoog tarief"
+                        class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
+                    @error('name') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="block text-sm">
+                    <span class="text-gray-600">Percentage</span>
+                    <input type="number" step="0.01" min="0" max="100" wire:model="percentage"
+                        class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
+                    @error('percentage') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="block text-sm">
+                    <span class="text-gray-600">Af te dragen-rekening <span class="text-gray-400">(verkoop)</span></span>
+                    <select wire:model="afTeDragenLedgerAccountId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
+                        <option value="">— Geen —</option>
+                        @foreach ($ledgerAccounts as $acc)
+                            <option value="{{ $acc->id }}">{{ $acc->code }} · {{ $acc->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('afTeDragenLedgerAccountId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="block text-sm">
+                    <span class="text-gray-600">Voor te vorderen-rekening <span class="text-gray-400">(inkoop)</span></span>
+                    <select wire:model="voorTeVorderenLedgerAccountId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
+                        <option value="">— Geen —</option>
+                        @foreach ($ledgerAccounts as $acc)
+                            <option value="{{ $acc->id }}">{{ $acc->code }} · {{ $acc->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('voorTeVorderenLedgerAccountId') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="block text-sm">
+                    <span class="text-gray-600">Geldig vanaf</span>
+                    <input type="date" wire:model="validFrom" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
+                    @error('validFrom') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+
+                <label class="block text-sm">
+                    <span class="text-gray-600">Geldig tot <span class="text-gray-400">(optioneel)</span></span>
+                    <input type="date" wire:model="validUntil" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
+                    @error('validUntil') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+                </label>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" wire:click="resetForm" x-on:click="$dispatch('close')"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">Annuleren</button>
+                <button type="button" wire:click="save"
+                    class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
+                    {{ $editingId ? 'Opslaan' : 'Aanmaken' }}
+                </button>
+            </div>
+        </div>
+    </x-modal>
 </div>
