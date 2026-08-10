@@ -8,6 +8,7 @@ use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Models\Band;
 use App\Models\Block;
+use App\Models\MediaAsset;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\Page;
@@ -19,6 +20,7 @@ use App\Models\User;
 use Database\Seeders\MembershipTypeSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->template = Template::create([
@@ -27,7 +29,7 @@ beforeEach(function () {
     ]);
 });
 
-function publishedPage(Template $template, string $slug, string $title, ?int $parentId = null, PageVisibility $visibility = PageVisibility::Public, PageType $type = PageType::Content): Page
+function publishedPage(Template $template, string $slug, string $title, ?int $parentId = null, PageVisibility $visibility = PageVisibility::Public, PageType $type = PageType::Content, array $meta = []): Page
 {
     $page = Page::create([
         'slug' => $slug,
@@ -37,11 +39,11 @@ function publishedPage(Template $template, string $slug, string $title, ?int $pa
         'parent_id' => $parentId,
         'template_id' => $template->id,
     ]);
-    $version = PageVersion::create([
+    $version = PageVersion::create(array_merge([
         'page_id' => $page->id,
         'version_no' => 1,
         'status' => PageVersionStatus::Published,
-    ]);
+    ], $meta));
     $band = Band::create([
         'page_version_id' => $version->id,
         'zone' => 'hoofd',
@@ -242,4 +244,59 @@ it('renders responsive grid classes for a multi-column band', function () {
 
     $response->assertSee('md:grid-cols-2', false);
     $response->assertDontSee('@class(', false);
+});
+
+it('toont meta-omschrijving en OG-tags wanneer die gezet zijn', function () {
+    publishedPage($this->template, 'met-meta', 'Met meta', meta: [
+        'meta_description' => 'Mijn samenvatting',
+        'og_title' => 'Mijn OG titel',
+        'og_description' => 'Mijn OG omschrijving',
+    ]);
+
+    $this->get('/pagina/met-meta')
+        ->assertOk()
+        ->assertSee('<meta name="description" content="Mijn samenvatting">', false)
+        ->assertSee('<meta property="og:title" content="Mijn OG titel">', false)
+        ->assertSee('<meta property="og:description" content="Mijn OG omschrijving">', false);
+});
+
+it('valt terug op het RZVG-logo voor og:image zonder eigen afbeelding', function () {
+    publishedPage($this->template, 'zonder-og-image', 'Zonder OG-afbeelding');
+
+    $this->get('/pagina/zonder-og-image')
+        ->assertOk()
+        ->assertSee('<meta property="og:image" content="'.asset('img/branding/rzvg-logo.jpg').'">', false);
+});
+
+it('gebruikt de eigen MediaAsset-URL voor og:image wanneer die gezet is', function () {
+    Storage::fake('media');
+    Storage::disk('media')->put('assets/2026/og.jpg', 'inhoud');
+    $asset = MediaAsset::create([
+        'disk' => 'media',
+        'path' => 'assets/2026/og.jpg',
+        'original_name' => 'og.jpg',
+        'mime_type' => 'image/jpeg',
+        'type' => 'afbeelding',
+        'file_size' => 6,
+        'visibility' => PageVisibility::Public,
+    ]);
+
+    publishedPage($this->template, 'met-og-image', 'Met OG-afbeelding', meta: [
+        'og_image_media_asset_id' => $asset->id,
+    ]);
+
+    $this->get('/pagina/met-og-image')
+        ->assertOk()
+        ->assertSee('<meta property="og:image" content="'.$asset->displayUrl().'">', false);
+});
+
+it('bevat een canonical-link met de absolute config(app.url)-URL', function () {
+    $page = publishedPage($this->template, 'canonieke-pagina', 'Canonieke pagina');
+
+    $expected = rtrim(config('app.url'), '/').$page->publicUrl();
+
+    $this->get('/pagina/canonieke-pagina')
+        ->assertOk()
+        ->assertSee('<link rel="canonical" href="'.$expected.'">', false)
+        ->assertSee('<meta property="og:url" content="'.$expected.'">', false);
 });

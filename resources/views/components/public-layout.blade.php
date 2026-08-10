@@ -1,4 +1,4 @@
-@props(['title' => null, 'previewBanner' => null])
+@props(['title' => null, 'previewBanner' => null, 'description' => null, 'ogTitle' => null, 'ogDescription' => null, 'ogImage' => null, 'canonicalUrl' => null])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -8,6 +8,21 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ $title ? $title.' — RZVG' : config('app.name', 'RZVG') }}</title>
+
+        @if ($description)
+            <meta name="description" content="{{ $description }}">
+        @endif
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="RZVG">
+        <meta property="og:title" content="{{ $ogTitle ?: ($title ?: config('app.name')) }}">
+        @if ($ogDescription ?: $description)
+            <meta property="og:description" content="{{ $ogDescription ?: $description }}">
+        @endif
+        <meta property="og:image" content="{{ $ogImage ?: asset('img/branding/rzvg-logo.jpg') }}">
+        @if ($canonicalUrl)
+            <meta property="og:url" content="{{ $canonicalUrl }}">
+            <link rel="canonical" href="{{ $canonicalUrl }}">
+        @endif
 
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=alike:400|inter:400,500,600,700&display=swap" rel="stylesheet" />

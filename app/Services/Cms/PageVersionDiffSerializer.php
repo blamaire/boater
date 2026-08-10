@@ -41,6 +41,23 @@ class PageVersionDiffSerializer
     }
 
     /**
+     * Zelfde opzet als {@see structured()}, maar voor de scalaire meta-/OG-velden.
+     *
+     * @return list<array{field: string, type: string, a: mixed, b: mixed}>
+     */
+    public function structuredFields(ConflictReport $report): array
+    {
+        return $report->fieldEntries
+            ->map(fn (FieldDiff $diff): array => [
+                'field' => $diff->field,
+                'type' => $diff->type,
+                'a' => $diff->mine,
+                'b' => $diff->theirs,
+            ])
+            ->all();
+    }
+
+    /**
      * De hele versie-inhoud als geordend array (banden → kolommen → blokken),
      * zodat een beheerder de rauwe JSON-vorm van een specifieke versie kan
      * inspecteren of kopiëren.
@@ -48,6 +65,7 @@ class PageVersionDiffSerializer
      * @return array{
      *     version_no: int,
      *     status: string,
+     *     meta: array{meta_description: ?string, og_title: ?string, og_description: ?string, og_image_media_asset_id: ?int},
      *     bands: list<array{
      *         zone: string,
      *         layout: int,
@@ -63,6 +81,12 @@ class PageVersionDiffSerializer
         return [
             'version_no' => $version->version_no,
             'status' => $version->status->value,
+            'meta' => [
+                'meta_description' => $version->meta_description,
+                'og_title' => $version->og_title,
+                'og_description' => $version->og_description,
+                'og_image_media_asset_id' => $version->og_image_media_asset_id,
+            ],
             'bands' => $bands->map(fn ($band): array => [
                 'zone' => (string) $band->zone,
                 'layout' => (int) $band->layout->value,

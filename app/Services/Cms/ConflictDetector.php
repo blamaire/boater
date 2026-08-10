@@ -17,6 +17,10 @@ use App\Models\PageVersion;
  */
 class ConflictDetector
 {
+    public function __construct(
+        private readonly MetaFieldConflictDetector $metaFieldConflictDetector,
+    ) {}
+
     public function detect(PageVersion $mine, PageVersion $theirs, ?PageVersion $base): ConflictReport
     {
         $baseBlocks = $base !== null ? $this->indexBlocks($base) : [];
@@ -42,7 +46,9 @@ class ConflictDetector
             $entries->push($this->classifyBlock($originId, $baseBlock, $mineBlock, $theirsBlock));
         }
 
-        return new ConflictReport($entries);
+        $fieldEntries = $this->metaFieldConflictDetector->detect($mine, $theirs, $base);
+
+        return new ConflictReport($entries, $fieldEntries);
     }
 
     /**

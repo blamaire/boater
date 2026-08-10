@@ -3,6 +3,7 @@
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
 use App\Enums\PageVersionStatus;
+use App\Livewire\Admin\PageConflictResolver;
 use App\Models\Band;
 use App\Models\Block;
 use App\Models\Page;
@@ -16,6 +17,7 @@ use App\Models\User;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReviewPolicySeeder;
+use Livewire\Livewire;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
@@ -191,4 +193,48 @@ it('shows a rebase notice on the confirmation page when the draft was automatica
         ->get("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen")
         ->assertOk()
         ->assertSee('is automatisch bijgewerkt met tussentijdse wijzigingen van versie');
+});
+
+it('redirects to the conflict resolver on an og_title-only conflict, and the resolution keeps the chosen value', function () {
+    [$user, $person] = editorWith(['pages.view', 'pages.update']);
+
+    $page = Page::create(['slug' => 'p6', 'title' => 'P', 'template_id' => $this->template->id]);
+
+    $v1 = PageVersion::create(['page_id' => $page->id, 'version_no' => 1, 'status' => PageVersionStatus::Published, 'og_title' => 'origineel']);
+    $band1 = Band::create(['page_version_id' => $v1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    $block1 = Block::create(['band_id' => $band1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>onveranderd</p>']]);
+    $page->update(['published_version_id' => $v1->id]);
+
+    // jouw concept vertakt van v1 en wijzigt alleen og_title, blokken blijven identiek
+    $mine = PageVersion::create([
+        'page_id' => $page->id, 'version_no' => 2, 'status' => PageVersionStatus::Draft,
+        'base_version_id' => $v1->id, 'created_by_person_id' => $person->id, 'og_title' => 'mijn titel',
+    ]);
+    $myBand = Band::create(['page_version_id' => $mine->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $myBand->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>onveranderd</p>']]);
+
+    // intussen publiceert iemand anders v3 met dezelfde blokken, maar een andere og_title
+    $v3 = PageVersion::create(['page_id' => $page->id, 'version_no' => 3, 'status' => PageVersionStatus::Published, 'og_title' => 'hun titel']);
+    $band3 = Band::create(['page_version_id' => $v3->id, 'origin_band_id' => $band1->id, 'zone' => 'hoofd', 'layout' => BandLayout::OneColumn, 'sort_order' => 0]);
+    Block::create(['band_id' => $band3->id, 'origin_block_id' => $block1->id, 'column_index' => 0, 'sort_order' => 0, 'type' => BlockType::Text, 'content' => ['html' => '<p>onveranderd</p>']]);
+    $page->update(['published_version_id' => $v3->id]);
+
+    $this->actingAs($user)
+        ->post("/beheer/paginas/{$page->id}/versies/{$mine->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect(route('admin.pages.conflict.show', [
+            'page' => $page,
+            'version' => $mine,
+            'other' => $v3,
+        ]));
+
+    $this->actingAs($user);
+    Livewire::test(PageConflictResolver::class, ['mineId' => $mine->id, 'theirsId' => $v3->id])
+        ->set('fieldChoices.og_title', 'theirs')
+        ->call('resolve')
+        ->assertHasNoErrors();
+
+    $resolved = PageVersion::where('page_id', $page->id)->where('base_version_id', $v3->id)->latest('version_no')->first();
+
+    expect($resolved)->not->toBeNull();
+    expect($resolved->og_title)->toBe('hun titel');
 });

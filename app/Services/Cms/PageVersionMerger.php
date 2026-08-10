@@ -24,10 +24,12 @@ class PageVersionMerger
     /**
      * @param  array<int, string>  $choices
      * @param  array<int, string>  $manualJson
+     * @param  array<string, string>  $fieldChoices
+     * @param  array<string, mixed>  $manualFieldValues
      */
-    public function merge(PageVersion $mine, PageVersion $theirs, ConflictReport $report, Person $createdBy, array $choices = [], array $manualJson = []): PageVersion
+    public function merge(PageVersion $mine, PageVersion $theirs, ConflictReport $report, Person $createdBy, array $choices = [], array $manualJson = [], array $fieldChoices = [], array $manualFieldValues = []): PageVersion
     {
-        return DB::transaction(function () use ($mine, $theirs, $report, $createdBy, $choices, $manualJson) {
+        return DB::transaction(function () use ($mine, $theirs, $report, $createdBy, $choices, $manualJson, $fieldChoices, $manualFieldValues) {
             $latest = PageVersion::query()
                 ->where('page_id', $mine->page_id)
                 ->orderByDesc('version_no')
@@ -43,6 +45,7 @@ class PageVersionMerger
             ]);
 
             $this->buildResolvedContent($resolved, $report, $choices, $manualJson);
+            $this->resolveFields($resolved, $report, $fieldChoices, $manualFieldValues);
 
             return $resolved;
         });
@@ -83,6 +86,46 @@ class PageVersionMerger
                 'visibility' => $chosen->visibility,
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, string>  $fieldChoices
+     * @param  array<string, mixed>  $manualFieldValues
+     */
+    private function resolveFields(PageVersion $target, ConflictReport $report, array $fieldChoices, array $manualFieldValues): void
+    {
+        $values = [];
+
+        foreach ($report->fieldEntries as $diff) {
+            $values[$diff->field] = $this->pickFieldValueFor($diff, $fieldChoices, $manualFieldValues);
+        }
+
+        if ($values !== []) {
+            $target->update($values);
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $fieldChoices
+     * @param  array<string, mixed>  $manualFieldValues
+     */
+    private function pickFieldValueFor(FieldDiff $diff, array $fieldChoices, array $manualFieldValues): mixed
+    {
+        if ($diff->isNoop()) {
+            return $diff->mine;
+        }
+
+        if ($diff->isConflict()) {
+            $choice = $fieldChoices[$diff->field] ?? 'mine';
+
+            return match ($choice) {
+                'theirs' => $diff->theirs,
+                'manual' => $manualFieldValues[$diff->field] ?? $diff->mine,
+                default => $diff->mine,
+            };
+        }
+
+        return $diff->type === 'edited_by_theirs' ? $diff->theirs : $diff->mine;
     }
 
     /**
