@@ -16,7 +16,12 @@
 
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
         <div class="flex items-start justify-between gap-4">
-            <h1 class="font-medium text-gray-900 text-lg">{{ $item->title }}</h1>
+            <div>
+                <h1 class="font-medium text-gray-900 text-lg">{{ $item->title }}</h1>
+                @if ($position !== null)
+                    <p class="text-xs text-gray-400">Item {{ $position }} van {{ $total }}</p>
+                @endif
+            </div>
             <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs border shrink-0
                 @class([
                     'bg-yellow-50 text-yellow-800 border-yellow-200' => $item->status === \App\Enums\WordpressImportStatus::New,
@@ -54,14 +59,43 @@
         @endif
 
         <div>
-            <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Media in dit item</div>
+            <div class="flex items-center justify-between mb-1">
+                <div class="text-xs font-semibold text-gray-500 uppercase">Media in dit item</div>
+                @if ($item->status === \App\Enums\WordpressImportStatus::New && $item->mediaItems->isNotEmpty())
+                    <div class="flex gap-3 text-xs">
+                        <button type="button" wire:click="acceptAllMedia" class="text-rzvg-600 hover:text-rzvg-800">Alles overnemen</button>
+                        <button type="button" wire:click="rejectAllMedia" class="text-gray-500 hover:text-gray-700">Alles niet overnemen</button>
+                    </div>
+                @endif
+            </div>
             @if ($item->mediaItems->isNotEmpty())
                 <ul class="divide-y divide-gray-100 border border-gray-200 rounded-md">
                     @foreach ($item->mediaItems as $mediaItem)
                         <li class="flex items-center gap-3 px-3 py-2 text-sm" wire:key="wordpress-import-media-{{ $mediaItem->id }}">
+                            @if (str_starts_with($mediaItem->mime_type ?? '', 'image/'))
+                                <a href="{{ $mediaItem->url }}" target="_blank" rel="noopener" class="shrink-0">
+                                    <img src="{{ $mediaItem->url }}" loading="lazy" alt="" class="h-10 w-10 object-cover rounded border border-gray-200">
+                                </a>
+                            @else
+                                <a href="{{ $mediaItem->url }}" target="_blank" rel="noopener"
+                                    class="shrink-0 flex h-10 w-10 items-center justify-center rounded border border-gray-200 text-gray-400 hover:text-gray-600">
+                                    <x-action-icon name="eye" />
+                                </a>
+                            @endif
+                            <div class="min-w-0 flex-1">
+                                <a href="{{ $mediaItem->url }}" target="_blank" rel="noopener" class="truncate text-gray-700 hover:text-rzvg-700 block">{{ $mediaItem->title }}</a>
+                                <p class="truncate text-xs text-gray-400">{{ $mediaItem->url }}</p>
+                                @if ($mediaItem->download_error !== null)
+                                    <p class="text-xs text-red-600">{{ $mediaItem->download_error }}</p>
+                                @endif
+                            </div>
                             @if ($item->status === \App\Enums\WordpressImportStatus::New)
-                                <input type="checkbox" wire:click="toggleMedia({{ $mediaItem->id }})" @checked($mediaItem->selected)
-                                    class="rounded border-gray-300 text-rzvg-600 focus:ring-rzvg-600">
+                                <div class="flex gap-1 shrink-0">
+                                    <button type="button" wire:click="decideMedia({{ $mediaItem->id }}, true)"
+                                        class="px-2 py-1 rounded text-xs @if ($mediaItem->selected === true) bg-green-600 text-white @else border border-gray-300 text-gray-700 hover:bg-gray-50 @endif">Overnemen</button>
+                                    <button type="button" wire:click="decideMedia({{ $mediaItem->id }}, false)"
+                                        class="px-2 py-1 rounded text-xs @if ($mediaItem->selected === false) bg-gray-600 text-white @else border border-gray-300 text-gray-700 hover:bg-gray-50 @endif">Niet overnemen</button>
+                                </div>
                             @elseif ($mediaItem->media_asset_id !== null)
                                 <x-action-icon name="check" class="text-green-600 shrink-0" />
                             @elseif ($mediaItem->download_error !== null)
@@ -69,13 +103,6 @@
                             @else
                                 <span class="w-4 shrink-0"></span>
                             @endif
-                            <div class="min-w-0 flex-1">
-                                <p class="truncate text-gray-700">{{ $mediaItem->title }}</p>
-                                <p class="truncate text-xs text-gray-400">{{ $mediaItem->url }}</p>
-                                @if ($mediaItem->download_error !== null)
-                                    <p class="text-xs text-red-600">{{ $mediaItem->download_error }}</p>
-                                @endif
-                            </div>
                         </li>
                     @endforeach
                 </ul>

@@ -91,3 +91,16 @@ it('negeert een onbekende sorteerkolom', function () {
         ->assertSet('sortField', 'wordpress_published_at')
         ->assertSet('sortDirection', 'desc');
 });
+
+it('toont het huidige paginanummer en beweegt mee met paginering', function () {
+    foreach (range(1, 26) as $i) {
+        makeWordpressImportItem(['title' => "Item {$i}"]);
+    }
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)
+        ->assertSee('Pagina 1 van 2')
+        ->call('nextPage')
+        ->assertSee('Pagina 2 van 2');
+});

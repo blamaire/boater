@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\MediaType;
 use App\Enums\PageType;
 use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
@@ -56,7 +57,7 @@ function newWordpressImportMediaItem(WordpressImportItem $item, array $overrides
         'title' => 'foto.jpg',
         'url' => 'https://oud.rzvg.nl/wp-content/uploads/foto.jpg',
         'mime_type' => 'image/jpeg',
-        'selected' => true,
+        'selected' => null,
     ], $overrides));
 }
 
@@ -187,25 +188,55 @@ it('zet een gearchiveerd item terug naar nieuw', function () {
     expect($item->refresh()->status)->toBe(WordpressImportStatus::New);
 });
 
-it('schakelt de selectie van een bijlage om voor een nieuw item', function () {
+it('een bijlage start onbeslist en kan expliciet overgenomen of afgewezen worden', function () {
     $item = newWordpressImportItem();
-    $media = newWordpressImportMediaItem($item, ['selected' => true]);
+    $media = newWordpressImportMediaItem($item);
+
+    expect($media->selected)->toBeNull();
 
     $this->actingAs($this->beheerder);
 
-    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('toggleMedia', $media->id);
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('decideMedia', $media->id, true);
+    expect($media->refresh()->selected)->toBeTrue();
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('decideMedia', $media->id, false);
     expect($media->refresh()->selected)->toBeFalse();
 });
 
-it('weigert het omschakelen van media op een al overgenomen item', function () {
+it('weigert het beslissen over media op een al overgenomen item', function () {
     $item = newWordpressImportItem(['status' => WordpressImportStatus::Imported]);
     $media = newWordpressImportMediaItem($item);
 
     $this->actingAs($this->beheerder);
 
     Livewire::test(WordpressImportDetail::class, ['item' => $item])
-        ->call('toggleMedia', $media->id)
+        ->call('decideMedia', $media->id, true)
         ->assertForbidden();
+});
+
+it('accepteert of weigert alle nog niet gedownloade media in één keer', function () {
+    $item = newWordpressImportItem();
+    $een = newWordpressImportMediaItem($item);
+    $twee = newWordpressImportMediaItem($item);
+    $alGedownload = newWordpressImportMediaItem($item, ['selected' => true, 'media_asset_id' => null]);
+    $asset = MediaAsset::create([
+        'disk' => 'media', 'path' => 'assets/test.jpg', 'original_name' => 'test.jpg',
+        'mime_type' => 'image/jpeg', 'type' => MediaType::Image, 'file_size' => 1,
+        'visibility' => PageVisibility::Public,
+    ]);
+    $alGedownload->update(['media_asset_id' => $asset->id]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('acceptAllMedia');
+    expect($een->refresh()->selected)->toBeTrue()
+        ->and($twee->refresh()->selected)->toBeTrue()
+        ->and($alGedownload->refresh()->selected)->toBeTrue();
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('rejectAllMedia');
+    expect($een->refresh()->selected)->toBeFalse()
+        ->and($twee->refresh()->selected)->toBeFalse()
+        ->and($alGedownload->refresh()->selected)->toBeTrue();
 });
 
 it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', function () {
@@ -218,7 +249,7 @@ it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', 
     $item = newWordpressImportItem([
         'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/foto.jpg"></p>',
     ]);
-    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/foto.jpg']);
+    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/foto.jpg', 'selected' => true]);
 
     $this->actingAs($this->beheerder);
 
@@ -245,7 +276,7 @@ it('behoudt de oude URL en zet een foutmelding als de download mislukt', functio
     $item = newWordpressImportItem([
         'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/weg.jpg"></p>',
     ]);
-    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/weg.jpg']);
+    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/weg.jpg', 'selected' => true]);
 
     $this->actingAs($this->beheerder);
 
@@ -287,7 +318,7 @@ it('accepteren en volgende springt naar het eerstvolgende nieuwe item in de huid
         ->set('sortDirection', 'asc')
         ->call('accept', true)
         ->assertRedirect(route('admin.wordpress-import.show', [
-            'item' => $b->id, 'sort' => 'title', 'direction' => 'asc', 'filterType' => '',
+            'item' => $b->id, 'sort' => 'title', 'direction' => 'asc', 'filterType' => '', 'filterStatus' => '',
         ]));
 
     expect($a->refresh()->status)->toBe(WordpressImportStatus::Imported)
@@ -308,12 +339,27 @@ it('archiveren en volgende respecteert de actieve type-filter', function () {
         ->set('filterType', WordpressContentType::Page->value)
         ->call('archive', true)
         ->assertRedirect(route('admin.wordpress-import.show', [
-            'item' => $pagina2->id, 'sort' => 'title', 'direction' => 'asc', 'filterType' => WordpressContentType::Page->value,
+            'item' => $pagina2->id, 'sort' => 'title', 'direction' => 'asc', 'filterType' => WordpressContentType::Page->value, 'filterStatus' => '',
         ]));
 
     expect($pagina1->refresh()->status)->toBe(WordpressImportStatus::Archived)
         ->and($bericht->refresh()->status)->toBe(WordpressImportStatus::New)
         ->and($pagina2->refresh()->status)->toBe(WordpressImportStatus::New);
+});
+
+it('toont de positie van het item binnen de actieve sortering en filter', function () {
+    $pagina = newWordpressImportItem(['title' => 'Aaa pagina', 'wordpress_type' => WordpressContentType::Page]);
+    newWordpressImportItem(['title' => 'Bbb bericht', 'wordpress_type' => WordpressContentType::Post]);
+    newWordpressImportItem(['title' => 'Ccc pagina', 'wordpress_type' => WordpressContentType::Page]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $pagina])
+        ->set('sortField', 'title')
+        ->set('sortDirection', 'asc')
+        ->set('filterType', WordpressContentType::Page->value)
+        ->assertSet('errorMessage', null)
+        ->assertSee('Item 1 van 2');
 });
 
 it('gaat terug naar het overzicht met een melding als er geen volgend item meer is', function () {

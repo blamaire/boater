@@ -94,7 +94,7 @@
                                 </span>
                             </td>
                             <x-action-cell
-                                href="{{ route('admin.wordpress-import.show', ['item' => $item, 'sort' => $sortField, 'direction' => $sortDirection, 'filterType' => $filterType]) }}"
+                                href="{{ route('admin.wordpress-import.show', ['item' => $item, 'sort' => $sortField, 'direction' => $sortDirection, 'filterType' => $filterType, 'filterStatus' => $filterStatus]) }}"
                                 icon="eye" title="Bekijken" />
                         </tr>
                     @empty
@@ -106,10 +106,11 @@
             </table>
         </div>
 
-        @if ($items->hasPages())
-            <div class="px-4 py-3 border-t border-gray-100">
+        <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-4">
+            <p class="text-xs text-gray-500">Pagina {{ $items->currentPage() }} van {{ max($items->lastPage(), 1) }}</p>
+            @if ($items->hasPages())
                 {{ $items->links() }}
-            </div>
-        @endif
+            @endif
+        </div>
     </section>
 </div>

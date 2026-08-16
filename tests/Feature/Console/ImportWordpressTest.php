@@ -117,7 +117,7 @@ it('importeert pagina\'s en berichten en slaat prullenbak/andere types over', fu
     expect($media->wordpress_import_item_id)->toBe($post->id)
         ->and($media->url)->toBe('https://oud.rzvg.nl/wp-content/uploads/2021/07/bijlage.pdf')
         ->and($media->mime_type)->toBe('application/pdf')
-        ->and($media->selected)->toBeTrue();
+        ->and($media->selected)->toBeNull();
 
     expect(WordpressImportMediaItem::where('wordpress_id', 305)->exists())->toBeFalse();
 });

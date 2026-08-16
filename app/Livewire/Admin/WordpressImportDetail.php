@@ -34,6 +34,8 @@ class WordpressImportDetail extends Component
 
     public string $filterType = '';
 
+    public string $filterStatus = '';
+
     public ?string $statusMessage = null;
 
     public ?string $errorMessage = null;
@@ -53,9 +55,14 @@ class WordpressImportDetail extends Component
         $this->filterType = is_string($filterType) && in_array($filterType, array_column(WordpressContentType::cases(), 'value'), true)
             ? $filterType
             : '';
+
+        $filterStatus = request()->query('filterStatus');
+        $this->filterStatus = is_string($filterStatus) && in_array($filterStatus, array_column(WordpressImportStatus::cases(), 'value'), true)
+            ? $filterStatus
+            : '';
     }
 
-    public function toggleMedia(int $mediaItemId): void
+    public function decideMedia(int $mediaItemId, bool $accept): void
     {
         $this->authorizeManage();
 
@@ -63,8 +70,26 @@ class WordpressImportDetail extends Component
 
         abort_unless($mediaItem->importItem->status === WordpressImportStatus::New, 403);
 
-        $mediaItem->update(['selected' => ! $mediaItem->selected]);
+        $mediaItem->update(['selected' => $accept]);
 
+        $this->item->load('mediaItems');
+    }
+
+    public function acceptAllMedia(): void
+    {
+        $this->authorizeManage();
+        abort_unless($this->item->status === WordpressImportStatus::New, 403);
+
+        $this->item->mediaItems()->whereNull('media_asset_id')->update(['selected' => true]);
+        $this->item->load('mediaItems');
+    }
+
+    public function rejectAllMedia(): void
+    {
+        $this->authorizeManage();
+        abort_unless($this->item->status === WordpressImportStatus::New, 403);
+
+        $this->item->mediaItems()->whereNull('media_asset_id')->update(['selected' => false]);
         $this->item->load('mediaItems');
     }
 
@@ -150,10 +175,30 @@ class WordpressImportDetail extends Component
     public function render(BlockContentSanitizer $sanitizer): View
     {
         $sanitized = $sanitizer->sanitize(BlockType::Text, ['html' => $this->item->content_html]);
+        $position = $this->position();
 
         return view('livewire.admin.wordpress-import-detail', [
             'previewHtml' => $sanitized['html'] ?? '',
+            'position' => $position['position'],
+            'total' => $position['total'],
         ]);
+    }
+
+    /**
+     * @return array{position: int|null, total: int}
+     */
+    private function position(): array
+    {
+        $ids = WordpressImportItem::query()
+            ->when($this->filterStatus !== '', fn ($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterType !== '', fn ($q) => $q->where('wordpress_type', $this->filterType))
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->orderBy('id')
+            ->pluck('id');
+
+        $index = $ids->search($this->item->id);
+
+        return ['position' => $index === false ? null : $index + 1, 'total' => $ids->count()];
     }
 
     /**
@@ -191,6 +236,7 @@ class WordpressImportDetail extends Component
             'sort' => $this->sortField,
             'direction' => $this->sortDirection,
             'filterType' => $this->filterType,
+            'filterStatus' => $this->filterStatus,
         ], navigate: false);
     }
 
