@@ -78,7 +78,12 @@
                             @endforeach
                         </select>
                         @if ($oldParentHint)
-                            <p class="text-xs text-gray-400 mt-1">Stond in de oude site onder: {{ $oldParentHint }} (nog niet overgenomen)</p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                Stond in de oude site onder: {{ $oldParentHint }}
+                                @if ($parentId === null)
+                                    (nog niet overgenomen)
+                                @endif
+                            </p>
                         @endif
                     </div>
                 @endif

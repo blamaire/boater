@@ -87,6 +87,15 @@ class WordpressImportService
                 'band_id' => $band->id,
                 'column_index' => 0,
                 'sort_order' => 0,
+                'type' => BlockType::Heading,
+                'content' => ['level' => 1, 'text' => $item->title],
+                'visibility' => $visibility,
+            ]);
+
+            Block::query()->create([
+                'band_id' => $band->id,
+                'column_index' => 0,
+                'sort_order' => 1,
                 'type' => BlockType::Text,
                 'content' => ['html' => $contentHtml],
                 'visibility' => $visibility,

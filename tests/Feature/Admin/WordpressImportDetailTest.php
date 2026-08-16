@@ -118,9 +118,13 @@ it('neemt een nieuw item over als CMS-pagina in concept', function () {
     $band = $version->bands()->firstOrFail();
     expect($band->zone)->toBe('hoofd');
 
-    $block = $band->blocks()->firstOrFail();
-    expect($block->type->value)->toBe('tekst')
-        ->and($block->content['html'])->toBe('<p>Inhoud.</p>');
+    $heading = $band->blocks()->firstOrFail();
+    expect($heading->type->value)->toBe('kop')
+        ->and($heading->content['level'])->toBe(1)
+        ->and($heading->content['text'])->toBe('Over ons');
+
+    $block = $band->blocks()->where('type', 'tekst')->firstOrFail();
+    expect($block->content['html'])->toBe('<p>Inhoud.</p>');
 
     $component->assertRedirect(route('admin.pages.editor', $page));
 });
@@ -208,7 +212,7 @@ it('stelt de bovenliggende pagina automatisch in als de oude ouder al is overgen
 
     $component = Livewire::test(WordpressImportDetail::class, ['item' => $kindItem])
         ->assertSet('parentId', $ouderPagina->id)
-        ->assertSet('oldParentHint', null)
+        ->assertSet('oldParentHint', 'Activiteiten')
         ->call('accept', false);
 
     $page = Page::findOrFail($kindItem->refresh()->page_id);
@@ -358,7 +362,7 @@ it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', 
     $asset = MediaAsset::findOrFail($media->media_asset_id);
     $item->refresh();
     $page = Page::findOrFail($item->page_id);
-    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->firstOrFail();
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->where('type', 'tekst')->firstOrFail();
 
     expect($block->content['html'])->toContain($asset->displayUrl())
         ->and($block->content['html'])->not->toContain('oud.rzvg.nl');
@@ -384,7 +388,7 @@ it('behoudt de oude URL en zet een foutmelding als de download mislukt', functio
 
     $item->refresh();
     $page = Page::findOrFail($item->page_id);
-    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->firstOrFail();
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->where('type', 'tekst')->firstOrFail();
 
     expect($block->content['html'])->toContain('oud.rzvg.nl/wp-content/uploads/weg.jpg');
 });

@@ -72,10 +72,16 @@ class WordpressImportDetail extends Component
         if ($this->item->wordpress_type === WordpressContentType::Page && $this->item->wordpress_parent_id !== null) {
             $oldParent = WordpressImportItem::query()->where('wordpress_id', $this->item->wordpress_parent_id)->first();
 
-            if ($oldParent?->page_id !== null) {
-                $this->parentId = $oldParent->page_id;
-            } elseif ($oldParent !== null) {
+            if ($oldParent !== null) {
+                // Altijd tonen, ook als de ouder al is overgenomen: anders is de
+                // oorspronkelijke WordPress-hiërarchie na verloop van tijd nergens
+                // meer te zien (het gekozen veld hieronder ziet er dan hetzelfde
+                // uit als een handmatige keuze).
                 $this->oldParentHint = $oldParent->title;
+
+                if ($oldParent->page_id !== null) {
+                    $this->parentId = $oldParent->page_id;
+                }
             }
         }
     }
