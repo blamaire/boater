@@ -63,6 +63,7 @@ class PermissionSeeder extends Seeder
             'users' => ['manage'],
             'reservable_objects' => ['manage'],
             'approver_groups' => ['manage'],
+            'wordpress_import' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -129,6 +130,7 @@ class PermissionSeeder extends Seeder
             'users' => 'Gebruikers',
             'reservable_objects' => 'Objecten (reserveren)',
             'approver_groups' => 'Goedkeuringsgroepen',
+            'wordpress_import' => 'WordPress-import',
             default => ucfirst($module),
         };
 

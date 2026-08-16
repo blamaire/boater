@@ -39,7 +39,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage', 'wordpress_import.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             {{-- Beheer-menu-items staan alfabetisch op label; sommige zijn gegroepeerd
@@ -364,6 +364,16 @@
                         </ul>
                     </li>
                 @endcanany
+                @can('wordpress_import.manage')
+                    <li>
+                        <a href="{{ route('admin.wordpress-import.index') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.wordpress-import.*'),
+                                'text-gray-700' => ! request()->routeIs('admin.wordpress-import.*'),
+                            ])>WordPress-import</a>
+                    </li>
+                @endcan
             </ul>
         </div>
     @endcanany

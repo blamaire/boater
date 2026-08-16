@@ -38,6 +38,7 @@ use App\Livewire\Admin\ReserveringBeheer;
 use App\Livewire\Admin\ReserveringsregelBeheer;
 use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
+use App\Livewire\Admin\WordpressImportBeheer;
 use App\Livewire\Portal\LidmaatschapsaanvraagBewerken;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
@@ -220,6 +221,10 @@ Route::middleware(['auth', 'verified', 'can:site_settings.manage'])
 Route::middleware(['auth', 'verified', 'can:environments.manage'])
     ->get('/beheer/omgevingen', EnvironmentBeheer::class)
     ->name('admin.environments');
+
+Route::middleware(['auth', 'verified', 'can:wordpress_import.manage'])
+    ->get('/beheer/wordpress-import', WordpressImportBeheer::class)
+    ->name('admin.wordpress-import.index');
 
 Route::view('/beheer/media', 'admin.media')
     ->middleware(['auth', 'verified', 'can:media.view'])
