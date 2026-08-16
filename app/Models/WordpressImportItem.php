@@ -31,6 +31,9 @@ use Illuminate\Support\Carbon;
  */
 class WordpressImportItem extends Model
 {
+    /** @var array<int, string> */
+    public const array SORTABLE_COLUMNS = ['title', 'wordpress_type', 'wordpress_published_at', 'updated_at', 'status'];
+
     protected $fillable = [
         'wordpress_id',
         'wordpress_type',
