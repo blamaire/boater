@@ -25,6 +25,7 @@ function wxrFixture(string $pageTitle = 'Over ons', string $postTitle = 'Wedstri
         <wp:post_name>over-ons</wp:post_name>
         <wp:status>publish</wp:status>
         <wp:post_type>page</wp:post_type>
+        <wp:post_parent>100</wp:post_parent>
     </item>
     <item>
         <title>{$postTitle}</title>
@@ -106,12 +107,14 @@ it('importeert pagina\'s en berichten en slaat prullenbak/andere types over', fu
         ->and($page->title)->toBe('Over ons')
         ->and($page->content_html)->toBe('<p>Dit is de over-ons-pagina.</p>')
         ->and($page->wordpress_published_at)->not->toBeNull()
-        ->and($page->wordpress_published_at->format('Y-m-d'))->toBe('2020-06-01');
+        ->and($page->wordpress_published_at->format('Y-m-d'))->toBe('2020-06-01')
+        ->and($page->wordpress_parent_id)->toBe(100);
 
     $post = WordpressImportItem::where('wordpress_id', 202)->firstOrFail();
     expect($post->wordpress_type)->toBe(WordpressContentType::Post)
         ->and($post->raw_meta['categories'])->toContain('Nieuws')
-        ->and($post->raw_meta['tags'])->toContain('Uitslag');
+        ->and($post->raw_meta['tags'])->toContain('Uitslag')
+        ->and($post->wordpress_parent_id)->toBeNull();
 
     $media = WordpressImportMediaItem::where('wordpress_id', 303)->firstOrFail();
     expect($media->wordpress_import_item_id)->toBe($post->id)

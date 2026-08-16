@@ -58,6 +58,33 @@
             </div>
         @endif
 
+        @if ($item->status === \App\Enums\WordpressImportStatus::New)
+            <div class="grid gap-4 sm:grid-cols-2 border-t border-gray-100 pt-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Zichtbaarheid</label>
+                    <select wire:model="visibility" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                        @foreach ($visibilities as $v)
+                            <option value="{{ $v->value }}">{{ $v->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @if ($item->wordpress_type === \App\Enums\WordpressContentType::Page)
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Bovenliggende pagina</label>
+                        <select wire:model="parentId" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
+                            <option value="">— Geen (root) —</option>
+                            @foreach ($pages as $p)
+                                <option value="{{ $p->id }}">{{ $p->title }}</option>
+                            @endforeach
+                        </select>
+                        @if ($oldParentHint)
+                            <p class="text-xs text-gray-400 mt-1">Stond in de oude site onder: {{ $oldParentHint }} (nog niet overgenomen)</p>
+                        @endif
+                    </div>
+                @endif
+            </div>
+        @endif
+
         <div>
             <div class="flex items-center justify-between mb-1">
                 <div class="text-xs font-semibold text-gray-500 uppercase">Media in dit item</div>

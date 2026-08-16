@@ -3,8 +3,10 @@
 namespace App\Livewire\Admin;
 
 use App\Enums\BlockType;
+use App\Enums\PageVisibility;
 use App\Enums\WordpressContentType;
 use App\Enums\WordpressImportStatus;
+use App\Models\Page;
 use App\Models\WordpressImportItem;
 use App\Models\WordpressImportMediaItem;
 use App\Services\Audit\AuditLogger;
@@ -36,6 +38,12 @@ class WordpressImportDetail extends Component
 
     public string $filterStatus = '';
 
+    public string $visibility = PageVisibility::Restricted->value;
+
+    public ?int $parentId = null;
+
+    public ?string $oldParentHint = null;
+
     public ?string $statusMessage = null;
 
     public ?string $errorMessage = null;
@@ -60,6 +68,16 @@ class WordpressImportDetail extends Component
         $this->filterStatus = is_string($filterStatus) && in_array($filterStatus, array_column(WordpressImportStatus::cases(), 'value'), true)
             ? $filterStatus
             : '';
+
+        if ($this->item->wordpress_type === WordpressContentType::Page && $this->item->wordpress_parent_id !== null) {
+            $oldParent = WordpressImportItem::query()->where('wordpress_id', $this->item->wordpress_parent_id)->first();
+
+            if ($oldParent?->page_id !== null) {
+                $this->parentId = $oldParent->page_id;
+            } elseif ($oldParent !== null) {
+                $this->oldParentHint = $oldParent->title;
+            }
+        }
     }
 
     public function decideMedia(int $mediaItemId, bool $accept): void
@@ -100,7 +118,7 @@ class WordpressImportDetail extends Component
         $next = $andNext ? $this->nextItem() : null;
 
         try {
-            $page = $service->takeOver($this->item, $audit);
+            $page = $service->takeOver($this->item, $audit, PageVisibility::from($this->visibility), $this->parentId);
         } catch (RuntimeException $e) {
             $this->errorMessage = $e->getMessage();
 
@@ -181,6 +199,8 @@ class WordpressImportDetail extends Component
             'previewHtml' => $sanitized['html'] ?? '',
             'position' => $position['position'],
             'total' => $position['total'],
+            'pages' => Page::query()->orderBy('title')->get(),
+            'visibilities' => PageVisibility::cases(),
         ]);
     }
 

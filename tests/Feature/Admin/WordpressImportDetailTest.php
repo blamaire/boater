@@ -106,7 +106,8 @@ it('neemt een nieuw item over als CMS-pagina in concept', function () {
 
     $page = Page::findOrFail($item->page_id);
     expect($page->type)->toBe(PageType::Content)
-        ->and($page->visibility)->toBe(PageVisibility::Public)
+        ->and($page->visibility)->toBe(PageVisibility::Restricted)
+        ->and($page->parent_id)->toBeNull()
         ->and($page->template_id)->toBe(Template::where('name', 'Standaard')->value('id'))
         ->and($page->published_version_id)->toBeNull();
 
@@ -176,6 +177,101 @@ it('maakt een unieke slug bij een botsing met een bestaande pagina', function ()
     $item->refresh();
     $page = Page::findOrFail($item->page_id);
     expect($page->slug)->toBe('over-ons-2');
+});
+
+it('kan de zichtbaarheid vóór overnemen op publiek zetten', function () {
+    $item = newWordpressImportItem();
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->set('visibility', PageVisibility::Public->value)
+        ->call('accept', false);
+
+    $page = Page::findOrFail($item->refresh()->page_id);
+    expect($page->visibility)->toBe(PageVisibility::Public);
+});
+
+it('stelt de bovenliggende pagina automatisch in als de oude ouder al is overgenomen', function () {
+    $ouderItem = newWordpressImportItem(['wordpress_id' => 100, 'title' => 'Activiteiten']);
+    $this->actingAs($this->beheerder);
+    Livewire::test(WordpressImportDetail::class, ['item' => $ouderItem])->call('accept', false);
+    $ouderPagina = Page::findOrFail($ouderItem->refresh()->page_id);
+
+    $kindItem = newWordpressImportItem([
+        'wordpress_id' => 101,
+        'wordpress_parent_id' => 100,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'Wedstrijden',
+        'slug' => 'wedstrijden',
+    ]);
+
+    $component = Livewire::test(WordpressImportDetail::class, ['item' => $kindItem])
+        ->assertSet('parentId', $ouderPagina->id)
+        ->assertSet('oldParentHint', null)
+        ->call('accept', false);
+
+    $page = Page::findOrFail($kindItem->refresh()->page_id);
+    expect($page->parent_id)->toBe($ouderPagina->id);
+});
+
+it('toont een hint als de oude bovenliggende pagina nog niet is overgenomen', function () {
+    newWordpressImportItem(['wordpress_id' => 100, 'title' => 'Activiteiten']);
+
+    $kindItem = newWordpressImportItem([
+        'wordpress_id' => 101,
+        'wordpress_parent_id' => 100,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'Wedstrijden',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $kindItem])
+        ->assertSet('parentId', null)
+        ->assertSet('oldParentHint', 'Activiteiten');
+});
+
+it('past de ouder-suggestie niet toe op berichten', function () {
+    newWordpressImportItem(['wordpress_id' => 100, 'title' => 'Activiteiten']);
+
+    $bericht = newWordpressImportItem([
+        'wordpress_id' => 202,
+        'wordpress_parent_id' => 100,
+        'wordpress_type' => WordpressContentType::Post,
+        'title' => 'Wedstrijdverslag',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $bericht])
+        ->assertSet('parentId', null)
+        ->assertSet('oldParentHint', null);
+});
+
+it('scoopt slug-uniciteit per bovenliggende pagina, niet globaal', function () {
+    $ouder1 = Page::create([
+        'slug' => 'ouder-1', 'title' => 'Ouder 1', 'type' => PageType::Content,
+        'visibility' => PageVisibility::Restricted, 'parent_id' => null, 'template_id' => Template::where('name', 'Standaard')->value('id'),
+    ]);
+    $ouder2 = Page::create([
+        'slug' => 'ouder-2', 'title' => 'Ouder 2', 'type' => PageType::Content,
+        'visibility' => PageVisibility::Restricted, 'parent_id' => null, 'template_id' => Template::where('name', 'Standaard')->value('id'),
+    ]);
+
+    $item1 = newWordpressImportItem(['wordpress_id' => 301, 'slug' => 'contact', 'title' => 'Contact 1']);
+    $item2 = newWordpressImportItem(['wordpress_id' => 302, 'slug' => 'contact', 'title' => 'Contact 2']);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item1])->set('parentId', $ouder1->id)->call('accept', false);
+    Livewire::test(WordpressImportDetail::class, ['item' => $item2])->set('parentId', $ouder2->id)->call('accept', false);
+
+    $pagina1 = Page::findOrFail($item1->refresh()->page_id);
+    $pagina2 = Page::findOrFail($item2->refresh()->page_id);
+
+    expect($pagina1->slug)->toBe('contact')
+        ->and($pagina2->slug)->toBe('contact');
 });
 
 it('zet een gearchiveerd item terug naar nieuw', function () {

@@ -122,6 +122,7 @@ class ImportWordpress extends Command
                     'content_html' => (string) $content->encoded,
                     'excerpt' => $this->parseExcerpt($excerptNs),
                     'wordpress_published_at' => $this->parsePubDate((string) $item->pubDate),
+                    'wordpress_parent_id' => ((int) $wp->post_parent) ?: null,
                     'raw_meta' => $this->parseRawMeta($item, $wpStatus),
                 ];
 

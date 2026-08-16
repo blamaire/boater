@@ -40,7 +40,7 @@ class WordpressImportService
         private readonly MediaUploadService $mediaUploadService,
     ) {}
 
-    public function takeOver(WordpressImportItem $item, AuditLogger $audit): Page
+    public function takeOver(WordpressImportItem $item, AuditLogger $audit, PageVisibility $visibility, ?int $parentId = null): Page
     {
         if ($item->status !== WordpressImportStatus::New) {
             throw new RuntimeException('Dit item is al overgenomen of gearchiveerd en kan niet nogmaals overgenomen worden.');
@@ -58,15 +58,15 @@ class WordpressImportService
             }
         }
 
-        return DB::transaction(function () use ($item, $audit, $contentHtml) {
+        return DB::transaction(function () use ($item, $audit, $contentHtml, $visibility, $parentId) {
             $template = Template::query()->where('name', 'Standaard')->firstOrFail();
 
             $page = Page::query()->create([
-                'slug' => $this->uniqueSlug($item),
+                'slug' => $this->uniqueSlug($item, $parentId),
                 'title' => $item->title,
                 'type' => PageType::Content,
-                'visibility' => PageVisibility::Public,
-                'parent_id' => null,
+                'visibility' => $visibility,
+                'parent_id' => $parentId,
                 'template_id' => $template->id,
             ]);
 
@@ -89,7 +89,7 @@ class WordpressImportService
                 'sort_order' => 0,
                 'type' => BlockType::Text,
                 'content' => ['html' => $contentHtml],
-                'visibility' => PageVisibility::Public,
+                'visibility' => $visibility,
             ]);
 
             $item->update([
@@ -101,6 +101,8 @@ class WordpressImportService
                 'wordpress_import_item_id' => $item->id,
                 'wordpress_id' => $item->wordpress_id,
                 'title' => $item->title,
+                'visibility' => $visibility->value,
+                'parent_id' => $parentId,
             ]);
 
             return $page;
@@ -132,13 +134,13 @@ class WordpressImportService
         }
     }
 
-    private function uniqueSlug(WordpressImportItem $item): string
+    private function uniqueSlug(WordpressImportItem $item, ?int $parentId): string
     {
         $base = Str::slug($item->slug) ?: Str::slug($item->title) ?: 'pagina';
         $slug = $base;
         $suffix = 2;
 
-        while (Page::query()->whereNull('parent_id')->where('slug', $slug)->where('type', PageType::Content)->exists()) {
+        while (Page::query()->where('parent_id', $parentId)->where('slug', $slug)->where('type', PageType::Content)->exists()) {
             $slug = "{$base}-{$suffix}";
             $suffix++;
         }

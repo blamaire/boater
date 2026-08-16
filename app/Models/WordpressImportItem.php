@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $wordpress_id
+ * @property int|null $wordpress_parent_id
  * @property WordpressContentType $wordpress_type
  * @property string $title
  * @property string $slug
@@ -36,6 +37,7 @@ class WordpressImportItem extends Model
 
     protected $fillable = [
         'wordpress_id',
+        'wordpress_parent_id',
         'wordpress_type',
         'title',
         'slug',
