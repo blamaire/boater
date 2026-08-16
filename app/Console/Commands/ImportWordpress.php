@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Enums\WordpressImportStatus;
 use App\Models\WordpressImportItem;
+use App\Models\WordpressImportMediaItem;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,10 @@ class ImportWordpress extends Command
         $skippedType = 0;
         $skippedTrash = 0;
         $skippedAlreadyImported = 0;
+        $mediaFound = 0;
+        $mediaStaged = 0;
+        $mediaSkippedOrphaned = 0;
+        $mediaSkippedTrash = 0;
 
         DB::transaction(function () use (
             $xml,
@@ -65,7 +70,13 @@ class ImportWordpress extends Command
             &$skippedType,
             &$skippedTrash,
             &$skippedAlreadyImported,
+            &$mediaFound,
+            &$mediaStaged,
+            &$mediaSkippedOrphaned,
+            &$mediaSkippedTrash,
         ): void {
+            $attachmentNodes = [];
+
             foreach ($xml->channel->item as $item) {
                 $found++;
 
@@ -74,6 +85,14 @@ class ImportWordpress extends Command
                 $excerptNs = $this->childrenOf($item, self::EXCERPT_NAMESPACE);
 
                 $postType = (string) $wp->post_type;
+
+                if ($postType === 'attachment') {
+                    $mediaFound++;
+                    $attachmentNodes[] = $item;
+
+                    continue;
+                }
+
                 if (! in_array($postType, ['page', 'post'], true)) {
                     $skippedType++;
 
@@ -117,6 +136,41 @@ class ImportWordpress extends Command
                     $updated++;
                 }
             }
+
+            foreach ($attachmentNodes as $item) {
+                $wp = $this->childrenOf($item, self::WP_NAMESPACE);
+
+                if ((string) $wp->status === 'trash') {
+                    $mediaSkippedTrash++;
+
+                    continue;
+                }
+
+                $parentWordpressId = (int) $wp->post_parent;
+                $parentItem = $parentWordpressId > 0
+                    ? WordpressImportItem::query()->where('wordpress_id', $parentWordpressId)->first()
+                    : null;
+
+                $attachmentUrl = trim((string) $wp->attachment_url);
+
+                if ($parentItem === null || $attachmentUrl === '') {
+                    $mediaSkippedOrphaned++;
+
+                    continue;
+                }
+
+                WordpressImportMediaItem::query()->updateOrCreate(
+                    ['wordpress_id' => (int) $wp->post_id],
+                    [
+                        'wordpress_import_item_id' => $parentItem->id,
+                        'title' => (string) $item->title ?: $attachmentUrl,
+                        'url' => $attachmentUrl,
+                        'mime_type' => (string) $wp->post_mime_type ?: null,
+                    ],
+                );
+
+                $mediaStaged++;
+            }
         });
 
         $this->info("Gevonden items in export: {$found}.");
@@ -125,7 +179,11 @@ class ImportWordpress extends Command
         $this->info("Overgeslagen — ander type (geen pagina/bericht): {$skippedType}.");
         $this->info("Overgeslagen — in de prullenbak: {$skippedTrash}.");
         $this->info("Overgeslagen — al overgenomen: {$skippedAlreadyImported}.");
-        $this->warn('Let op: afbeeldingen in de overgenomen HTML blijven verwijzen naar de oude WordPress-site en moeten indien gewenst handmatig vervangen worden.');
+        $this->info("Bijlagen gevonden in export: {$mediaFound}.");
+        $this->info("Bijlagen gekoppeld aan een gestaged item: {$mediaStaged}.");
+        $this->info("Bijlagen overgeslagen — geen gekoppelde pagina/bericht: {$mediaSkippedOrphaned}.");
+        $this->info("Bijlagen overgeslagen — in de prullenbak: {$mediaSkippedTrash}.");
+        $this->warn('Let op: alleen bijlagen die je bij het overnemen aanvinkt worden gedownload; overige afbeeldingen in de HTML blijven naar de oude WordPress-site verwijzen.');
 
         return self::SUCCESS;
     }

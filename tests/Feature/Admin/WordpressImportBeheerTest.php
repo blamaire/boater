@@ -6,21 +6,27 @@ use App\Enums\PageVisibility;
 use App\Enums\WordpressContentType;
 use App\Enums\WordpressImportStatus;
 use App\Livewire\Admin\WordpressImportBeheer;
+use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\Person;
 use App\Models\Role;
 use App\Models\Template;
 use App\Models\User;
 use App\Models\WordpressImportItem;
+use App\Models\WordpressImportMediaItem;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\TemplateSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(TemplateSeeder::class);
+    Storage::fake('media');
 
     $this->beheerder = User::factory()->create(['email_verified_at' => now()]);
     Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $this->beheerder->id])
@@ -39,6 +45,18 @@ function makeWordpressImportItem(array $overrides = []): WordpressImportItem
         'wordpress_published_at' => now()->subYear(),
         'status' => WordpressImportStatus::New,
         'raw_meta' => ['wp_status' => 'publish', 'categories' => [], 'tags' => []],
+    ], $overrides));
+}
+
+function makeWordpressImportMediaItem(WordpressImportItem $item, array $overrides = []): WordpressImportMediaItem
+{
+    return WordpressImportMediaItem::create(array_merge([
+        'wordpress_import_item_id' => $item->id,
+        'wordpress_id' => random_int(1000, 999999),
+        'title' => 'foto.jpg',
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/foto.jpg',
+        'mime_type' => 'image/jpeg',
+        'selected' => true,
     ], $overrides));
 }
 
@@ -177,4 +195,95 @@ it('zet een gearchiveerd item terug naar nieuw', function () {
     Livewire::test(WordpressImportBeheer::class)->call('restoreToNew', $item->id);
 
     expect($item->refresh()->status)->toBe(WordpressImportStatus::New);
+});
+
+it('schakelt de selectie van een bijlage om voor een nieuw item', function () {
+    $item = makeWordpressImportItem();
+    $media = makeWordpressImportMediaItem($item, ['selected' => true]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)->call('toggleMedia', $media->id);
+    expect($media->refresh()->selected)->toBeFalse();
+
+    Livewire::test(WordpressImportBeheer::class)->call('toggleMedia', $media->id);
+    expect($media->refresh()->selected)->toBeTrue();
+});
+
+it('weigert het omschakelen van media op een al overgenomen item', function () {
+    $item = makeWordpressImportItem(['status' => WordpressImportStatus::Imported]);
+    $media = makeWordpressImportMediaItem($item);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)
+        ->call('toggleMedia', $media->id)
+        ->assertForbidden();
+});
+
+it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', function () {
+    $fakeImage = UploadedFile::fake()->image('foto.jpg', 10, 10);
+    $imageBytes = file_get_contents($fakeImage->getRealPath());
+    Http::fake([
+        'https://oud.rzvg.nl/wp-content/uploads/foto.jpg' => Http::response($imageBytes, 200, ['Content-Type' => 'image/jpeg']),
+    ]);
+
+    $item = makeWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/foto.jpg"></p>',
+    ]);
+    $media = makeWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/foto.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)->call('takeOver', $item->id);
+
+    $media->refresh();
+    expect($media->media_asset_id)->not->toBeNull()
+        ->and($media->download_error)->toBeNull();
+
+    $asset = MediaAsset::findOrFail($media->media_asset_id);
+    $item->refresh();
+    $page = Page::findOrFail($item->page_id);
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->firstOrFail();
+
+    expect($block->content['html'])->toContain($asset->displayUrl())
+        ->and($block->content['html'])->not->toContain('oud.rzvg.nl');
+});
+
+it('behoudt de oude URL en zet een foutmelding als de download mislukt', function () {
+    Http::fake([
+        'https://oud.rzvg.nl/wp-content/uploads/weg.jpg' => Http::response('', 404),
+    ]);
+
+    $item = makeWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/weg.jpg"></p>',
+    ]);
+    $media = makeWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/weg.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)->call('takeOver', $item->id);
+
+    $media->refresh();
+    expect($media->media_asset_id)->toBeNull()
+        ->and($media->download_error)->not->toBeNull();
+
+    $item->refresh();
+    $page = Page::findOrFail($item->page_id);
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->firstOrFail();
+
+    expect($block->content['html'])->toContain('oud.rzvg.nl/wp-content/uploads/weg.jpg');
+});
+
+it('downloadt niet-geselecteerde media niet bij overnemen', function () {
+    Http::fake();
+
+    $item = makeWordpressImportItem();
+    makeWordpressImportMediaItem($item, ['selected' => false, 'url' => 'https://oud.rzvg.nl/wp-content/uploads/niet.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportBeheer::class)->call('takeOver', $item->id);
+
+    Http::assertNothingSent();
 });

@@ -10,12 +10,18 @@ use App\Enums\PageVisibility;
 use App\Enums\WordpressImportStatus;
 use App\Models\Band;
 use App\Models\Block;
+use App\Models\MediaAsset;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Template;
 use App\Models\WordpressImportItem;
+use App\Models\WordpressImportMediaItem;
 use App\Services\Audit\AuditLogger;
+use App\Services\Media\MediaUploadService;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -24,17 +30,35 @@ use RuntimeException;
  * CMS-pagina — als concept, zodat een redacteur de inhoud eerst controleert
  * en zelf publiceert. De volledige `content:encoded`-HTML gaat in één
  * Tekst-blok; `BlockObserver`/`BlockContentSanitizer` saneren die HTML al
- * bij het opslaan van het blok.
+ * bij het opslaan van het blok. Geselecteerde bijlagen worden vóór het
+ * aanmaken van de pagina gedownload en als `MediaAsset` opgeslagen; hun
+ * URL wordt in de HTML herschreven naar de nieuwe media-URL.
  */
 class WordpressImportService
 {
+    public function __construct(
+        private readonly MediaUploadService $mediaUploadService,
+    ) {}
+
     public function takeOver(WordpressImportItem $item, AuditLogger $audit): Page
     {
         if ($item->status !== WordpressImportStatus::New) {
             throw new RuntimeException('Dit item is al overgenomen of gearchiveerd en kan niet nogmaals overgenomen worden.');
         }
 
-        return DB::transaction(function () use ($item, $audit) {
+        $contentHtml = $item->content_html;
+
+        foreach ($item->mediaItems()->where('selected', true)->whereNull('media_asset_id')->get() as $mediaItem) {
+            try {
+                $asset = $this->downloadAndStore($mediaItem);
+                $contentHtml = str_replace($mediaItem->url, $asset->displayUrl(), $contentHtml);
+                $mediaItem->update(['media_asset_id' => $asset->id, 'download_error' => null]);
+            } catch (\Throwable $e) {
+                $mediaItem->update(['download_error' => $e->getMessage()]);
+            }
+        }
+
+        return DB::transaction(function () use ($item, $audit, $contentHtml) {
             $template = Template::query()->where('name', 'Standaard')->firstOrFail();
 
             $page = Page::query()->create([
@@ -64,7 +88,7 @@ class WordpressImportService
                 'column_index' => 0,
                 'sort_order' => 0,
                 'type' => BlockType::Text,
-                'content' => ['html' => $item->content_html],
+                'content' => ['html' => $contentHtml],
                 'visibility' => PageVisibility::Public,
             ]);
 
@@ -81,6 +105,31 @@ class WordpressImportService
 
             return $page;
         });
+    }
+
+    private function downloadAndStore(WordpressImportMediaItem $mediaItem): MediaAsset
+    {
+        try {
+            $response = Http::timeout(30)->get($mediaItem->url);
+        } catch (ConnectionException $e) {
+            throw new RuntimeException("Kan {$mediaItem->url} niet bereiken: {$e->getMessage()}");
+        }
+
+        if (! $response->successful()) {
+            throw new RuntimeException("Download van {$mediaItem->url} mislukt (HTTP {$response->status()}).");
+        }
+
+        $tmpPath = tempnam(sys_get_temp_dir(), 'wpmedia_');
+        file_put_contents($tmpPath, $response->body());
+
+        try {
+            $originalName = basename((string) parse_url($mediaItem->url, PHP_URL_PATH)) ?: $mediaItem->title;
+            $uploadedFile = new UploadedFile($tmpPath, $originalName, $mediaItem->mime_type, null, true);
+
+            return $this->mediaUploadService->store($uploadedFile, alt: $mediaItem->title);
+        } finally {
+            @unlink($tmpPath);
+        }
     }
 
     private function uniqueSlug(WordpressImportItem $item): string

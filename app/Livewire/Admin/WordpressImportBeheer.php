@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Enums\WordpressContentType;
 use App\Enums\WordpressImportStatus;
 use App\Models\WordpressImportItem;
+use App\Models\WordpressImportMediaItem;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cms\WordpressImportService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -70,6 +71,17 @@ class WordpressImportBeheer extends Component
         $this->redirectRoute('admin.pages.editor', ['page' => $page->id], navigate: false);
     }
 
+    public function toggleMedia(int $mediaItemId): void
+    {
+        $this->authorizeManage();
+
+        $mediaItem = WordpressImportMediaItem::with('importItem')->findOrFail($mediaItemId);
+
+        abort_unless($mediaItem->importItem->status === WordpressImportStatus::New, 403);
+
+        $mediaItem->update(['selected' => ! $mediaItem->selected]);
+    }
+
     public function archive(int $id, AuditLogger $audit): void
     {
         $this->authorizeManage();
@@ -125,7 +137,7 @@ class WordpressImportBeheer extends Component
             'items' => $this->items(),
             'statuses' => WordpressImportStatus::cases(),
             'types' => WordpressContentType::cases(),
-            'viewingItem' => $this->viewingId ? WordpressImportItem::find($this->viewingId) : null,
+            'viewingItem' => $this->viewingId ? WordpressImportItem::with('mediaItems')->find($this->viewingId) : null,
         ]);
     }
 

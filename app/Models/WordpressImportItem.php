@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Enums\WordpressContentType;
 use App\Enums\WordpressImportStatus;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -25,6 +27,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $page_id
  * @property array<string, mixed>|null $raw_meta
  * @property-read Page|null $page
+ * @property-read Collection<int, WordpressImportMediaItem> $mediaItems
  */
 class WordpressImportItem extends Model
 {
@@ -55,5 +58,11 @@ class WordpressImportItem extends Model
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
+    }
+
+    /** @return HasMany<WordpressImportMediaItem, $this> */
+    public function mediaItems(): HasMany
+    {
+        return $this->hasMany(WordpressImportMediaItem::class);
     }
 }

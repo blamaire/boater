@@ -2,8 +2,10 @@
     <p class="text-sm text-gray-500">
         Pagina's en berichten uit de oude WordPress-site, geïmporteerd via <code>rzvg:import-wordpress</code>. Bekijk
         een item en beslis: <strong>overnemen</strong> maakt er een echte CMS-pagina van (als concept — die controleer
-        en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze staging staan. Let op:
-        afbeeldingen in de overgenomen HTML blijven verwijzen naar de oude site.
+        en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze staging staan. Bij het
+        bekijken van een nieuw item kun je per bijlage aan- of uitvinken of die wordt overgenomen; aangevinkte
+        bijlagen worden bij het overnemen gedownload en toegevoegd aan de mediabibliotheek. Niet-aangevinkte (of
+        mislukte) afbeeldingen blijven naar de oude site verwijzen.
     </p>
 
     @if ($statusMessage)
@@ -134,6 +136,37 @@
                     <div class="text-sm text-gray-800 whitespace-pre-line">{{ $viewingItem->excerpt }}</div>
                 </div>
             @endif
+
+            <div>
+                <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Media in dit item</div>
+                @if ($viewingItem?->mediaItems->isNotEmpty())
+                    <ul class="divide-y divide-gray-100 border border-gray-200 rounded-md">
+                        @foreach ($viewingItem->mediaItems as $mediaItem)
+                            <li class="flex items-center gap-3 px-3 py-2 text-sm" wire:key="wordpress-import-media-{{ $mediaItem->id }}">
+                                @if ($viewingItem->status === \App\Enums\WordpressImportStatus::New)
+                                    <input type="checkbox" wire:click="toggleMedia({{ $mediaItem->id }})" @checked($mediaItem->selected)
+                                        class="rounded border-gray-300 text-[#e12628] focus:ring-[#e12628]">
+                                @elseif ($mediaItem->media_asset_id !== null)
+                                    <x-action-icon name="check" class="text-green-600 shrink-0" />
+                                @elseif ($mediaItem->download_error !== null)
+                                    <x-action-icon name="xmark" class="text-red-600 shrink-0" />
+                                @else
+                                    <span class="w-4 shrink-0"></span>
+                                @endif
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-gray-700">{{ $mediaItem->title }}</p>
+                                    <p class="truncate text-xs text-gray-400">{{ $mediaItem->url }}</p>
+                                    @if ($mediaItem->download_error !== null)
+                                        <p class="text-xs text-red-600">{{ $mediaItem->download_error }}</p>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="text-sm text-gray-400">Geen bijlagen gevonden voor dit item.</p>
+                @endif
+            </div>
 
             <div>
                 <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Inhoud (ruwe HTML)</div>
