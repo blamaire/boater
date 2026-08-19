@@ -10,7 +10,9 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * Saniteert de vrije-HTML-velden van bloktypes die opmaak toestaan (tekst,
  * feature-sectie) — voorkomt stored XSS via het "Broncode"-veld, directe
  * JSON-import, of de handmatige-samenvoeg-functie van de conflictresolver,
- * ongeacht of client-side (Trix) sanering is gepasseerd.
+ * ongeacht of client-side (Trix) sanering is gepasseerd. `class` op `<img>`
+ * gaat door {@see WordpressAlignmentClassSanitizer} — nooit de rauwe waarde,
+ * alleen onze eigen vaste align-classes (§25, WordPress-import).
  */
 class BlockContentSanitizer
 {
@@ -43,12 +45,13 @@ class BlockContentSanitizer
             ->allowElement('figure')
             ->allowElement('figcaption')
             ->allowElement('a', ['href', 'title'])
-            ->allowElement('img', ['src', 'alt', 'title'])
+            ->allowElement('img', ['src', 'alt', 'title', 'class'])
             ->allowLinkSchemes(['http', 'https', 'mailto'])
             ->allowLinkHosts(null)
             ->allowRelativeLinks()
             ->allowMediaSchemes(['http', 'https'])
-            ->allowRelativeMedias();
+            ->allowRelativeMedias()
+            ->withAttributeSanitizer(new WordpressAlignmentClassSanitizer);
 
         $this->sanitizer = new HtmlSanitizer($config);
     }

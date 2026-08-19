@@ -268,8 +268,26 @@ class WordpressImportDetail extends Component
                 href: $mediaItem->url,
             );
 
-            return '<span class="relative inline-block" title="'.e($label).'">'.$imgTag
-                .'<span class="absolute inset-0 flex items-center justify-center gap-1.5">'.$buttons.'</span></span>';
+            // Een eventuele wp-align-*-class (zie BlockContentSanitizer /
+            // WordpressAlignmentClassSanitizer) verplaatst hier naar de
+            // wrapper i.p.v. op de <img> te blijven staan: de wrapper is
+            // inline-block voor de knoppenoverlay, en een float op een kind
+            // dáárvan blijft "gevangen" in die eigen block-formatting-context
+            // (geen tekst-wrap-effect). Op de wrapper zelf werkt het wel.
+            $wrapperClass = 'relative inline-block';
+            if (preg_match('/\bclass=["\'](wp-align-(?:left|right|center))["\']/', $imgTag, $alignMatch) === 1) {
+                $wrapperClass .= ' '.$alignMatch[1];
+                $imgTag = preg_replace('/\s*class=["\'][^"\']*["\']/', '', $imgTag, 1) ?? $imgTag;
+            }
+
+            // Een grijze rechthoek achter/onder de knoppen zelf (niet de hele
+            // inset-0-laag) geeft voldoende contrast op elke onderliggende
+            // foto, ook lichte of witte achtergronden waar de losse witte
+            // knoppen anders in wegvallen.
+            return '<span class="'.$wrapperClass.'" title="'.e($label).'">'.$imgTag
+                .'<span class="absolute inset-0 flex items-center justify-center">'
+                .'<span class="flex items-center gap-1.5 rounded-lg bg-gray-700/80 p-1.5 shadow">'.$buttons.'</span>'
+                .'</span></span>';
         }, $html) ?? $html;
     }
 

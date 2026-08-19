@@ -129,6 +129,22 @@ it('neemt een nieuw item over als CMS-pagina in concept', function () {
     $component->assertRedirect(route('admin.pages.editor', $page));
 });
 
+it('behoudt de vertaalde WordPress-align-class in het opgeslagen blok na overnemen', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img class="alignright wp-image-2" src="https://oud.rzvg.nl/foto.jpg"></p>',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('accept', false);
+
+    $page = Page::findOrFail($item->refresh()->page_id);
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->where('type', 'tekst')->firstOrFail();
+
+    expect($block->content['html'])->toContain('class="wp-align-right"')
+        ->not->toContain('wp-image-2');
+});
+
 it('weigert een tweede accept op een al overgenomen item', function () {
     $item = newWordpressImportItem();
 
@@ -462,6 +478,20 @@ it('verwijdert een omwikkelende WordPress-link rond een afbeelding, zodat de kno
     Livewire::test(WordpressImportDetail::class, ['item' => $item])
         ->assertDontSeeHtml('href="https://oud.rzvg.nl/wp-content/uploads/omwikkeld-full.jpg"')
         ->assertSeeHtml('wire:click="decideMedia('.$media->id.', true)"');
+});
+
+it('verplaatst een WordPress-align-class naar de knoppen-wrapper i.p.v. op de img te laten staan', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img class="alignleft wp-image-1" src="https://oud.rzvg.nl/wp-content/uploads/links.jpg"></p>',
+    ]);
+    newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/links.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    $html = Livewire::test(WordpressImportDetail::class, ['item' => $item])->html();
+
+    expect($html)->toContain('class="relative inline-block wp-align-left"')
+        ->and($html)->not->toContain('<img class=');
 });
 
 it('toont bijlagen die nergens in de content voorkomen niet en laat ze door bulkacties ongemoeid', function () {
