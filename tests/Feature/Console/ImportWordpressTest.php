@@ -204,6 +204,40 @@ XML;
     expect($bericht->content_html)->toBe("<p>Eerste alinea.</p>\n<p>Tweede alinea met een<br />\nzachte regelafbreking erin.</p>");
 });
 
+it('zet platte alinea\'s na een handmatig ingevoegde kop nog steeds om naar <p>-tags', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Wedstrijdzeilen algemeen</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<h2>WEDSTRIJDZEILEN</h2>
+Eerste alinea.
+
+Tweede alinea.]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>503</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>wedstrijdzeilen-algemeen</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $pagina = WordpressImportItem::where('wordpress_id', 503)->firstOrFail();
+    expect($pagina->content_html)->toBe("<h2>WEDSTRIJDZEILEN</h2>\n<p>Eerste alinea.</p>\n<p>Tweede alinea.</p>");
+});
+
 it('laat content met bestaande blokniveau-HTML ongemoeid', function () {
     $xml = <<<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
