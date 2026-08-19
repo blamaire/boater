@@ -61,6 +61,7 @@ class ImportWordpress extends Command
         $mediaStaged = 0;
         $mediaSkippedOrphaned = 0;
         $mediaSkippedTrash = 0;
+        $mediaDiscoveredInContent = 0;
 
         DB::transaction(function () use (
             $xml,
@@ -74,8 +75,10 @@ class ImportWordpress extends Command
             &$mediaStaged,
             &$mediaSkippedOrphaned,
             &$mediaSkippedTrash,
+            &$mediaDiscoveredInContent,
         ): void {
             $attachmentNodes = [];
+            $processedItems = [];
 
             foreach ($xml->channel->item as $item) {
                 $found++;
@@ -126,7 +129,7 @@ class ImportWordpress extends Command
                     'raw_meta' => $this->parseRawMeta($item, $wpStatus),
                 ];
 
-                WordpressImportItem::query()->updateOrCreate(
+                $stagedItem = WordpressImportItem::query()->updateOrCreate(
                     ['wordpress_id' => $wordpressId],
                     array_merge(['wordpress_type' => $postType], $attributes),
                 );
@@ -136,6 +139,8 @@ class ImportWordpress extends Command
                 } else {
                     $updated++;
                 }
+
+                $processedItems[] = $stagedItem;
             }
 
             foreach ($attachmentNodes as $item) {
@@ -172,6 +177,41 @@ class ImportWordpress extends Command
 
                 $mediaStaged++;
             }
+
+            // Fase 3: afbeeldingen die letterlijk in de content staan maar
+            // nergens als WXR-bijlage voorkomen (ook niet gekoppeld aan een
+            // ánder item — WordPress-pagina's hergebruiken elkaars uploads),
+            // alsnog als losse bijlage vastleggen zodat ze op de detailpagina
+            // te kiezen zijn. wordpress_id blijft leeg: er is geen WXR-herkomst.
+            $knownBaseFilenames = WordpressImportMediaItem::query()->pluck('url')
+                ->map(fn (string $url): string => WordpressImportMediaItem::normalizedBaseFilename($url))
+                ->filter(fn (string $base): bool => $base !== '')
+                ->flip()
+                ->all();
+
+            foreach ($processedItems as $stagedItem) {
+                preg_match_all('/<img\b[^>]*\bsrc=["\']([^"\']+)["\']/i', $stagedItem->content_html, $imgMatches);
+
+                foreach ($imgMatches[1] as $src) {
+                    $src = trim($src);
+                    $base = WordpressImportMediaItem::normalizedBaseFilename($src);
+
+                    if ($base === '' || isset($knownBaseFilenames[$base])) {
+                        continue;
+                    }
+
+                    WordpressImportMediaItem::query()->create([
+                        'wordpress_import_item_id' => $stagedItem->id,
+                        'wordpress_id' => null,
+                        'title' => basename(parse_url($src, PHP_URL_PATH) ?: '') ?: $src,
+                        'url' => $src,
+                        'mime_type' => $this->guessMimeFromExtension($src),
+                    ]);
+
+                    $knownBaseFilenames[$base] = true;
+                    $mediaDiscoveredInContent++;
+                }
+            }
         });
 
         $this->info("Gevonden items in export: {$found}.");
@@ -184,6 +224,7 @@ class ImportWordpress extends Command
         $this->info("Bijlagen gekoppeld aan een gestaged item: {$mediaStaged}.");
         $this->info("Bijlagen overgeslagen — geen gekoppelde pagina/bericht: {$mediaSkippedOrphaned}.");
         $this->info("Bijlagen overgeslagen — in de prullenbak: {$mediaSkippedTrash}.");
+        $this->info("Bijlagen ontdekt via de content zelf (geen WXR-herkomst): {$mediaDiscoveredInContent}.");
         $this->warn('Let op: alleen bijlagen die je bij het overnemen aanvinkt worden gedownload; overige afbeeldingen in de HTML blijven naar de oude WordPress-site verwijzen.');
 
         return self::SUCCESS;
@@ -215,6 +256,20 @@ class ImportWordpress extends Command
             ->filter(fn (string $paragraph): bool => $paragraph !== '')
             ->map(fn (string $paragraph): string => '<p>'.nl2br($paragraph).'</p>')
             ->implode("\n");
+    }
+
+    private function guessMimeFromExtension(string $url): ?string
+    {
+        $extension = strtolower(pathinfo(parse_url($url, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => null,
+        };
     }
 
     private function parseExcerpt(SimpleXMLElement $excerptNs): ?string

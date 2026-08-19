@@ -193,30 +193,75 @@ class WordpressImportDetail extends Component
     {
         $sanitized = $sanitizer->sanitize(BlockType::Text, ['html' => $this->item->content_html]);
         $position = $this->position();
+        $visibleMediaItems = $this->visibleMediaItems();
 
         return view('livewire.admin.wordpress-import-detail', [
-            'previewHtml' => $sanitized['html'] ?? '',
+            'previewHtml' => $this->annotatePreviewImages($sanitized['html'] ?? '', $visibleMediaItems),
             'position' => $position['position'],
             'total' => $position['total'],
             'pages' => Page::query()->orderBy('title')->get(),
             'visibilities' => PageVisibility::cases(),
             'ancestors' => $this->ancestorChain(),
-            'visibleMediaItems' => $this->visibleMediaItems(),
+            'visibleMediaItems' => $visibleMediaItems,
         ]);
     }
 
     /**
-     * Alleen bijlagen die daadwerkelijk in de content van dit item voorkomen
-     * — enkel in die context is te beoordelen of iets overgenomen moet
-     * worden. Bijlagen die WordPress wel aan dit item koppelde (via
-     * wp:post_parent) maar die nergens in de tekst gebruikt worden, blijven
-     * hier bewust buiten beeld.
+     * Markeert elke `<img>` in de voorvertoning met een gekleurde rand en een
+     * label ónder de afbeelding (bewust niet overlappend eróvér — de foto zelf
+     * kan elke kleur hebben, dus alleen een label op de eigen paginakleur
+     * blijft altijd leesbaar) dat de beslisstatus van de bijbehorende bijlage
+     * toont. Zelfde kleurenpalet als de statuspil elders op deze pagina.
+     *
+     * @param  Collection<int, WordpressImportMediaItem>  $mediaItems
+     */
+    private function annotatePreviewImages(string $html, Collection $mediaItems): string
+    {
+        if ($html === '' || $mediaItems->isEmpty()) {
+            return $html;
+        }
+
+        return preg_replace_callback('/<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>/i', function (array $match) use ($mediaItems): string {
+            $base = WordpressImportMediaItem::normalizedBaseFilename($match[1]);
+
+            $mediaItem = $mediaItems->first(
+                fn (WordpressImportMediaItem $m): bool => WordpressImportMediaItem::normalizedBaseFilename($m->url) === $base
+            );
+
+            if ($mediaItem === null) {
+                return $match[0];
+            }
+
+            [$label, $borderClass, $badgeClass] = match (true) {
+                $mediaItem->media_asset_id !== null => ['Overgenomen', 'border-green-500', 'bg-green-50 text-green-800 border-green-200'],
+                $mediaItem->download_error !== null => ['Mislukt', 'border-red-500', 'bg-red-50 text-red-800 border-red-200'],
+                $mediaItem->selected === false => ['Niet overgenomen', 'border-gray-400', 'bg-gray-100 text-gray-600 border-gray-200'],
+                default => ['Nog geen besluit', 'border-yellow-500', 'bg-yellow-50 text-yellow-800 border-yellow-200'],
+            };
+
+            $imgTag = preg_replace('/^<img\b/i', '<img class="border-4 rounded '.$borderClass.'"', $match[0], 1);
+
+            return '<span class="inline-block align-top">'.$imgTag
+                .'<span class="block mt-1 w-fit rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap '.$badgeClass.'">'
+                .e($label).'</span></span>';
+        }, $html) ?? $html;
+    }
+
+    /**
+     * Alle bijlagen uit de hele import die daadwerkelijk in de content van dit
+     * item voorkomen — enkel in die context is te beoordelen of iets
+     * overgenomen moet worden. Bewust project-breed gezocht, niet beperkt tot
+     * bijlagen die WordPress via wp:post_parent aan dit item koppelde: een
+     * afbeelding die ooit via pagina A geüpload is, wordt in de praktijk vaak
+     * ook op pagina B getoond. Bijlagen die nergens in de tekst gebruikt
+     * worden, blijven hier bewust buiten beeld.
      *
      * @return Collection<int, WordpressImportMediaItem>
      */
     private function visibleMediaItems(): Collection
     {
-        return $this->item->mediaItems
+        return WordpressImportMediaItem::query()
+            ->get()
             ->filter(fn (WordpressImportMediaItem $m): bool => $m->isReferencedIn($this->item->content_html))
             ->values();
     }

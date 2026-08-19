@@ -235,6 +235,45 @@ XML;
     expect($pagina->content_html)->toBe('<p>Al opgemaakt.</p><p>Nog een alinea.</p>');
 });
 
+it('legt een afbeelding zonder WXR-bijlage-record alsnog vast op basis van de content zelf', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Roeien</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<p><img src="https://oud.rzvg.nl/wp-content/uploads/IMG_9999-300x200.jpg"></p>]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>601</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>roeien</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $item = WordpressImportItem::where('wordpress_id', 601)->firstOrFail();
+    $media = WordpressImportMediaItem::where('wordpress_import_item_id', $item->id)->firstOrFail();
+
+    expect($media->wordpress_id)->toBeNull()
+        ->and($media->url)->toBe('https://oud.rzvg.nl/wp-content/uploads/IMG_9999-300x200.jpg')
+        ->and($media->mime_type)->toBe('image/jpeg');
+
+    // Her-run mag geen duplicaat aanmaken.
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+    expect(WordpressImportMediaItem::where('wordpress_import_item_id', $item->id)->count())->toBe(1);
+});
+
 it('faalt netjes bij een niet-bestaand bestand', function () {
     $this->artisan('rzvg:import-wordpress', ['file' => '/tmp/bestaat-niet.xml'])->assertExitCode(1);
 });

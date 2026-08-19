@@ -48,7 +48,18 @@ class WordpressImportService
 
         $contentHtml = $item->content_html;
 
-        foreach ($item->mediaItems()->where('selected', true)->whereNull('media_asset_id')->get() as $mediaItem) {
+        // Project-breed gezocht, niet beperkt tot bijlagen die WordPress via
+        // wp:post_parent aan dit item koppelde: dezelfde afbeelding wordt in
+        // de praktijk vaak op meerdere pagina's hergebruikt (zie
+        // WordpressImportDetail::visibleMediaItems(), die dezelfde matching
+        // gebruikt om te bepalen wat er te kiezen valt).
+        $eligibleMedia = WordpressImportMediaItem::query()
+            ->where('selected', true)
+            ->whereNull('media_asset_id')
+            ->get()
+            ->filter(fn (WordpressImportMediaItem $m): bool => $m->isReferencedIn($contentHtml));
+
+        foreach ($eligibleMedia as $mediaItem) {
             try {
                 $asset = $this->downloadAndStore($mediaItem);
                 $contentHtml = str_replace($mediaItem->url, $asset->displayUrl(), $contentHtml);

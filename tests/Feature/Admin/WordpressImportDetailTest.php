@@ -363,6 +363,56 @@ it('herkent media die alleen via een geschaalde bestandsnaamvariant in de conten
         ->assertSee($media->title);
 });
 
+it('toont een bijlage die formeel aan een ander item gekoppeld is als ze hier wel in de content staat', function () {
+    $anderItem = newWordpressImportItem(['wordpress_id' => 999, 'title' => 'Ander item']);
+    $media = newWordpressImportMediaItem($anderItem, [
+        'title' => 'hergebruikt.jpg',
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/hergebruikt.jpg',
+    ]);
+
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/hergebruikt.jpg"></p>',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->assertSee('hergebruikt.jpg')
+        ->call('acceptAllMedia');
+
+    expect($media->refresh()->selected)->toBeTrue();
+});
+
+it('herkent WordPress\' -scaled-achtervoegsel op de opgeslagen bestandsnaam', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/IMG_2293-296x222.jpg"></p>',
+    ]);
+    $media = newWordpressImportMediaItem($item, [
+        'title' => 'IMG_2293-scaled.jpg',
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/IMG_2293-scaled.jpg',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->assertSee($media->title);
+});
+
+it('markeert afbeeldingen in de voorvertoning inline met hun beslisstatus', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/onbeslist.jpg">'
+            .'<img src="https://oud.rzvg.nl/wp-content/uploads/afgewezen.jpg"></p>',
+    ]);
+    newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/onbeslist.jpg', 'selected' => null]);
+    newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/afgewezen.jpg', 'selected' => false]);
+
+    $this->actingAs($this->beheerder)
+        ->get("/beheer/wordpress-import/{$item->id}")
+        ->assertOk()
+        ->assertSee('Nog geen besluit')
+        ->assertSee('Niet overgenomen');
+});
+
 it('toont bijlagen die nergens in de content voorkomen niet en laat ze door bulkacties ongemoeid', function () {
     $item = newWordpressImportItem([
         'content_html' => '<p>Geen enkele afbeelding hier.</p>',
