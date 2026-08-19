@@ -56,4 +56,26 @@ class WordpressImportMediaItem extends Model
     {
         return $this->belongsTo(MediaAsset::class);
     }
+
+    /**
+     * Komt deze bijlage daadwerkelijk voor in de gegeven content (bv. het
+     * content_html van het bijbehorende item)? WordPress zet in de tekst
+     * meestal een geschaalde variant van de bestandsnaam (`-300x200.jpg`)
+     * i.p.v. de originele `wp:attachment_url`, dus het formaat-achtervoegsel
+     * wordt genegeerd bij het vergelijken.
+     */
+    public function isReferencedIn(string $contentHtml): bool
+    {
+        $path = parse_url($this->url, PHP_URL_PATH) ?: '';
+        $filename = pathinfo($path, PATHINFO_FILENAME);
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+
+        if ($filename === '' || $extension === '') {
+            return false;
+        }
+
+        $pattern = '/'.preg_quote($filename, '/').'(-\d+x\d+)?\.'.preg_quote($extension, '/').'/i';
+
+        return preg_match($pattern, $contentHtml) === 1;
+    }
 }

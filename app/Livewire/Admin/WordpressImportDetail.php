@@ -12,6 +12,7 @@ use App\Models\WordpressImportMediaItem;
 use App\Services\Audit\AuditLogger;
 use App\Services\Cms\BlockContentSanitizer;
 use App\Services\Cms\WordpressImportService;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -94,7 +95,8 @@ class WordpressImportDetail extends Component
         $this->authorizeManage();
         abort_unless($this->item->status === WordpressImportStatus::New, 403);
 
-        $this->item->mediaItems()->whereNull('media_asset_id')->update(['selected' => true]);
+        $ids = $this->visibleMediaItems()->whereNull('media_asset_id')->pluck('id');
+        WordpressImportMediaItem::query()->whereIn('id', $ids)->update(['selected' => true]);
         $this->item->load('mediaItems');
     }
 
@@ -103,7 +105,8 @@ class WordpressImportDetail extends Component
         $this->authorizeManage();
         abort_unless($this->item->status === WordpressImportStatus::New, 403);
 
-        $this->item->mediaItems()->whereNull('media_asset_id')->update(['selected' => false]);
+        $ids = $this->visibleMediaItems()->whereNull('media_asset_id')->pluck('id');
+        WordpressImportMediaItem::query()->whereIn('id', $ids)->update(['selected' => false]);
         $this->item->load('mediaItems');
     }
 
@@ -198,7 +201,24 @@ class WordpressImportDetail extends Component
             'pages' => Page::query()->orderBy('title')->get(),
             'visibilities' => PageVisibility::cases(),
             'ancestors' => $this->ancestorChain(),
+            'visibleMediaItems' => $this->visibleMediaItems(),
         ]);
+    }
+
+    /**
+     * Alleen bijlagen die daadwerkelijk in de content van dit item voorkomen
+     * — enkel in die context is te beoordelen of iets overgenomen moet
+     * worden. Bijlagen die WordPress wel aan dit item koppelde (via
+     * wp:post_parent) maar die nergens in de tekst gebruikt worden, blijven
+     * hier bewust buiten beeld.
+     *
+     * @return Collection<int, WordpressImportMediaItem>
+     */
+    private function visibleMediaItems(): Collection
+    {
+        return $this->item->mediaItems
+            ->filter(fn (WordpressImportMediaItem $m): bool => $m->isReferencedIn($this->item->content_html))
+            ->values();
     }
 
     /**

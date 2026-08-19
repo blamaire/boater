@@ -321,9 +321,12 @@ it('weigert het beslissen over media op een al overgenomen item', function () {
 });
 
 it('accepteert of weigert alle nog niet gedownloade media in één keer', function () {
-    $item = newWordpressImportItem();
-    $een = newWordpressImportMediaItem($item);
-    $twee = newWordpressImportMediaItem($item);
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/een.jpg">'
+            .'<img src="https://oud.rzvg.nl/wp-content/uploads/twee-300x200.jpg"></p>',
+    ]);
+    $een = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/een.jpg']);
+    $twee = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/twee.jpg']);
     $alGedownload = newWordpressImportMediaItem($item, ['selected' => true, 'media_asset_id' => null]);
     $asset = MediaAsset::create([
         'disk' => 'media', 'path' => 'assets/test.jpg', 'original_name' => 'test.jpg',
@@ -343,6 +346,39 @@ it('accepteert of weigert alle nog niet gedownloade media in één keer', functi
     expect($een->refresh()->selected)->toBeFalse()
         ->and($twee->refresh()->selected)->toBeFalse()
         ->and($alGedownload->refresh()->selected)->toBeTrue();
+});
+
+it('herkent media die alleen via een geschaalde bestandsnaamvariant in de content voorkomt', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/IMG_2293-296x222.jpg"></p>',
+    ]);
+    $media = newWordpressImportMediaItem($item, [
+        'title' => 'IMG_2293.jpg',
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/IMG_2293.jpg',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->assertSee($media->title);
+});
+
+it('toont bijlagen die nergens in de content voorkomen niet en laat ze door bulkacties ongemoeid', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p>Geen enkele afbeelding hier.</p>',
+    ]);
+    $ongebruikt = newWordpressImportMediaItem($item, [
+        'title' => 'nooit-gebruikt.jpg',
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/nooit-gebruikt.jpg',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->assertDontSee('nooit-gebruikt.jpg')
+        ->call('acceptAllMedia');
+
+    expect($ongebruikt->refresh()->selected)->toBeNull();
 });
 
 it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', function () {

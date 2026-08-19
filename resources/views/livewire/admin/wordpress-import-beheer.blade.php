@@ -1,9 +1,15 @@
 <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-    <p class="text-sm text-gray-500">
-        Pagina's en berichten uit de oude WordPress-site, geïmporteerd via <code>rzvg:import-wordpress</code>. Open
-        een item om te beslissen: <strong>overnemen</strong> maakt er een echte CMS-pagina van (als concept — die
-        controleer en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze staging staan.
-    </p>
+    <div class="flex items-start justify-between gap-4">
+        <p class="text-sm text-gray-500">
+            Pagina's en berichten uit de oude WordPress-site, geïmporteerd via <code>rzvg:import-wordpress</code>.
+            Open een item om te beslissen: <strong>overnemen</strong> maakt er een echte CMS-pagina van (als concept
+            — die controleer en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze
+            staging staan.
+        </p>
+        <a href="{{ route('admin.wordpress-import.media') }}" class="shrink-0 text-sm text-rzvg-600 hover:text-rzvg-800 whitespace-nowrap">
+            Media-overzicht &rarr;
+        </a>
+    </div>
 
     @if ($statusMessage)
         <div class="rounded-md bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2" role="status">

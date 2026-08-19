@@ -109,16 +109,16 @@
         <div>
             <div class="flex items-center justify-between mb-1">
                 <div class="text-xs font-semibold text-gray-500 uppercase">Media in dit item</div>
-                @if ($item->status === \App\Enums\WordpressImportStatus::New && $item->mediaItems->isNotEmpty())
+                @if ($item->status === \App\Enums\WordpressImportStatus::New && $visibleMediaItems->isNotEmpty())
                     <div class="flex gap-3 text-xs">
                         <button type="button" wire:click="acceptAllMedia" class="text-rzvg-600 hover:text-rzvg-800">Alles overnemen</button>
                         <button type="button" wire:click="rejectAllMedia" class="text-gray-500 hover:text-gray-700">Alles niet overnemen</button>
                     </div>
                 @endif
             </div>
-            @if ($item->mediaItems->isNotEmpty())
+            @if ($visibleMediaItems->isNotEmpty())
                 <ul class="divide-y divide-gray-100 border border-gray-200 rounded-md">
-                    @foreach ($item->mediaItems as $mediaItem)
+                    @foreach ($visibleMediaItems as $mediaItem)
                         <li class="flex items-center gap-3 px-3 py-2 text-sm" wire:key="wordpress-import-media-{{ $mediaItem->id }}">
                             @if (str_starts_with($mediaItem->mime_type ?? '', 'image/'))
                                 <a href="{{ $mediaItem->url }}" target="_blank" rel="noopener" class="shrink-0">
