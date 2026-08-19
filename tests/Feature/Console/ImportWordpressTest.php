@@ -25,6 +25,7 @@ function wxrFixture(string $pageTitle = 'Over ons', string $postTitle = 'Wedstri
         <wp:post_name>over-ons</wp:post_name>
         <wp:status>publish</wp:status>
         <wp:post_type>page</wp:post_type>
+        <wp:post_parent>100</wp:post_parent>
     </item>
     <item>
         <title>{$postTitle}</title>
@@ -106,18 +107,20 @@ it('importeert pagina\'s en berichten en slaat prullenbak/andere types over', fu
         ->and($page->title)->toBe('Over ons')
         ->and($page->content_html)->toBe('<p>Dit is de over-ons-pagina.</p>')
         ->and($page->wordpress_published_at)->not->toBeNull()
-        ->and($page->wordpress_published_at->format('Y-m-d'))->toBe('2020-06-01');
+        ->and($page->wordpress_published_at->format('Y-m-d'))->toBe('2020-06-01')
+        ->and($page->wordpress_parent_id)->toBe(100);
 
     $post = WordpressImportItem::where('wordpress_id', 202)->firstOrFail();
     expect($post->wordpress_type)->toBe(WordpressContentType::Post)
         ->and($post->raw_meta['categories'])->toContain('Nieuws')
-        ->and($post->raw_meta['tags'])->toContain('Uitslag');
+        ->and($post->raw_meta['tags'])->toContain('Uitslag')
+        ->and($post->wordpress_parent_id)->toBeNull();
 
     $media = WordpressImportMediaItem::where('wordpress_id', 303)->firstOrFail();
     expect($media->wordpress_import_item_id)->toBe($post->id)
         ->and($media->url)->toBe('https://oud.rzvg.nl/wp-content/uploads/2021/07/bijlage.pdf')
         ->and($media->mime_type)->toBe('application/pdf')
-        ->and($media->selected)->toBeTrue();
+        ->and($media->selected)->toBeNull();
 
     expect(WordpressImportMediaItem::where('wordpress_id', 305)->exists())->toBeFalse();
 });
@@ -165,6 +168,144 @@ it('behoudt de selectie en gedownloade status van een bijlage bij een her-run', 
     $media->refresh();
     expect($media->selected)->toBeFalse()
         ->and($media->download_error)->toBe('eerder mislukt');
+});
+
+it('zet platte, alinealoze content om naar <p>-tags (klassieke WordPress-editor)', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Feest!!</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[Eerste alinea.
+
+Tweede alinea met een
+zachte regelafbreking erin.]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>501</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>feest</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $bericht = WordpressImportItem::where('wordpress_id', 501)->firstOrFail();
+    expect($bericht->content_html)->toBe("<p>Eerste alinea.</p>\n<p>Tweede alinea met een<br />\nzachte regelafbreking erin.</p>");
+});
+
+it('zet platte alinea\'s na een handmatig ingevoegde kop nog steeds om naar <p>-tags', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Wedstrijdzeilen algemeen</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<h2>WEDSTRIJDZEILEN</h2>
+Eerste alinea.
+
+Tweede alinea.]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>503</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>wedstrijdzeilen-algemeen</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $pagina = WordpressImportItem::where('wordpress_id', 503)->firstOrFail();
+    expect($pagina->content_html)->toBe("<h2>WEDSTRIJDZEILEN</h2>\n<p>Eerste alinea.</p>\n<p>Tweede alinea.</p>");
+});
+
+it('laat content met bestaande blokniveau-HTML ongemoeid', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Gutenberg-pagina</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<p>Al opgemaakt.</p><p>Nog een alinea.</p>]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>502</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>gutenberg-pagina</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $pagina = WordpressImportItem::where('wordpress_id', 502)->firstOrFail();
+    expect($pagina->content_html)->toBe('<p>Al opgemaakt.</p><p>Nog een alinea.</p>');
+});
+
+it('legt een afbeelding zonder WXR-bijlage-record alsnog vast op basis van de content zelf', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Roeien</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<p><img src="https://oud.rzvg.nl/wp-content/uploads/IMG_9999-300x200.jpg"></p>]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>601</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>roeien</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $item = WordpressImportItem::where('wordpress_id', 601)->firstOrFail();
+    $media = WordpressImportMediaItem::where('wordpress_import_item_id', $item->id)->firstOrFail();
+
+    expect($media->wordpress_id)->toBeNull()
+        ->and($media->url)->toBe('https://oud.rzvg.nl/wp-content/uploads/IMG_9999-300x200.jpg')
+        ->and($media->mime_type)->toBe('image/jpeg');
+
+    // Her-run mag geen duplicaat aanmaken.
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+    expect(WordpressImportMediaItem::where('wordpress_import_item_id', $item->id)->count())->toBe(1);
 });
 
 it('faalt netjes bij een niet-bestaand bestand', function () {
