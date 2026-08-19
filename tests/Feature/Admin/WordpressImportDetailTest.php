@@ -212,15 +212,16 @@ it('stelt de bovenliggende pagina automatisch in als de oude ouder al is overgen
 
     $component = Livewire::test(WordpressImportDetail::class, ['item' => $kindItem])
         ->assertSet('parentId', $ouderPagina->id)
-        ->assertSet('oldParentHint', 'Activiteiten')
+        ->assertSee('Activiteiten')
         ->call('accept', false);
 
     $page = Page::findOrFail($kindItem->refresh()->page_id);
     expect($page->parent_id)->toBe($ouderPagina->id);
 });
 
-it('toont een hint als de oude bovenliggende pagina nog niet is overgenomen', function () {
-    newWordpressImportItem(['wordpress_id' => 100, 'title' => 'Activiteiten']);
+it('toont de volledige oude paginahiërarchie met statusiconen, root eerst', function () {
+    $grootouder = newWordpressImportItem(['wordpress_id' => 10, 'title' => 'Vereniging', 'status' => WordpressImportStatus::Archived]);
+    $ouder = newWordpressImportItem(['wordpress_id' => 100, 'wordpress_parent_id' => 10, 'title' => 'Activiteiten']);
 
     $kindItem = newWordpressImportItem([
         'wordpress_id' => 101,
@@ -232,11 +233,16 @@ it('toont een hint als de oude bovenliggende pagina nog niet is overgenomen', fu
     $this->actingAs($this->beheerder);
 
     Livewire::test(WordpressImportDetail::class, ['item' => $kindItem])
-        ->assertSet('parentId', null)
-        ->assertSet('oldParentHint', 'Activiteiten');
+        ->assertSeeInOrder(['Vereniging', 'Activiteiten'])
+        ->assertSee(route('admin.wordpress-import.show', [
+            'item' => $grootouder->id, 'sort' => 'wordpress_published_at', 'direction' => 'desc', 'filterType' => '', 'filterStatus' => '',
+        ]))
+        ->assertSee(route('admin.wordpress-import.show', [
+            'item' => $ouder->id, 'sort' => 'wordpress_published_at', 'direction' => 'desc', 'filterType' => '', 'filterStatus' => '',
+        ]));
 });
 
-it('past de ouder-suggestie niet toe op berichten', function () {
+it('past de ouder-suggestie en -boom niet toe op berichten', function () {
     newWordpressImportItem(['wordpress_id' => 100, 'title' => 'Activiteiten']);
 
     $bericht = newWordpressImportItem([
@@ -250,7 +256,7 @@ it('past de ouder-suggestie niet toe op berichten', function () {
 
     Livewire::test(WordpressImportDetail::class, ['item' => $bericht])
         ->assertSet('parentId', null)
-        ->assertSet('oldParentHint', null);
+        ->assertDontSee('Activiteiten');
 });
 
 it('scoopt slug-uniciteit per bovenliggende pagina, niet globaal', function () {

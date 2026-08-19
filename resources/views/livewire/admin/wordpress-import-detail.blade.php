@@ -58,6 +58,30 @@
             </div>
         @endif
 
+        @if (count($ancestors) > 0)
+            <div>
+                <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Oude paginahiërarchie</div>
+                <ul class="text-sm">
+                    @foreach ($ancestors as $depth => $ancestor)
+                        <li class="flex items-center gap-2 py-0.5" style="padding-left: {{ $depth }}rem">
+                            @switch($ancestor->status)
+                                @case(\App\Enums\WordpressImportStatus::Imported)
+                                    <x-action-icon name="check" class="text-green-600 h-3.5 w-3.5 shrink-0" />
+                                    @break
+                                @case(\App\Enums\WordpressImportStatus::Archived)
+                                    <x-action-icon name="archive" class="text-gray-400 h-3.5 w-3.5 shrink-0" />
+                                    @break
+                                @default
+                                    <x-action-icon name="clock" class="text-yellow-600 h-3.5 w-3.5 shrink-0" />
+                            @endswitch
+                            <a href="{{ route('admin.wordpress-import.show', ['item' => $ancestor->id, 'sort' => $sortField, 'direction' => $sortDirection, 'filterType' => $filterType, 'filterStatus' => $filterStatus]) }}"
+                                class="text-rzvg-600 hover:text-rzvg-800">{{ $ancestor->title }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if ($item->status === \App\Enums\WordpressImportStatus::New)
             <div class="grid gap-4 sm:grid-cols-2 border-t border-gray-100 pt-4">
                 <div>
@@ -77,14 +101,6 @@
                                 <option value="{{ $p->id }}">{{ $p->title }}</option>
                             @endforeach
                         </select>
-                        @if ($oldParentHint)
-                            <p class="text-xs text-gray-400 mt-1">
-                                Stond in de oude site onder: {{ $oldParentHint }}
-                                @if ($parentId === null)
-                                    (nog niet overgenomen)
-                                @endif
-                            </p>
-                        @endif
                     </div>
                 @endif
             </div>

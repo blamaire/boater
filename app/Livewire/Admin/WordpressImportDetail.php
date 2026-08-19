@@ -42,8 +42,6 @@ class WordpressImportDetail extends Component
 
     public ?int $parentId = null;
 
-    public ?string $oldParentHint = null;
-
     public ?string $statusMessage = null;
 
     public ?string $errorMessage = null;
@@ -72,16 +70,8 @@ class WordpressImportDetail extends Component
         if ($this->item->wordpress_type === WordpressContentType::Page && $this->item->wordpress_parent_id !== null) {
             $oldParent = WordpressImportItem::query()->where('wordpress_id', $this->item->wordpress_parent_id)->first();
 
-            if ($oldParent !== null) {
-                // Altijd tonen, ook als de ouder al is overgenomen: anders is de
-                // oorspronkelijke WordPress-hiërarchie na verloop van tijd nergens
-                // meer te zien (het gekozen veld hieronder ziet er dan hetzelfde
-                // uit als een handmatige keuze).
-                $this->oldParentHint = $oldParent->title;
-
-                if ($oldParent->page_id !== null) {
-                    $this->parentId = $oldParent->page_id;
-                }
+            if ($oldParent?->page_id !== null) {
+                $this->parentId = $oldParent->page_id;
             }
         }
     }
@@ -207,7 +197,42 @@ class WordpressImportDetail extends Component
             'total' => $position['total'],
             'pages' => Page::query()->orderBy('title')->get(),
             'visibilities' => PageVisibility::cases(),
+            'ancestors' => $this->ancestorChain(),
         ]);
+    }
+
+    /**
+     * Loopt de oude WordPress-ouderketen van dit item op, root eerst. Alleen
+     * zinvol voor pagina's (WordPress kent daar een hiërarchie voor, berichten
+     * niet). Stopt bij een ontbrekende schakel (geen gestaged item met dat
+     * wordpress_id) of na 20 niveaus als cirkelbescherming.
+     *
+     * @return array<int, WordpressImportItem>
+     */
+    private function ancestorChain(): array
+    {
+        if ($this->item->wordpress_type !== WordpressContentType::Page) {
+            return [];
+        }
+
+        $chain = [];
+        $seen = [];
+        $parentWordpressId = $this->item->wordpress_parent_id;
+
+        while ($parentWordpressId !== null && count($chain) < 20 && ! in_array($parentWordpressId, $seen, true)) {
+            $seen[] = $parentWordpressId;
+
+            $ancestor = WordpressImportItem::query()->where('wordpress_id', $parentWordpressId)->first();
+
+            if ($ancestor === null) {
+                break;
+            }
+
+            $chain[] = $ancestor;
+            $parentWordpressId = $ancestor->wordpress_parent_id;
+        }
+
+        return array_reverse($chain);
     }
 
     /**
