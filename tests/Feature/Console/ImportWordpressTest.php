@@ -170,6 +170,71 @@ it('behoudt de selectie en gedownloade status van een bijlage bij een her-run', 
         ->and($media->download_error)->toBe('eerder mislukt');
 });
 
+it('zet platte, alinealoze content om naar <p>-tags (klassieke WordPress-editor)', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Feest!!</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[Eerste alinea.
+
+Tweede alinea met een
+zachte regelafbreking erin.]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>501</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>feest</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>post</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $bericht = WordpressImportItem::where('wordpress_id', 501)->firstOrFail();
+    expect($bericht->content_html)->toBe("<p>Eerste alinea.</p>\n<p>Tweede alinea met een<br />\nzachte regelafbreking erin.</p>");
+});
+
+it('laat content met bestaande blokniveau-HTML ongemoeid', function () {
+    $xml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+    xmlns:content="http://purl.org/rss/1.0/modules/content/"
+    xmlns:wp="http://wordpress.org/export/1.2/"
+    xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/">
+<channel>
+    <title>RZVG</title>
+    <item>
+        <title>Gutenberg-pagina</title>
+        <pubDate>Wed, 30 Aug 2017 10:00:00 +0000</pubDate>
+        <content:encoded><![CDATA[<p>Al opgemaakt.</p><p>Nog een alinea.</p>]]></content:encoded>
+        <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+        <wp:post_id>502</wp:post_id>
+        <wp:post_date>2017-08-30 10:00:00</wp:post_date>
+        <wp:post_name>gutenberg-pagina</wp:post_name>
+        <wp:status>publish</wp:status>
+        <wp:post_type>page</wp:post_type>
+    </item>
+</channel>
+</rss>
+XML;
+
+    $path = writeWxrFixture($xml);
+    $this->artisan('rzvg:import-wordpress', ['file' => $path])->assertExitCode(0);
+
+    $pagina = WordpressImportItem::where('wordpress_id', 502)->firstOrFail();
+    expect($pagina->content_html)->toBe('<p>Al opgemaakt.</p><p>Nog een alinea.</p>');
+});
+
 it('faalt netjes bij een niet-bestaand bestand', function () {
     $this->artisan('rzvg:import-wordpress', ['file' => '/tmp/bestaat-niet.xml'])->assertExitCode(1);
 });

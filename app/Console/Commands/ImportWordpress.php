@@ -119,7 +119,7 @@ class ImportWordpress extends Command
                 $attributes = [
                     'title' => (string) $item->title,
                     'slug' => (string) $wp->post_name,
-                    'content_html' => (string) $content->encoded,
+                    'content_html' => $this->autoParagraph((string) $content->encoded),
                     'excerpt' => $this->parseExcerpt($excerptNs),
                     'wordpress_published_at' => $this->parsePubDate((string) $item->pubDate),
                     'wordpress_parent_id' => ((int) $wp->post_parent) ?: null,
@@ -192,6 +192,29 @@ class ImportWordpress extends Command
     private function childrenOf(SimpleXMLElement $node, string $namespace): SimpleXMLElement
     {
         return $node->children($namespace) ?? new SimpleXMLElement('<leeg/>');
+    }
+
+    /**
+     * WordPress' klassieke editor slaat content op als platte tekst met
+     * blanco regels tussen alinea's, zonder `<p>`-tags — die worden pas bij
+     * weergave op de oude site toegevoegd door WordPress' eigen `wpautop()`.
+     * Zonder die stap smelt de hele tekst tot één blok samen (browsers
+     * negeren losse newlines). Bevat de content al blokniveau-HTML (bv.
+     * Gutenberg-pagina's met `<p>`/`<div>`), dan raken we niets aan.
+     */
+    private function autoParagraph(string $html): string
+    {
+        $html = trim(str_replace(["\r\n", "\r"], "\n", $html));
+
+        if ($html === '' || preg_match('/<(p|div|table|blockquote|ul|ol|h[1-6]|figure|section|article|pre)[\s>]/i', $html) === 1) {
+            return $html;
+        }
+
+        return collect(preg_split('/\n{2,}/', $html))
+            ->map(fn (string $paragraph): string => trim($paragraph))
+            ->filter(fn (string $paragraph): bool => $paragraph !== '')
+            ->map(fn (string $paragraph): string => '<p>'.nl2br($paragraph).'</p>')
+            ->implode("\n");
     }
 
     private function parseExcerpt(SimpleXMLElement $excerptNs): ?string
