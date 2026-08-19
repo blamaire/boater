@@ -161,7 +161,7 @@
 
         <div>
             <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Voorvertoning</div>
-            <div class="prose max-w-none border border-gray-200 rounded-md p-4 max-h-96 overflow-y-auto">
+            <div class="prose max-w-none border border-gray-200 rounded-md p-4">
                 {!! $previewHtml !!}
             </div>
         </div>
