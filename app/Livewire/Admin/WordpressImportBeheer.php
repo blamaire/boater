@@ -8,6 +8,7 @@ use App\Models\WordpressImportItem;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -16,18 +17,27 @@ use Livewire\WithPagination;
  * `wordpress_import_items`, sorteerbaar en filterbaar op status/type. Alle
  * beslissingen (overnemen/archiveren/terugzetten) gebeuren op de detailpagina
  * (`WordpressImportDetail`), niet hier. Permissie: `wordpress_import.manage`.
+ * Filter/sortering staan in de URL (`#[Url]`) — niet enkel om te kunnen
+ * bookmarken, maar vooral omdat de detailpagina dezelfde parameternamen
+ * gebruikt om terug te linken: zonder dit verloor "Terug naar overzicht" de
+ * actieve filtering, terwijl de dropdowns zelf (browserstate) 'm nog wél
+ * toonden.
  */
 #[Layout('layouts.app', ['header' => 'WordPress-import'])]
 class WordpressImportBeheer extends Component
 {
     use WithPagination;
 
+    #[Url]
     public string $filterStatus = '';
 
+    #[Url]
     public string $filterType = '';
 
+    #[Url(as: 'sort')]
     public string $sortField = 'wordpress_published_at';
 
+    #[Url(as: 'direction')]
     public string $sortDirection = 'desc';
 
     public ?string $statusMessage = null;

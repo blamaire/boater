@@ -1,5 +1,5 @@
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-    <a href="{{ route('admin.wordpress-import.index') }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">
+    <a href="{{ route('admin.wordpress-import.index', ['sort' => $sortField, 'direction' => $sortDirection, 'filterType' => $filterType, 'filterStatus' => $filterStatus]) }}" class="text-sm text-rzvg-600 hover:text-rzvg-800">
         &larr; Terug naar overzicht
     </a>
 
