@@ -31,8 +31,11 @@ use RuntimeException;
  * en zelf publiceert. De volledige `content:encoded`-HTML gaat in één
  * Tekst-blok; `BlockObserver`/`BlockContentSanitizer` saneren die HTML al
  * bij het opslaan van het blok. Geselecteerde bijlagen worden vóór het
- * aanmaken van de pagina gedownload en als `MediaAsset` opgeslagen; hun
- * URL wordt in de HTML herschreven naar de nieuwe media-URL.
+ * aanmaken van de pagina gedownload en als `MediaAsset` opgeslagen; hun URL
+ * wordt in de HTML herschreven naar de nieuwe media-URL. Bijlagen die niet
+ * overgenomen zijn (afgewezen, nooit besloten, of een mislukte download)
+ * worden vervangen door een leesbare melding i.p.v. een dode link naar de
+ * oude site — zie {@see missingMediaNotice()}.
  */
 class WordpressImportService
 {
@@ -53,21 +56,39 @@ class WordpressImportService
         // de praktijk vaak op meerdere pagina's hergebruikt (zie
         // WordpressImportDetail::visibleMediaItems(), die dezelfde matching
         // gebruikt om te bepalen wat er te kiezen valt).
-        $eligibleMedia = WordpressImportMediaItem::query()
-            ->where('selected', true)
-            ->whereNull('media_asset_id')
+        $referencedMedia = WordpressImportMediaItem::query()
             ->get()
             ->filter(fn (WordpressImportMediaItem $m): bool => $m->isReferencedIn($contentHtml));
 
-        foreach ($eligibleMedia as $mediaItem) {
-            try {
-                $asset = $this->downloadAndStore($mediaItem);
-                $contentHtml = str_replace($mediaItem->url, $asset->displayUrl(), $contentHtml);
-                $mediaItem->update(['media_asset_id' => $asset->id, 'download_error' => null]);
-            } catch (\Throwable $e) {
-                $mediaItem->update(['download_error' => $e->getMessage()]);
+        foreach ($referencedMedia as $mediaItem) {
+            if ($mediaItem->selected === true && $mediaItem->media_asset_id === null) {
+                try {
+                    $asset = $this->downloadAndStore($mediaItem);
+                    $mediaItem->update(['media_asset_id' => $asset->id, 'download_error' => null]);
+                } catch (\Throwable $e) {
+                    $mediaItem->update(['download_error' => $e->getMessage()]);
+                }
             }
         }
+
+        // Elke <img> die daadwerkelijk als MediaAsset is overgenomen (nu of
+        // eerder, via een andere pagina die 'm ook gebruikt) krijgt de nieuwe
+        // URL; wat niet overgenomen is (bewust afgewezen, nooit besloten, of
+        // een mislukte download) wordt vervangen door een leesbare melding
+        // i.p.v. een dode link naar de oude site — zodat een redacteur het in
+        // de pagina-editor kan terugvinden en verwijderen of vervangen.
+        $contentHtml = WordpressImportMediaItem::replaceMatchingImages($contentHtml, $referencedMedia, function (WordpressImportMediaItem $mediaItem, string $imgTag): string {
+            if ($mediaItem->media_asset_id !== null) {
+                $newSrc = 'src="'.e($mediaItem->mediaAsset->displayUrl()).'"';
+
+                // preg_replace_callback i.p.v. preg_replace: de vervanging kan
+                // niet per ongeluk als backreference ($1, \1, ...) uitgelegd
+                // worden, ongeacht wat displayUrl() teruggeeft.
+                return preg_replace_callback('/\bsrc=["\'][^"\']+["\']/', fn (): string => $newSrc, $imgTag, 1) ?? $imgTag;
+            }
+
+            return $this->missingMediaNotice($mediaItem);
+        });
 
         return DB::transaction(function () use ($item, $audit, $contentHtml, $visibility, $parentId) {
             $template = Template::query()->where('name', 'Standaard')->firstOrFail();
@@ -127,6 +148,26 @@ class WordpressImportService
 
             return $page;
         });
+    }
+
+    /**
+     * Leesbare vervanging voor een `<img>` die niet als `MediaAsset`
+     * overgenomen is, zodat een redacteur in de pagina-editor ziet dát er
+     * iets ontbrak en zelf kan besluiten de tekst te verwijderen of te
+     * vervangen door eigen content — in plaats van een stille, dode link naar
+     * de oude WordPress-site.
+     */
+    private function missingMediaNotice(WordpressImportMediaItem $mediaItem): string
+    {
+        $notice = 'Media niet overgenomen: "'.$mediaItem->title.'".';
+
+        if ($mediaItem->download_error !== null) {
+            $notice .= ' Download mislukt: '.$mediaItem->download_error;
+        }
+
+        $notice .= ' Verwijder deze tekst of vervang ze door eigen content.';
+
+        return '<strong>['.e($notice).']</strong>';
     }
 
     private function downloadAndStore(WordpressImportMediaItem $mediaItem): MediaAsset

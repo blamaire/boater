@@ -224,29 +224,9 @@ class WordpressImportDetail extends Component
      */
     private function annotatePreviewImages(string $html, Collection $mediaItems): string
     {
-        if ($html === '' || $mediaItems->isEmpty()) {
-            return $html;
-        }
-
         $isNew = $this->item->status === WordpressImportStatus::New;
 
-        // WordPress wikkelt een afbeelding vaak zelf al in <a href="...volledige-grootte...">
-        // (standaard "Link naar"-instelling bij het invoegen). Die omwikkelende
-        // link (indien aanwezig) wordt hier meegepakt en laten vallen — anders
-        // zit onze eigen knoppenrij ín die link, en opent elke klik ook de
-        // oude link ernaast.
-        return preg_replace_callback('/(?:<a\b[^>]*>\s*)?(<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>)(?:\s*<\/a>)?/i', function (array $match) use ($mediaItems, $isNew): string {
-            $imgTag = $match[1];
-            $base = WordpressImportMediaItem::normalizedBaseFilename($match[2]);
-
-            $mediaItem = $mediaItems->first(
-                fn (WordpressImportMediaItem $m): bool => WordpressImportMediaItem::normalizedBaseFilename($m->url) === $base
-            );
-
-            if ($mediaItem === null) {
-                return $match[0];
-            }
-
+        return WordpressImportMediaItem::replaceMatchingImages($html, $mediaItems, function (WordpressImportMediaItem $mediaItem, string $imgTag) use ($isNew): string {
             $label = match (true) {
                 $mediaItem->media_asset_id !== null => 'Overgenomen',
                 $mediaItem->download_error !== null => 'Mislukt: '.$mediaItem->download_error,
@@ -288,7 +268,7 @@ class WordpressImportDetail extends Component
                 .'<span class="absolute inset-0 flex items-center justify-center">'
                 .'<span class="flex items-center gap-1.5 rounded-lg bg-gray-700/80 p-1.5 shadow">'.$buttons.'</span>'
                 .'</span></span>';
-        }, $html) ?? $html;
+        });
     }
 
     private function previewIconButton(string $iconPath, string $title, bool $active, ?string $wireClick = null, ?string $href = null, string $activeClass = 'bg-gray-800 text-white'): string

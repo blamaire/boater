@@ -541,7 +541,35 @@ it('downloadt geselecteerde media bij overnemen en herschrijft de content-URL', 
         ->and($block->content['html'])->not->toContain('oud.rzvg.nl');
 });
 
-it('behoudt de oude URL en zet een foutmelding als de download mislukt', function () {
+it('vervangt een afgewezen of onbesliste afbeelding door een melding i.p.v. de dode oude URL', function () {
+    Http::fake();
+
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/afgewezen.jpg">'
+            .'<img src="https://oud.rzvg.nl/wp-content/uploads/onbeslist.jpg"></p>',
+    ]);
+    newWordpressImportMediaItem($item, ['title' => 'afgewezen.jpg', 'url' => 'https://oud.rzvg.nl/wp-content/uploads/afgewezen.jpg', 'selected' => false]);
+    newWordpressImportMediaItem($item, ['title' => 'onbeslist.jpg', 'url' => 'https://oud.rzvg.nl/wp-content/uploads/onbeslist.jpg', 'selected' => null]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])->call('accept', false);
+
+    Http::assertNothingSent();
+
+    $item->refresh();
+    $page = Page::findOrFail($item->page_id);
+    $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->where('type', 'tekst')->firstOrFail();
+
+    expect($block->content['html'])
+        ->not->toContain('<img')
+        ->not->toContain('oud.rzvg.nl')
+        ->toContain('Media niet overgenomen')
+        ->toContain('afgewezen.jpg')
+        ->toContain('onbeslist.jpg');
+});
+
+it('vervangt de afbeelding door een melding als de download mislukt', function () {
     Http::fake([
         'https://oud.rzvg.nl/wp-content/uploads/weg.jpg' => Http::response('', 404),
     ]);
@@ -549,7 +577,7 @@ it('behoudt de oude URL en zet een foutmelding als de download mislukt', functio
     $item = newWordpressImportItem([
         'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/weg.jpg"></p>',
     ]);
-    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/weg.jpg', 'selected' => true]);
+    $media = newWordpressImportMediaItem($item, ['title' => 'weg.jpg', 'url' => 'https://oud.rzvg.nl/wp-content/uploads/weg.jpg', 'selected' => true]);
 
     $this->actingAs($this->beheerder);
 
@@ -563,7 +591,10 @@ it('behoudt de oude URL en zet een foutmelding als de download mislukt', functio
     $page = Page::findOrFail($item->page_id);
     $block = $page->versions()->firstOrFail()->bands()->firstOrFail()->blocks()->where('type', 'tekst')->firstOrFail();
 
-    expect($block->content['html'])->toContain('oud.rzvg.nl/wp-content/uploads/weg.jpg');
+    expect($block->content['html'])
+        ->not->toContain('<img')
+        ->toContain('Media niet overgenomen')
+        ->toContain('weg.jpg');
 });
 
 it('downloadt niet-geselecteerde media niet bij overnemen', function () {

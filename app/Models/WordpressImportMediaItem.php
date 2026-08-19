@@ -2,8 +2,11 @@
 
 namespace App\Models;
 
+use App\Livewire\Admin\WordpressImportDetail;
+use App\Services\Cms\WordpressImportService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 
 /**
  * Eén bijlage (`wp:post_type=attachment`) uit een WordPress WXR-export (§25),
@@ -96,5 +99,38 @@ class WordpressImportMediaItem extends Model
         $filename = preg_replace('/-scaled$/i', '', $filename) ?? $filename;
 
         return strtolower($filename);
+    }
+
+    /**
+     * Doorloopt elke `<img>` in `$html` — inclusief een eventuele omwikkelende
+     * `<a href="...">` naar de volledige-grootte-versie, die WordPress
+     * standaard toevoegt en die hier altijd meegenomen (en dus vervangen)
+     * wordt, anders zit een eigen vervanging ín die oude link. Voor elke
+     * `<img>` die op bestandsnaam matcht met een item uit `$mediaItems` (zie
+     * {@see isReferencedIn()}) wordt `$replace` aangeroepen; niet-matchende
+     * `<img>`-tags blijven ongewijzigd. Gedeeld tussen de importvoorvertoning
+     * ({@see WordpressImportDetail}) en het daadwerkelijk
+     * opslaan bij overnemen ({@see WordpressImportService}),
+     * zodat beide exact dezelfde matching gebruiken.
+     *
+     * @param  Collection<int, self>  $mediaItems
+     * @param  callable(self, string): string  $replace  Ontvangt het matchende media-item en de kale `<img>`-tag (zonder omwikkelende link); retourneert de vervangende HTML.
+     */
+    public static function replaceMatchingImages(string $html, Collection $mediaItems, callable $replace): string
+    {
+        if ($html === '' || $mediaItems->isEmpty()) {
+            return $html;
+        }
+
+        return preg_replace_callback(
+            '/(?:<a\b[^>]*>\s*)?(<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>)(?:\s*<\/a>)?/i',
+            function (array $match) use ($mediaItems, $replace): string {
+                $base = self::normalizedBaseFilename($match[2]);
+                $mediaItem = $mediaItems->first(fn (self $m): bool => self::normalizedBaseFilename($m->url) === $base);
+
+                return $mediaItem === null ? $match[0] : $replace($mediaItem, $match[1]);
+            },
+            $html
+        ) ?? $html;
     }
 }
