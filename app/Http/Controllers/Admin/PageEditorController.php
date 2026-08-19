@@ -99,6 +99,14 @@ class PageEditorController extends Controller
             ? $this->conflictDetector->detect(mine: $published, theirs: $version, base: null)
             : null;
 
+        // Alleen bij de allereerste publicatie van een uit WordPress
+        // overgenomen pagina is "overgenomen van de oude website" een
+        // zinvolle standaardomschrijving — latere wijzigingen aan dezelfde
+        // pagina zijn geen WordPress-overname meer.
+        $defaultNote = $published === null && $page->wordpressImportItem !== null
+            ? 'Overgenomen van de oude website'
+            : null;
+
         return view('admin.pages.versions-confirm', [
             'page' => $page,
             'version' => $version,
@@ -107,6 +115,7 @@ class PageEditorController extends Controller
             'submitRouteName' => $submitRouteName,
             'actionLabel' => $actionLabel,
             'rebaseNotice' => $result['notice'],
+            'defaultNote' => $defaultNote,
         ]);
     }
 
