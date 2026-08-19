@@ -320,6 +320,24 @@ it('weigert het beslissen over media op een al overgenomen item', function () {
         ->assertForbidden();
 });
 
+it('staat beslissen wel toe als het bekeken item nog Nieuw is, ook als de bijlage formeel aan een ander (al overgenomen) item hangt', function () {
+    $anderItem = newWordpressImportItem(['wordpress_id' => 999, 'status' => WordpressImportStatus::Imported]);
+    $media = newWordpressImportMediaItem($anderItem, [
+        'url' => 'https://oud.rzvg.nl/wp-content/uploads/hergebruikt.jpg',
+    ]);
+
+    $item = newWordpressImportItem([
+        'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/hergebruikt.jpg"></p>',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->call('decideMedia', $media->id, true);
+
+    expect($media->refresh()->selected)->toBeTrue();
+});
+
 it('accepteert of weigert alle nog niet gedownloade media in één keer', function () {
     $item = newWordpressImportItem([
         'content_html' => '<p><img src="https://oud.rzvg.nl/wp-content/uploads/een.jpg">'
@@ -411,6 +429,39 @@ it('markeert afbeeldingen in de voorvertoning inline met hun beslisstatus', func
         ->assertOk()
         ->assertSee('Nog geen besluit')
         ->assertSee('Niet overgenomen');
+});
+
+it('laat de keuze ook inline vanuit de voorvertoning maken zonder de omringende opmaak te wijzigen', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p>Voor.<img src="https://oud.rzvg.nl/wp-content/uploads/inline.jpg">Na.</p>',
+    ]);
+    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/inline.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(WordpressImportDetail::class, ['item' => $item]);
+
+    // Voor/na-tekst blijft in dezelfde <p>, geen block-element ertussen.
+    $component->assertSeeHtml('Voor.<span');
+    $component->assertSeeHtml('wire:click="decideMedia('.$media->id.', true)"');
+
+    $component->call('decideMedia', $media->id, true);
+
+    expect($media->refresh()->selected)->toBeTrue();
+});
+
+it('verwijdert een omwikkelende WordPress-link rond een afbeelding, zodat de knoppen niet in die link zitten', function () {
+    $item = newWordpressImportItem([
+        'content_html' => '<p><a href="https://oud.rzvg.nl/wp-content/uploads/omwikkeld-full.jpg">'
+            .'<img src="https://oud.rzvg.nl/wp-content/uploads/omwikkeld-300x200.jpg"></a></p>',
+    ]);
+    $media = newWordpressImportMediaItem($item, ['url' => 'https://oud.rzvg.nl/wp-content/uploads/omwikkeld.jpg']);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(WordpressImportDetail::class, ['item' => $item])
+        ->assertDontSeeHtml('href="https://oud.rzvg.nl/wp-content/uploads/omwikkeld-full.jpg"')
+        ->assertSeeHtml('wire:click="decideMedia('.$media->id.', true)"');
 });
 
 it('toont bijlagen die nergens in de content voorkomen niet en laat ze door bulkacties ongemoeid', function () {

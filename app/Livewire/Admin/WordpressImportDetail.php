@@ -77,14 +77,17 @@ class WordpressImportDetail extends Component
         }
     }
 
-    public function decideMedia(int $mediaItemId, bool $accept): void
+    public function decideMedia(int $mediaItemId, ?bool $accept): void
     {
         $this->authorizeManage();
 
-        $mediaItem = WordpressImportMediaItem::with('importItem')->findOrFail($mediaItemId);
+        // Bewust de status van hét bekeken item (niet van $mediaItem->importItem,
+        // het item waar WordPress de bijlage ooit formeel aan koppelde via
+        // wp:post_parent) — media wordt sinds de project-brede content-matching
+        // vaak getoond bij een ánder item dan waar ze oorspronkelijk bij hoorde.
+        abort_unless($this->item->status === WordpressImportStatus::New, 403);
 
-        abort_unless($mediaItem->importItem->status === WordpressImportStatus::New, 403);
-
+        $mediaItem = WordpressImportMediaItem::query()->findOrFail($mediaItemId);
         $mediaItem->update(['selected' => $accept]);
 
         $this->item->load('mediaItems');
@@ -207,11 +210,15 @@ class WordpressImportDetail extends Component
     }
 
     /**
-     * Markeert elke `<img>` in de voorvertoning met een gekleurde rand en een
-     * label ónder de afbeelding (bewust niet overlappend eróvér — de foto zelf
-     * kan elke kleur hebben, dus alleen een label op de eigen paginakleur
-     * blijft altijd leesbaar) dat de beslisstatus van de bijbehorende bijlage
-     * toont. Zelfde kleurenpalet als de statuspil elders op deze pagina.
+     * Markeert elke `<img>` in de voorvertoning met vier knoppen midden op de
+     * afbeelding: nog niet bepaald / overnemen / niet overnemen / openen op
+     * volledige grootte. Elke knop heeft een eigen ondoorzichtige achtergrond
+     * (wit als inactief, gekleurd als actief) — bewust geen overlay-vlak over
+     * de hele foto, alleen achter de knoppen zelf, en de knoppen zijn absoluut
+     * gepositioneerd zodat de tekstuitlijning van de omringende content niet
+     * verschuift. Kan (via `decideMedia()`) niet via de gewone Blade-syntax:
+     * dit is kale HTML die als string in reeds gerenderde content geïnjecteerd
+     * wordt, dus geen `<x-action-icon>`-componenten maar losse inline SVG's.
      *
      * @param  Collection<int, WordpressImportMediaItem>  $mediaItems
      */
@@ -221,8 +228,16 @@ class WordpressImportDetail extends Component
             return $html;
         }
 
-        return preg_replace_callback('/<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>/i', function (array $match) use ($mediaItems): string {
-            $base = WordpressImportMediaItem::normalizedBaseFilename($match[1]);
+        $isNew = $this->item->status === WordpressImportStatus::New;
+
+        // WordPress wikkelt een afbeelding vaak zelf al in <a href="...volledige-grootte...">
+        // (standaard "Link naar"-instelling bij het invoegen). Die omwikkelende
+        // link (indien aanwezig) wordt hier meegepakt en laten vallen — anders
+        // zit onze eigen knoppenrij ín die link, en opent elke klik ook de
+        // oude link ernaast.
+        return preg_replace_callback('/(?:<a\b[^>]*>\s*)?(<img\b[^>]*\bsrc=["\']([^"\']+)["\'][^>]*>)(?:\s*<\/a>)?/i', function (array $match) use ($mediaItems, $isNew): string {
+            $imgTag = $match[1];
+            $base = WordpressImportMediaItem::normalizedBaseFilename($match[2]);
 
             $mediaItem = $mediaItems->first(
                 fn (WordpressImportMediaItem $m): bool => WordpressImportMediaItem::normalizedBaseFilename($m->url) === $base
@@ -232,19 +247,45 @@ class WordpressImportDetail extends Component
                 return $match[0];
             }
 
-            [$label, $borderClass, $badgeClass] = match (true) {
-                $mediaItem->media_asset_id !== null => ['Overgenomen', 'border-green-500', 'bg-green-50 text-green-800 border-green-200'],
-                $mediaItem->download_error !== null => ['Mislukt', 'border-red-500', 'bg-red-50 text-red-800 border-red-200'],
-                $mediaItem->selected === false => ['Niet overgenomen', 'border-gray-400', 'bg-gray-100 text-gray-600 border-gray-200'],
-                default => ['Nog geen besluit', 'border-yellow-500', 'bg-yellow-50 text-yellow-800 border-yellow-200'],
+            $label = match (true) {
+                $mediaItem->media_asset_id !== null => 'Overgenomen',
+                $mediaItem->download_error !== null => 'Mislukt: '.$mediaItem->download_error,
+                $mediaItem->selected === false => 'Niet overgenomen',
+                $mediaItem->selected === true => 'Overnemen gekozen',
+                default => 'Nog geen besluit',
             };
 
-            $imgTag = preg_replace('/^<img\b/i', '<img class="border-4 rounded '.$borderClass.'"', $match[0], 1);
+            $buttons = $isNew
+                ? $this->previewIconButton('M5 12h14', 'Nog niet bepaald', $mediaItem->selected === null, wireClick: "decideMedia({$mediaItem->id}, null)", activeClass: 'bg-gray-800 text-white')
+                    .$this->previewIconButton('m4.5 12.75 6 6 9-13.5', 'Overnemen', $mediaItem->selected === true, wireClick: "decideMedia({$mediaItem->id}, true)", activeClass: 'bg-green-600 text-white')
+                    .$this->previewIconButton('M6 18 18 6M6 6l12 12', 'Niet overnemen', $mediaItem->selected === false, wireClick: "decideMedia({$mediaItem->id}, false)", activeClass: 'bg-red-600 text-white')
+                : '';
 
-            return '<span class="inline-block align-top">'.$imgTag
-                .'<span class="block mt-1 w-fit rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap '.$badgeClass.'">'
-                .e($label).'</span></span>';
+            $buttons .= $this->previewIconButton(
+                'M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15',
+                'Openen op volledige grootte',
+                active: false,
+                href: $mediaItem->url,
+            );
+
+            return '<span class="relative inline-block" title="'.e($label).'">'.$imgTag
+                .'<span class="absolute inset-0 flex items-center justify-center gap-1.5">'.$buttons.'</span></span>';
         }, $html) ?? $html;
+    }
+
+    private function previewIconButton(string $iconPath, string $title, bool $active, ?string $wireClick = null, ?string $href = null, string $activeClass = 'bg-gray-800 text-white'): string
+    {
+        $classes = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow '
+            .($active ? $activeClass : 'bg-white text-gray-500 hover:text-gray-900');
+
+        $icon = '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+            .'<path stroke-linecap="round" stroke-linejoin="round" d="'.$iconPath.'"></path></svg>';
+
+        if ($href !== null) {
+            return '<a href="'.e($href).'" target="_blank" rel="noopener" title="'.e($title).'" class="'.$classes.'">'.$icon.'</a>';
+        }
+
+        return '<button type="button" wire:click="'.$wireClick.'" title="'.e($title).'" class="'.$classes.'">'.$icon.'</button>';
     }
 
     /**
