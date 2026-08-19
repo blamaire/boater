@@ -1,21 +1,19 @@
 <div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
-    <p class="text-sm text-gray-500">
-        Pagina's en berichten uit de oude WordPress-site, geïmporteerd via <code>rzvg:import-wordpress</code>. Bekijk
-        een item en beslis: <strong>overnemen</strong> maakt er een echte CMS-pagina van (als concept — die controleer
-        en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze staging staan. Bij het
-        bekijken van een nieuw item kun je per bijlage aan- of uitvinken of die wordt overgenomen; aangevinkte
-        bijlagen worden bij het overnemen gedownload en toegevoegd aan de mediabibliotheek. Niet-aangevinkte (of
-        mislukte) afbeeldingen blijven naar de oude site verwijzen.
-    </p>
+    <div class="flex items-start justify-between gap-4">
+        <p class="text-sm text-gray-500">
+            Pagina's en berichten uit de oude WordPress-site, geïmporteerd via <code>rzvg:import-wordpress</code>.
+            Open een item om te beslissen: <strong>overnemen</strong> maakt er een echte CMS-pagina van (als concept
+            — die controleer en publiceer je zelf), of <strong>archiveren</strong> laat het item alleen in deze
+            staging staan.
+        </p>
+        <a href="{{ route('admin.wordpress-import.media') }}" class="shrink-0 text-sm text-rzvg-600 hover:text-rzvg-800 whitespace-nowrap">
+            Media-overzicht &rarr;
+        </a>
+    </div>
 
     @if ($statusMessage)
         <div class="rounded-md bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-2" role="status">
             {{ $statusMessage }}
-        </div>
-    @endif
-    @if ($errorMessage)
-        <div class="rounded-md bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-2" role="alert">
-            {{ $errorMessage }}
         </div>
     @endif
 
@@ -40,6 +38,16 @@
         </label>
     </div>
 
+    @php
+        $columns = [
+            'title' => 'Titel',
+            'wordpress_type' => 'Type',
+            'wordpress_published_at' => 'WP-publicatiedatum',
+            'updated_at' => 'Laatst aangepast',
+            'status' => 'Status',
+        ];
+    @endphp
+
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
@@ -48,17 +56,22 @@
                     <col class="w-28">
                     <col class="w-32">
                     <col class="w-32">
-                    <col class="w-8">
-                    <col class="w-8">
+                    <col class="w-32">
                     <col class="w-8">
                 </colgroup>
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Titel</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">WP-publicatiedatum</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase" colspan="3">Acties</th>
+                        @foreach ($columns as $field => $label)
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                                <button type="button" wire:click="sortBy('{{ $field }}')" class="inline-flex items-center gap-1 hover:text-gray-700">
+                                    {{ $label }}
+                                    @if ($sortField === $field)
+                                        <x-action-icon name="{{ $sortDirection === 'asc' ? 'chevron-up' : 'chevron-down' }}" class="h-3 w-3" />
+                                    @endif
+                                </button>
+                            </th>
+                        @endforeach
+                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acties</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
@@ -73,6 +86,9 @@
                             <td class="px-4 py-2 text-gray-700 whitespace-nowrap">
                                 {{ $item->wordpress_published_at?->format('d-m-Y') ?? '—' }}
                             </td>
+                            <td class="px-4 py-2 text-gray-700 whitespace-nowrap">
+                                {{ $item->updated_at?->format('d-m-Y H:i') ?? '—' }}
+                            </td>
                             <td class="px-4 py-2">
                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs border
                                     @class([
@@ -83,103 +99,24 @@
                                     {{ $item->status->label() }}
                                 </span>
                             </td>
-                            <x-action-cell click="view({{ $item->id }})" icon="eye" title="Bekijken" />
-                            @if ($item->status === \App\Enums\WordpressImportStatus::New)
-                                <x-action-cell click="takeOver({{ $item->id }})" icon="check" title="Overnemen" variant="success" confirm="Overnemen als CMS-pagina?" />
-                                <x-action-cell click="archive({{ $item->id }})" icon="archive" title="Archiveren" confirm="Archiveren (geen pagina)?" />
-                            @elseif ($item->status === \App\Enums\WordpressImportStatus::Imported && $item->page_id !== null)
-                                <x-action-cell href="{{ route('admin.pages.editor', $item->page_id) }}" icon="pencil" title="Naar pagina" variant="primary" />
-                                <td class="w-8"></td>
-                            @else
-                                <x-action-cell click="restoreToNew({{ $item->id }})" icon="undo" title="Terugzetten naar nieuw" confirm="Terugzetten naar nieuw?" />
-                                <td class="w-8"></td>
-                            @endif
+                            <x-action-cell
+                                href="{{ route('admin.wordpress-import.show', ['item' => $item, 'sort' => $sortField, 'direction' => $sortDirection, 'filterType' => $filterType, 'filterStatus' => $filterStatus]) }}"
+                                icon="eye" title="Bekijken" />
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-4 py-6 text-center text-gray-500">Geen geïmporteerde items met de huidige filters.</td>
+                            <td colspan="6" class="px-4 py-6 text-center text-gray-500">Geen geïmporteerde items met de huidige filters.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        @if ($items->hasPages())
-            <div class="px-4 py-3 border-t border-gray-100">
+        <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-4">
+            <p class="text-xs text-gray-500">Pagina {{ $items->currentPage() }} van {{ max($items->lastPage(), 1) }}</p>
+            @if ($items->hasPages())
                 {{ $items->links() }}
-            </div>
-        @endif
-    </section>
-
-    <x-modal name="wordpress-import-preview" maxWidth="3xl">
-        <div class="p-6 space-y-4">
-            <h2 class="font-medium text-gray-900 text-lg">{{ $viewingItem?->title }}</h2>
-
-            <dl class="grid gap-2 sm:grid-cols-3 text-sm">
-                <div>
-                    <dt class="text-gray-500 text-xs uppercase">WP-ID</dt>
-                    <dd class="text-gray-900">{{ $viewingItem?->wordpress_id }}</dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500 text-xs uppercase">Publicatiedatum</dt>
-                    <dd class="text-gray-900">{{ $viewingItem?->wordpress_published_at?->format('d-m-Y') ?? '—' }}</dd>
-                </div>
-                <div>
-                    <dt class="text-gray-500 text-xs uppercase">Type</dt>
-                    <dd class="text-gray-900">{{ $viewingItem?->wordpress_type?->label() }}</dd>
-                </div>
-            </dl>
-
-            @if ($viewingItem?->excerpt)
-                <div>
-                    <div class="text-xs font-semibold text-gray-500 uppercase">Samenvatting</div>
-                    <div class="text-sm text-gray-800 whitespace-pre-line">{{ $viewingItem->excerpt }}</div>
-                </div>
             @endif
-
-            <div>
-                <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Media in dit item</div>
-                @if ($viewingItem?->mediaItems->isNotEmpty())
-                    <ul class="divide-y divide-gray-100 border border-gray-200 rounded-md">
-                        @foreach ($viewingItem->mediaItems as $mediaItem)
-                            <li class="flex items-center gap-3 px-3 py-2 text-sm" wire:key="wordpress-import-media-{{ $mediaItem->id }}">
-                                @if ($viewingItem->status === \App\Enums\WordpressImportStatus::New)
-                                    <input type="checkbox" wire:click="toggleMedia({{ $mediaItem->id }})" @checked($mediaItem->selected)
-                                        class="rounded border-gray-300 text-[#e12628] focus:ring-[#e12628]">
-                                @elseif ($mediaItem->media_asset_id !== null)
-                                    <x-action-icon name="check" class="text-green-600 shrink-0" />
-                                @elseif ($mediaItem->download_error !== null)
-                                    <x-action-icon name="xmark" class="text-red-600 shrink-0" />
-                                @else
-                                    <span class="w-4 shrink-0"></span>
-                                @endif
-                                <div class="min-w-0 flex-1">
-                                    <p class="truncate text-gray-700">{{ $mediaItem->title }}</p>
-                                    <p class="truncate text-xs text-gray-400">{{ $mediaItem->url }}</p>
-                                    @if ($mediaItem->download_error !== null)
-                                        <p class="text-xs text-red-600">{{ $mediaItem->download_error }}</p>
-                                    @endif
-                                </div>
-                            </li>
-                        @endforeach
-                    </ul>
-                @else
-                    <p class="text-sm text-gray-400">Geen bijlagen gevonden voor dit item.</p>
-                @endif
-            </div>
-
-            <div>
-                <div class="text-xs font-semibold text-gray-500 uppercase mb-1">Inhoud (ruwe HTML)</div>
-                {{-- Bewust {{ }} i.p.v. {!! !!}: content_html is ongesaneerde WordPress-HTML uit een
-                     geüpload bestand; direct renderen zou een kwaadwillig geprepareerd exportbestand
-                     JS kunnen laten uitvoeren in de sessie van de beoordelende beheerder. --}}
-                <pre class="whitespace-pre-wrap break-words text-xs bg-gray-50 border border-gray-200 rounded p-3 max-h-96 overflow-y-auto">{{ $viewingItem?->content_html }}</pre>
-            </div>
-
-            <div class="flex justify-end pt-2">
-                <button type="button" x-on:click="$dispatch('close')"
-                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">Sluiten</button>
-            </div>
         </div>
-    </x-modal>
+    </section>
 </div>

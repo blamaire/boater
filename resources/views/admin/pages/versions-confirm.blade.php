@@ -16,7 +16,7 @@
             <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                 <label for="note" class="block text-sm font-medium text-gray-700">Omschrijving van de wijziging</label>
                 <textarea id="note" name="note" rows="4" required
-                    class="mt-1 w-full border-gray-300 rounded-md text-sm">{{ old('note') }}</textarea>
+                    class="mt-1 w-full border-gray-300 rounded-md text-sm">{{ old('note', $defaultNote ?? '') }}</textarea>
                 @error('note')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
