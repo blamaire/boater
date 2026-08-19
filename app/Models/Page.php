@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, Page> $children
  * @property-read Collection<int, PageVersion> $versions
  * @property-read PageVersion|null $publishedVersion
+ * @property-read WordpressImportItem|null $wordpressImportItem
  */
 class Page extends Model
 {
@@ -72,6 +74,12 @@ class Page extends Model
     public function publishedVersion(): BelongsTo
     {
         return $this->belongsTo(PageVersion::class, 'published_version_id');
+    }
+
+    /** @return HasOne<WordpressImportItem, $this> */
+    public function wordpressImportItem(): HasOne
+    {
+        return $this->hasOne(WordpressImportItem::class);
     }
 
     /**

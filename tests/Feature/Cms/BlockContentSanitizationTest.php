@@ -71,6 +71,60 @@ it('verwijdert een onerror-attribuut uit een img in een tekst-blok maar behoudt 
         ->toContain('<img');
 });
 
+it('vertaalt WordPress\' alignleft-class op een img naar onze eigen wp-align-left-class', function () {
+    $band = makeSanitizationBand();
+
+    $block = Block::create([
+        'band_id' => $band->id,
+        'column_index' => 0,
+        'sort_order' => 0,
+        'type' => BlockType::Text,
+        'content' => ['html' => '<img class="alignleft wp-image-30588" src="https://oud.rzvg.nl/foto.jpg">'],
+        'visibility' => 'publiek',
+    ]);
+
+    $fresh = $block->fresh();
+
+    expect($fresh->content['html'])
+        ->toContain('class="wp-align-left"')
+        ->not->toContain('wp-image-30588')
+        ->not->toContain('alignleft wp-image');
+});
+
+it('verwijdert een class op img die geen WordPress-align-token bevat', function () {
+    $band = makeSanitizationBand();
+
+    $block = Block::create([
+        'band_id' => $band->id,
+        'column_index' => 0,
+        'sort_order' => 0,
+        'type' => BlockType::Text,
+        'content' => ['html' => '<img class="rounded-lg shadow-xl" src="https://oud.rzvg.nl/foto.jpg">'],
+        'visibility' => 'publiek',
+    ]);
+
+    $fresh = $block->fresh();
+
+    expect($fresh->content['html'])->not->toContain('class=');
+});
+
+it('staat class niet breed toe op andere elementen dan img', function () {
+    $band = makeSanitizationBand();
+
+    $block = Block::create([
+        'band_id' => $band->id,
+        'column_index' => 0,
+        'sort_order' => 0,
+        'type' => BlockType::Text,
+        'content' => ['html' => '<div class="alignleft">Tekst</div>'],
+        'visibility' => 'publiek',
+    ]);
+
+    $fresh = $block->fresh();
+
+    expect($fresh->content['html'])->not->toContain('class=');
+});
+
 it('verwijdert een javascript:-link uit een tekst-blok', function () {
     $band = makeSanitizationBand();
 

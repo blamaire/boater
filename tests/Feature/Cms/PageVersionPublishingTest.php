@@ -4,6 +4,8 @@ use App\Enums\AssigneeType;
 use App\Enums\PageVersionStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ResubmitBehavior;
+use App\Enums\WordpressContentType;
+use App\Enums\WordpressImportStatus;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Permission;
@@ -15,6 +17,7 @@ use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Template;
 use App\Models\User;
+use App\Models\WordpressImportItem;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalEngine;
 use Database\Seeders\PermissionSeeder;
@@ -268,6 +271,74 @@ it('toont de bevestigingspagina zonder diff-viewer wanneer de pagina nog nooit g
         ->assertOk()
         ->assertSee('Omschrijving van de wijziging')
         ->assertDontSee('Alles uitklappen');
+});
+
+it('vult de omschrijving vooraf in met "Overgenomen van de oude website" bij de eerste publicatie van een WordPress-import', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'wp-import-pagina',
+        'title' => 'WP-import-pagina',
+        'template_id' => $this->template->id,
+    ]);
+    WordpressImportItem::create([
+        'wordpress_id' => 123,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'WP-import-pagina',
+        'slug' => 'wp-import-pagina',
+        'content_html' => '<p>Tekst</p>',
+        'status' => WordpressImportStatus::Imported,
+        'page_id' => $page->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Overgenomen van de oude website');
+});
+
+it('vult de omschrijving niet vooraf in bij een volgende publicatie van een WordPress-import-pagina', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'wp-import-al-gepubliceerd',
+        'title' => 'WP-import, al gepubliceerd',
+        'template_id' => $this->template->id,
+    ]);
+    WordpressImportItem::create([
+        'wordpress_id' => 456,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'WP-import, al gepubliceerd',
+        'slug' => 'wp-import-al-gepubliceerd',
+        'content_html' => '<p>Tekst</p>',
+        'status' => WordpressImportStatus::Imported,
+        'page_id' => $page->id,
+    ]);
+    $published = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Published,
+    ]);
+    $page->update(['published_version_id' => $published->id]);
+
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 2,
+        'status' => PageVersionStatus::Draft,
+        'base_version_id' => $published->id,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertDontSee('Overgenomen van de oude website');
 });
 
 it('refuses to submit a non-draft version', function () {
