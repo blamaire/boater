@@ -292,9 +292,17 @@
                                     <a href="{{ route('admin.pages.index') }}"
                                         @class([
                                             'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*'),
-                                            'text-gray-700' => ! request()->routeIs('admin.pages.*'),
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*') && ! request()->routeIs('admin.pages.orphans'),
+                                            'text-gray-700' => ! (request()->routeIs('admin.pages.*') && ! request()->routeIs('admin.pages.orphans')),
                                         ])>Pagina's</a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('admin.pages.orphans') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.orphans'),
+                                            'text-gray-700' => ! request()->routeIs('admin.pages.orphans'),
+                                        ])>Weespagina's</a>
                                 </li>
                             @endcan
                         </ul>

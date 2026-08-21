@@ -10,6 +10,7 @@ use App\Models\Environment;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Template;
+use App\Services\Cms\OrphanPageFinder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,6 +33,13 @@ class PageController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(),
+        ]);
+    }
+
+    public function orphans(OrphanPageFinder $finder): View
+    {
+        return view('admin.pages.orphans', [
+            'pages' => $finder->find(),
         ]);
     }
 
