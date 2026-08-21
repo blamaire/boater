@@ -84,6 +84,7 @@ Route::middleware(['auth', 'verified'])
     ->name('admin.pages.')
     ->group(function () {
         Route::get('/', [AdminPageController::class, 'index'])->middleware('can:pages.view')->name('index');
+        Route::get('/weespaginas', [AdminPageController::class, 'orphans'])->middleware('can:pages.view')->name('orphans');
         Route::get('/nieuw', [AdminPageController::class, 'create'])->middleware('can:pages.create')->name('create');
         Route::post('/', [AdminPageController::class, 'store'])->middleware('can:pages.create')->name('store');
         Route::get('/{page}/instellingen', [AdminPageController::class, 'edit'])->middleware('can:pages.update')->name('edit');

@@ -117,6 +117,33 @@ it('enforces unique slug per parent', function () {
         ->assertSessionHasErrors('slug');
 });
 
+it('forbids users without pages.view to see the orphan pages report', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    Person::create([
+        'first_name' => 'Jan',
+        'last_name' => 'Lid',
+        'account_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)->get('/beheer/paginas/weespaginas')->assertForbidden();
+});
+
+it('toont de weespagina-lijst voor gebruikers met pages.view', function () {
+    $user = loginEditor();
+
+    $wees = Page::create([
+        'slug' => 'onbereikbaar',
+        'title' => 'Onbereikbare pagina',
+        'template_id' => $this->template->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get('/beheer/paginas/weespaginas')
+        ->assertOk()
+        ->assertSee('Onbereikbare pagina')
+        ->assertSee($wees->publicUrl());
+});
+
 it('refuses to delete a system page', function () {
     $user = loginEditor();
 
