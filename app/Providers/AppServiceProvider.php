@@ -16,7 +16,6 @@ use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use App\Services\Proposals\ProposalHandlerRegistry;
 use App\View\Composers\BuildInfoComposer;
-use App\View\Composers\PortalPagesComposer;
 use App\View\Composers\PublicFooterComposer;
 use App\View\Composers\PublicNavComposer;
 use Illuminate\Support\Facades\Gate;
@@ -68,7 +67,6 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('public._nav', PublicNavComposer::class);
         View::composer('public._footer', PublicFooterComposer::class);
-        View::composer('layouts.app', PortalPagesComposer::class);
         View::composer('layouts.navigation', BuildInfoComposer::class);
     }
 }
