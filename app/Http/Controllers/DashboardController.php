@@ -2,25 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AssigneeType;
 use App\Enums\ProposalStatus;
-use App\Enums\ReviewStepStatus;
 use App\Models\Permission;
 use App\Models\Person;
 use App\Models\Proposal;
-use App\Models\ReviewStep;
-use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Services\Authorization\EffectivePermissions;
+use App\Services\Proposals\ReviewerResolver;
 use Illuminate\Contracts\View\View;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
-    public function __construct(private readonly EffectivePermissions $permissions) {}
+    public function __construct(
+        private readonly EffectivePermissions $permissions,
+        private readonly ReviewerResolver $reviewerResolver,
+    ) {}
 
     public function __invoke(Request $request): View
     {
@@ -90,12 +89,12 @@ class DashboardController extends Controller
     {
         $shortcuts = collect();
 
-        $toDecide = $this->countDecidableSteps($person);
+        $toDecide = $this->reviewerResolver->decidableStepsQuery($person)->count();
         if ($toDecide > 0) {
             $shortcuts->push([
                 'label' => 'Te beslissen',
                 'count' => $toDecide,
-                'href' => '#',
+                'href' => route('portal.wijzigingsvoorstellen'),
                 'description' => 'Voorstellen waarop jij als beslisser bent toegewezen.',
             ]);
         }
@@ -112,7 +111,7 @@ class DashboardController extends Controller
             $shortcuts->push([
                 'label' => 'Mijn open voorstellen',
                 'count' => $myOpen,
-                'href' => '#',
+                'href' => route('portal.wijzigingsvoorstellen'),
                 'description' => 'Voorstellen die je hebt ingediend en nog in behandeling zijn.',
             ]);
         }
@@ -136,58 +135,5 @@ class DashboardController extends Controller
         }
 
         return $shortcuts;
-    }
-
-    private function countDecidableSteps(Person $person): int
-    {
-        $now = Carbon::now();
-
-        $personSteps = $this->openStepsQuery()
-            ->where('assignee_type', AssigneeType::Person)
-            ->where('assignee_id', $person->id)
-            ->count();
-
-        $roleIds = $person->roleAssignments()
-            ->where('status', 'active')
-            ->whereNull('deactivated_at')
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', $now);
-            })
-            ->pluck('role_id');
-
-        $roleSteps = $roleIds->isEmpty() ? 0 : $this->openStepsQuery()
-            ->where('assignee_type', AssigneeType::Role)
-            ->whereIn('assignee_id', $roleIds->all())
-            ->count();
-
-        // Beheerders zitten impliciet in élke groep (§20.4 groepsstap).
-        // Zie ReviewerResolver::canDecide.
-        $isBeheerder = $roleIds->contains(fn ($id) => (int) $id === (int) Role::query()->where('name', 'Beheerder')->value('id'));
-
-        if ($isBeheerder) {
-            $groupSteps = $this->openStepsQuery()
-                ->where('assignee_type', AssigneeType::Group)
-                ->count();
-        } else {
-            $groupIds = $person->approverGroups()->pluck('approver_groups.id');
-            $groupSteps = $groupIds->isEmpty() ? 0 : $this->openStepsQuery()
-                ->where('assignee_type', AssigneeType::Group)
-                ->whereIn('assignee_id', $groupIds->all())
-                ->count();
-        }
-
-        return $personSteps + $roleSteps + $groupSteps;
-    }
-
-    private function openStepsQuery(): Builder
-    {
-        return ReviewStep::query()
-            ->where('status', ReviewStepStatus::Pending)
-            ->whereHas('proposal', function ($q) {
-                $q->whereIn('status', [
-                    ProposalStatus::Submitted,
-                    ProposalStatus::InReview,
-                ]);
-            });
     }
 }

@@ -18,6 +18,8 @@ class LedgerAccountSeeder extends Seeder
         $accounts = [
             ['code' => '1100', 'name' => 'Bank', 'type' => LedgerAccountType::Activa],
             ['code' => '1300', 'name' => 'Debiteuren', 'type' => LedgerAccountType::Activa],
+            ['code' => '1500', 'name' => 'BTW te vorderen', 'type' => LedgerAccountType::Activa],
+            ['code' => '1600', 'name' => 'BTW af te dragen', 'type' => LedgerAccountType::Passiva],
             ['code' => '8000', 'name' => 'Contributiebaten', 'type' => LedgerAccountType::Opbrengsten],
             ['code' => '8100', 'name' => 'Activiteitenbaten', 'type' => LedgerAccountType::Opbrengsten],
             ['code' => '8200', 'name' => 'Sponsorbaten', 'type' => LedgerAccountType::Opbrengsten],

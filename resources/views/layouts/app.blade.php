@@ -41,7 +41,7 @@
             </header>
 
             <div class="flex-1 flex">
-                {{-- Main-kolom bevat de paginatitel-strook, de portaalbalk en
+                {{-- Main-kolom bevat de paginatitel-strook, de navigatie en
                      het slot, zodat alle drie meebewegen met de rechter sidebar
                      (aside) en de aside meteen náást de titel-balk begint. --}}
                 <div class="flex-1 min-w-0 flex flex-col">
@@ -53,36 +53,12 @@
                         </div>
                     </div>
 
-                    {{-- Portaalbalk met beperkt-zichtbare CMS-pagina's. Composer
-                         `PortalPagesComposer` vult `$portalPages` alleen als de
-                         user er toegang toe zou hebben (ingelogd + actief lid,
-                         of inzage-rol); anders blijft de balk uit beeld.
-                         Children als hover-uitklap onder de parent. --}}
-                    @if (! empty($portalPages) && $portalPages->isNotEmpty())
-                        <nav class="bg-white border-b border-gray-200">
-                            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                                <ul class="flex flex-wrap items-center gap-2 py-2 text-sm">
-                                    @foreach ($portalPages as $portalPage)
-                                        <li class="relative group">
-                                            @if ($portalPage->children->isEmpty())
-                                                <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900">{{ $portalPage->title }}</a>
-                                            @else
-                                                <a href="{{ $portalPage->publicUrl() }}" class="px-2 py-1 hover:text-gray-900 inline-flex items-center gap-1">
-                                                    {{ $portalPage->title }}
-                                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                                                </a>
-                                                <ul class="hidden group-hover:block group-focus-within:block absolute z-10 left-0 top-full bg-white border border-gray-200 rounded-md shadow-lg min-w-[12rem] py-1">
-                                                    @foreach ($portalPage->children as $child)
-                                                        <li><a href="{{ $child->publicUrl() }}" class="block px-3 py-1.5 hover:bg-gray-50">{{ $child->title }}</a></li>
-                                                    @endforeach
-                                                </ul>
-                                            @endif
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        </nav>
-                    @endif
+                    {{-- Navigatie met dezelfde zichtbaarheid-bewuste partial/composer
+                         (`public._nav` / `PublicNavComposer`) als de publieke site, zodat
+                         het beheerde NavItem-menu (/beheer/menu) — incl. submenu's — ook
+                         in de portal verschijnt, i.p.v. een losse platte lijst van
+                         root-Beperkt-pagina's. --}}
+                    @include('public._nav')
 
                     <main class="flex-1 min-w-0">
                         {{ $slot }}
@@ -103,6 +79,15 @@
                     class="w-64 shrink-0 bg-white border-l border-gray-200 z-40 fixed md:sticky inset-y-0 right-0 md:top-0 md:self-stretch md:max-h-screen overflow-y-auto">
                     @include('layouts.navigation')
                 </aside>
+
+                {{-- bottom via inline style, zie components/public-layout.blade.php voor
+                     de uitleg (Tailwind-scan-risico bij een net-nieuwe bottom-*-klasse +
+                     ruimte boven de footer-onderbalk). Geen pagina-/versie-context: portaal
+                     en beheer zijn geen CMS-pagina's. --}}
+                <div class="fixed right-4 z-40 flex items-center gap-3" style="bottom: 4.5rem;">
+                    <x-contact-button />
+                    @livewire('feedback-widget')
+                </div>
             </div>
 
             <footer class="bg-white border-t border-gray-200 mt-auto">

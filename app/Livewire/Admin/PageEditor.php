@@ -7,6 +7,7 @@ use App\Enums\BlockType;
 use App\Enums\PageVisibility;
 use App\Models\Band;
 use App\Models\Block;
+use App\Models\MediaAsset;
 use App\Models\PageVersion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -28,6 +29,13 @@ class PageEditor extends Component
     public string $importJsonText = '';
 
     public ?string $jsonStatus = null;
+
+    public bool $showMetaPanel = false;
+
+    /** @var array<string, mixed> */
+    public array $editingMeta = [];
+
+    public ?string $metaStatus = null;
 
     public function mount(int $versionId): void
     {
@@ -152,9 +160,11 @@ class PageEditor extends Component
 
         $block = Block::query()->findOrFail($this->editingBlockId);
 
-        Block::query()
-            ->whereKey($this->editingBlockId)
-            ->update(['content' => $this->serializeOnSave($block->type, $this->editingContent)]);
+        // Via het model (niet Block::query()->update()) op te slaan, zodat
+        // BlockObserver::saving() — en daarmee BlockContentSanitizer —
+        // daadwerkelijk vuurt; een query-builder mass-update slaat Eloquent-
+        // events over en zou de sanitisatie van vrije-HTML-velden omzeilen.
+        $block->update(['content' => $this->serializeOnSave($block->type, $this->editingContent)]);
 
         $this->editingBlockId = null;
         $this->editingContent = [];
@@ -227,6 +237,13 @@ class PageEditor extends Component
     #[On('media-selected')]
     public function handleMediaSelected(string $contextId, int $assetId, string $url, string $thumbnailUrl = '', string $alt = '', string $originalName = ''): void
     {
+        if ($contextId === 'og-image') {
+            $this->editingMeta['og_image_media_asset_id'] = $assetId;
+            $this->editingMeta['og_image_url'] = $url;
+
+            return;
+        }
+
         if ($this->editingBlockId === null) {
             return;
         }
@@ -286,6 +303,45 @@ class PageEditor extends Component
             $this->importJsonText = $this->currentJson();
             $this->jsonStatus = null;
         }
+    }
+
+    public function toggleMetaPanel(): void
+    {
+        $this->showMetaPanel = ! $this->showMetaPanel;
+        if ($this->showMetaPanel) {
+            $version = $this->version();
+            $this->editingMeta = [
+                'meta_description' => $version->meta_description,
+                'og_title' => $version->og_title,
+                'og_description' => $version->og_description,
+                'og_image_media_asset_id' => $version->og_image_media_asset_id,
+                'og_image_url' => MediaAsset::resolveUrl($version->og_image_media_asset_id, null),
+            ];
+            $this->metaStatus = null;
+        }
+    }
+
+    public function clearOgImage(): void
+    {
+        $this->editingMeta['og_image_media_asset_id'] = null;
+        $this->editingMeta['og_image_url'] = null;
+    }
+
+    public function saveMeta(): void
+    {
+        $this->guardEditable();
+
+        $trim = fn (mixed $value): ?string => is_string($value) && trim($value) !== '' ? trim($value) : null;
+
+        $this->version()->update([
+            'meta_description' => $trim($this->editingMeta['meta_description'] ?? null),
+            'og_title' => $trim($this->editingMeta['og_title'] ?? null),
+            'og_description' => $trim($this->editingMeta['og_description'] ?? null),
+            'og_image_media_asset_id' => $this->editingMeta['og_image_media_asset_id'] ?? null,
+        ]);
+
+        $this->metaStatus = 'Opgeslagen.';
+        unset($this->version);
     }
 
     /**

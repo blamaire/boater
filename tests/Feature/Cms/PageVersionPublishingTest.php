@@ -4,6 +4,8 @@ use App\Enums\AssigneeType;
 use App\Enums\PageVersionStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ResubmitBehavior;
+use App\Enums\WordpressContentType;
+use App\Enums\WordpressImportStatus;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Permission;
@@ -15,6 +17,7 @@ use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\Template;
 use App\Models\User;
+use App\Models\WordpressImportItem;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalEngine;
 use Database\Seeders\PermissionSeeder;
@@ -46,7 +49,7 @@ it('submits a draft to the proposal engine when "indienen" is pressed', function
     ]);
 
     $this->actingAs($proposerUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::InReview);
@@ -85,7 +88,7 @@ it('publishes a page when the proposal is approved', function () {
     ]);
 
     $this->actingAs($proposerUser)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
@@ -95,6 +98,247 @@ it('publishes a page when the proposal is approved', function () {
 
     expect($version->fresh()->status)->toBe(PageVersionStatus::Published);
     expect($page->fresh()->published_version_id)->toBe($version->id);
+});
+
+it('gaat ook voor een indiener met pages.publish via review i.p.v. direct bypassen (indienen-knop)', function () {
+    [$publisherUser, $publisherPerson] = makePublisher();
+
+    $page = Page::create([
+        'slug' => 'bypass-toch-review',
+        'title' => 'Bypass toch review',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $publisherPerson->id,
+    ]);
+
+    $this->actingAs($publisherUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::InReview);
+    expect($page->fresh()->published_version_id)->toBeNull();
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->status)->toBe(ProposalStatus::InReview);
+});
+
+it('publiceert direct zonder goedkeuring via de expliciete knop, voor iemand met pages.publish', function () {
+    [$publisherUser, $publisherPerson] = makePublisher();
+
+    $page = Page::create([
+        'slug' => 'direct-publiceren',
+        'title' => 'Direct publiceren',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $publisherPerson->id,
+    ]);
+
+    $this->actingAs($publisherUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::Published);
+    expect($page->fresh()->published_version_id)->toBe($version->id);
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->status)->toBe(ProposalStatus::Applied);
+});
+
+it('weigert de directe publicatie-route voor iemand zonder pages.publish', function () {
+    [$editorUser, $editorPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'geen-publish-recht',
+        'title' => 'Geen publish-recht',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $editorPerson->id,
+    ]);
+
+    $this->actingAs($editorUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/publiceren", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertForbidden();
+
+    expect($version->fresh()->status)->toBe(PageVersionStatus::Draft);
+    expect(Proposal::count())->toBe(0);
+});
+
+it('weigert indienen zonder omschrijving en maakt geen voorstel aan', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'zonder-omschrijving',
+        'title' => 'Zonder omschrijving',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", [])
+        ->assertSessionHasErrors('note');
+
+    expect(Proposal::where('subject_id', $version->id)->count())->toBe(0);
+});
+
+it('slaat de opgegeven omschrijving op bij het aangemaakte voorstel', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'met-omschrijving',
+        'title' => 'Met omschrijving',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
+        ->assertRedirect();
+
+    $proposal = Proposal::where('subject_id', $version->id)->firstOrFail();
+    expect($proposal->note)->toBe('Testomschrijving van de wijziging');
+});
+
+it('toont de bevestigingspagina met diff-viewer wanneer de pagina al gepubliceerd is', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'confirm-met-gepubliceerde-versie',
+        'title' => 'Confirm met gepubliceerde versie',
+        'template_id' => $this->template->id,
+    ]);
+    $published = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Published,
+    ]);
+    $page->update(['published_version_id' => $published->id]);
+
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 2,
+        'status' => PageVersionStatus::Draft,
+        'base_version_id' => $published->id,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Omschrijving van de wijziging')
+        ->assertSee('v1')
+        ->assertSee('v2');
+});
+
+it('toont de bevestigingspagina zonder diff-viewer wanneer de pagina nog nooit gepubliceerd is', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'confirm-zonder-gepubliceerde-versie',
+        'title' => 'Confirm zonder gepubliceerde versie',
+        'template_id' => $this->template->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Omschrijving van de wijziging')
+        ->assertDontSee('Alles uitklappen');
+});
+
+it('vult de omschrijving vooraf in met "Overgenomen van de oude website" bij de eerste publicatie van een WordPress-import', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'wp-import-pagina',
+        'title' => 'WP-import-pagina',
+        'template_id' => $this->template->id,
+    ]);
+    WordpressImportItem::create([
+        'wordpress_id' => 123,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'WP-import-pagina',
+        'slug' => 'wp-import-pagina',
+        'content_html' => '<p>Tekst</p>',
+        'status' => WordpressImportStatus::Imported,
+        'page_id' => $page->id,
+    ]);
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Draft,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertSee('Overgenomen van de oude website');
+});
+
+it('vult de omschrijving niet vooraf in bij een volgende publicatie van een WordPress-import-pagina', function () {
+    [$proposerUser, $proposerPerson] = makeEditor();
+
+    $page = Page::create([
+        'slug' => 'wp-import-al-gepubliceerd',
+        'title' => 'WP-import, al gepubliceerd',
+        'template_id' => $this->template->id,
+    ]);
+    WordpressImportItem::create([
+        'wordpress_id' => 456,
+        'wordpress_type' => WordpressContentType::Page,
+        'title' => 'WP-import, al gepubliceerd',
+        'slug' => 'wp-import-al-gepubliceerd',
+        'content_html' => '<p>Tekst</p>',
+        'status' => WordpressImportStatus::Imported,
+        'page_id' => $page->id,
+    ]);
+    $published = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 1,
+        'status' => PageVersionStatus::Published,
+    ]);
+    $page->update(['published_version_id' => $published->id]);
+
+    $version = PageVersion::create([
+        'page_id' => $page->id,
+        'version_no' => 2,
+        'status' => PageVersionStatus::Draft,
+        'base_version_id' => $published->id,
+        'created_by_person_id' => $proposerPerson->id,
+    ]);
+
+    $this->actingAs($proposerUser)
+        ->get("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->assertOk()
+        ->assertDontSee('Overgenomen van de oude website');
 });
 
 it('refuses to submit a non-draft version', function () {
@@ -111,7 +355,7 @@ it('refuses to submit a non-draft version', function () {
     ]);
 
     $this->actingAs($user)
-        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen")
+        ->post("/beheer/paginas/{$page->id}/versies/{$version->id}/indienen", ['note' => 'Testomschrijving van de wijziging'])
         ->assertRedirect();
 
     expect(Proposal::count())->toBe(0);
@@ -132,6 +376,18 @@ function makeEditor(): array
             'status' => 'active',
         ]);
     }
+
+    return [$user, $person];
+}
+
+function makePublisher(): array
+{
+    [$user, $person] = makeEditor();
+    PersonPermission::create([
+        'person_id' => $person->id,
+        'permission_id' => Permission::where('key', 'pages.publish')->value('id'),
+        'status' => 'active',
+    ]);
 
     return [$user, $person];
 }

@@ -18,7 +18,7 @@
     <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
         <h2 class="text-lg font-semibold text-gray-900">Nieuwe melding</h2>
 
-        <form wire:submit="submit" class="space-y-4">
+        <form wire:submit="submit" class="space-y-4" x-on:dragover.prevent x-on:drop.prevent>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Object</label>
                 <select wire:model="selectedObjectId" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm">
@@ -65,7 +65,25 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700">Foto's (optioneel)</label>
-                <input type="file" wire:model="photos" multiple accept="image/*" class="mt-1 block w-full text-sm" />
+
+                <div
+                    x-data="{ dragging: false }"
+                    x-on:dragover.prevent="dragging = true"
+                    x-on:dragleave.prevent="dragging = false"
+                    x-on:drop.prevent="dragging = false; $wire.uploadMultiple('photos', $event.dataTransfer.files)"
+                    :class="dragging ? 'border-rzvg-400 bg-rzvg-50' : 'border-gray-300'"
+                    class="mt-1 flex flex-col items-center gap-1 rounded-md border-2 border-dashed px-4 py-6 text-center transition-colors"
+                >
+                    <p class="text-sm text-gray-600">
+                        Sleep foto's hierheen, of
+                        <label for="schade-photos" class="cursor-pointer font-medium text-rzvg-600 underline hover:text-rzvg-700">kies bestanden</label>
+                    </p>
+                    <input id="schade-photos" type="file" wire:model="photos" multiple accept="image/*" class="sr-only" />
+                    @if (count($photos))
+                        <p class="text-xs text-gray-500">{{ count($photos) }} foto('s) geselecteerd</p>
+                    @endif
+                </div>
+
                 @error('photos.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                 <p class="text-xs text-gray-500 mt-1">Foto's zijn alleen zichtbaar voor de schadebehandelaars, niet in de mediabibliotheek.</p>
             </div>

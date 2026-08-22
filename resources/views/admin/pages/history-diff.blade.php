@@ -22,38 +22,8 @@
                 class="px-3 py-2 border-b-2 -mb-px">JSON — beide versies rauw</button>
         </div>
 
-        <div x-show="tab === 'visual'" class="space-y-3">
-            @foreach ($report->entries as $diff)
-                <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-2" wire:key="diff-{{ $diff->originBlockId }}">
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="font-medium">Blok #{{ $diff->originBlockId }}</span>
-                        <span class="text-xs text-gray-500">{{ $diff->type }}</span>
-                    </div>
-
-                    @unless ($diff->isNoop())
-                        <div class="grid gap-3 md:grid-cols-2">
-                            <div class="border border-gray-200 rounded p-2">
-                                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $a->version_no }}</div>
-                                @if ($diff->mine)
-                                    @include('cms.blocks.preview', ['block' => $diff->mine])
-                                @else
-                                    <p class="text-xs text-gray-400 italic">— bestaat niet in deze versie —</p>
-                                @endif
-                            </div>
-                            <div class="border border-gray-200 rounded p-2">
-                                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $b->version_no }}</div>
-                                @if ($diff->theirs)
-                                    @include('cms.blocks.preview', ['block' => $diff->theirs])
-                                @else
-                                    <p class="text-xs text-gray-400 italic">— bestaat niet in deze versie —</p>
-                                @endif
-                            </div>
-                        </div>
-                    @else
-                        <p class="text-xs text-gray-400 italic">Ongewijzigd tussen beide versies.</p>
-                    @endunless
-                </div>
-            @endforeach
+        <div x-show="tab === 'visual'">
+            @include('cms.blocks.diff', ['report' => $report, 'a' => $a, 'b' => $b])
         </div>
 
         <div x-show="tab === 'json_diff'" x-cloak class="space-y-2">
@@ -64,22 +34,49 @@
                     class="absolute top-2 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
                 <pre x-ref="jsonDiff" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($structuredDiff, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
             </div>
+
+            <p class="text-xs text-gray-500">Per meta-/OG-veld hetzelfde, voor v-A en v-B.</p>
+            <div class="relative">
+                <button type="button"
+                    @click="navigator.clipboard.writeText($refs.jsonFieldDiff.innerText)"
+                    class="absolute top-2 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
+                <pre x-ref="jsonFieldDiff" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($structuredFieldDiff, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+            </div>
         </div>
 
-        <div x-show="tab === 'json_raw'" x-cloak class="grid gap-3 md:grid-cols-2">
-            <div class="relative">
-                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $a->version_no }}</div>
-                <button type="button"
-                    @click="navigator.clipboard.writeText($refs.rawA.innerText)"
-                    class="absolute top-6 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
-                <pre x-ref="rawA" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($rawA, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+        <div x-show="tab === 'json_raw'" x-cloak class="space-y-2">
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-gray-500">
+                    Regels op dezelfde hoogte horen bij elkaar. <span class="inline-block w-3 h-3 align-middle bg-red-50 border border-red-200"></span> alleen in v{{ $a->version_no }},
+                    <span class="inline-block w-3 h-3 align-middle bg-green-50 border border-green-200"></span> alleen in v{{ $b->version_no }}.
+                </p>
+                <div class="flex items-center gap-2">
+                    <button type="button"
+                        @click="navigator.clipboard.writeText($refs.rawA.textContent)"
+                        class="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer v{{ $a->version_no }}</button>
+                    <button type="button"
+                        @click="navigator.clipboard.writeText($refs.rawB.textContent)"
+                        class="text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer v{{ $b->version_no }}</button>
+                </div>
             </div>
-            <div class="relative">
-                <div class="text-xs uppercase text-gray-500 font-semibold mb-1">v{{ $b->version_no }}</div>
-                <button type="button"
-                    @click="navigator.clipboard.writeText($refs.rawB.innerText)"
-                    class="absolute top-6 right-2 text-xs px-2 py-1 rounded border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">Kopieer</button>
-                <pre x-ref="rawB" class="bg-gray-900 text-gray-100 text-xs rounded p-4 overflow-x-auto">{{ json_encode($rawB, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) }}</pre>
+            <pre x-ref="rawA" class="hidden">{{ $rawAJson }}</pre>
+            <pre x-ref="rawB" class="hidden">{{ $rawBJson }}</pre>
+
+            <div class="border border-gray-200 rounded overflow-x-auto">
+                <div class="grid text-xs font-mono min-w-[640px]" style="grid-template-columns: 1fr 1fr;">
+                    <div class="bg-gray-50 border-b border-r border-gray-200 px-3 py-1 font-sans font-semibold text-gray-600">v{{ $a->version_no }}</div>
+                    <div class="bg-gray-50 border-b border-gray-200 px-3 py-1 font-sans font-semibold text-gray-600">v{{ $b->version_no }}</div>
+                    @foreach ($textDiff as $row)
+                        <div @class([
+                            'px-3 py-0.5 whitespace-pre-wrap break-all border-r border-gray-100',
+                            'bg-red-50 text-red-900' => in_array($row['type'], ['removed', 'changed'], true),
+                        ])>{{ $row['left'] ?? '' }}</div>
+                        <div @class([
+                            'px-3 py-0.5 whitespace-pre-wrap break-all',
+                            'bg-green-50 text-green-900' => in_array($row['type'], ['added', 'changed'], true),
+                        ])>{{ $row['right'] ?? '' }}</div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>

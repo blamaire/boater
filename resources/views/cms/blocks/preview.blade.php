@@ -1,4 +1,8 @@
-@php($c = $block->content)
+{{-- Defense-in-depth: saniteer ook hier de vrije-HTML-velden (tekst/html,
+     feature_sectie/body), zodat een eventueel gemiste opslagroute (nu of in
+     de toekomst) geen ongesaniteerde HTML alsnog op de site laat verschijnen. --}}
+@php($c = app(\App\Services\Cms\BlockContentSanitizer::class)->sanitize($block->type, $block->content))
+@php($fullBleed = $fullBleed ?? true)
 @switch($block->type->value)
     @case('tekst')
         <div class="prose max-w-none">{!! $c['html'] ?? '<em class="text-gray-400">— leeg —</em>' !!}</div>
@@ -113,7 +117,11 @@
         @break
     @case('hero')
         @php($heroUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
-        <section class="relative w-screen left-1/2 -translate-x-1/2 h-screen min-h-[560px] flex items-center justify-center overflow-hidden bg-gray-300">
+        <section @class([
+            'relative flex items-center justify-center overflow-hidden bg-gray-300 w-full',
+            'h-screen min-h-[560px]' => $fullBleed,
+            'h-64 md:h-80' => ! $fullBleed,
+        ])>
             @if ($heroUrl)
                 <img src="{{ $heroUrl }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @else
@@ -143,7 +151,7 @@
         @break
     @case('video')
         @php($videoUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
-        <section class="relative w-screen left-1/2 -translate-x-1/2 bg-black">
+        <section class="relative bg-black w-full">
             @if ($videoUrl)
                 <video src="{{ $videoUrl }}"
                     autoplay muted loop playsinline preload="metadata"
@@ -158,7 +166,7 @@
     @case('feature_sectie')
         @php($featUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
         @php($side = ($c['image_side'] ?? 'left') === 'right' ? 'right' : 'left')
-        <section class="relative w-screen left-1/2 -translate-x-1/2 bg-white">
+        <section class="relative bg-white w-full">
             <div class="grid grid-cols-1 md:grid-cols-2 items-stretch">
                 <div @class(['aspect-[4/3] md:aspect-auto md:min-h-[28rem] overflow-hidden bg-gray-200', 'md:order-2' => $side === 'right'])>
                     @if ($featUrl)

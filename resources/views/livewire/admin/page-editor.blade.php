@@ -12,15 +12,25 @@
             </span>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('admin.pages.versions.preview', [$version->page, $version]) }}" target="_blank" rel="noopener"
+                class="px-3 py-1.5 bg-white border border-gray-300 text-sm rounded-md hover:bg-gray-50 inline-block">
+                Voorvertoning
+            </a>
             <button type="button" wire:click="toggleJsonPanel"
                 class="px-3 py-1.5 bg-white border border-gray-300 text-sm rounded-md hover:bg-gray-50">
                 &lt;/&gt; Broncode
             </button>
+            <button type="button" wire:click="toggleMetaPanel"
+                class="px-3 py-1.5 bg-white border border-gray-300 text-sm rounded-md hover:bg-gray-50">
+                SEO &amp; Open Graph
+            </button>
             @if ($version->status->isEditable())
-                <form method="POST" action="{{ route('admin.pages.versions.submit', [$version->page, $version]) }}">
-                    @csrf
-                    <button type="submit" class="px-3 py-1.5 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Indienen ter publicatie</button>
-                </form>
+                <a href="{{ route('admin.pages.versions.submit.confirm', [$version->page, $version]) }}"
+                    class="inline-block px-3 py-1.5 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Indienen ter publicatie</a>
+                @can('pages.publish')
+                    <a href="{{ route('admin.pages.versions.publish.confirm', [$version->page, $version]) }}"
+                        class="inline-block px-3 py-1.5 bg-white border border-rzvg-500 text-rzvg-700 text-sm rounded-md hover:bg-rzvg-50">Direct publiceren</a>
+                @endcan
             @else
                 <form method="POST" action="{{ route('admin.pages.versions.store', $version->page) }}">
                     @csrf
@@ -66,6 +76,67 @@
                         <span class="text-xs text-gray-500 italic">Alleen conceptversies zijn overschrijfbaar.</span>
                     @endif
                 </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($showMetaPanel)
+        <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="font-display text-lg text-gray-900">SEO &amp; Open Graph</h2>
+                <button type="button" wire:click="toggleMetaPanel" class="text-sm text-gray-500 hover:text-gray-700">Sluiten</button>
+            </div>
+            <p class="text-sm text-gray-500">
+                Meta-omschrijving en Open Graph-gegevens voor zoekmachines en social-media-previews van deze pagina.
+            </p>
+            @if ($metaStatus)
+                <div class="rounded-md bg-blue-50 border border-blue-200 text-blue-800 text-sm px-4 py-2">
+                    {{ $metaStatus }}
+                </div>
+            @endif
+
+            <div x-data="{ count: {{ strlen((string) ($editingMeta['meta_description'] ?? '')) }} }">
+                <div class="flex items-center justify-between">
+                    <x-input-label for="meta-description" value="Meta-omschrijving" />
+                    <span class="text-xs text-gray-400" :class="count > 155 ? 'text-amber-600' : ''" x-text="count + ' / ~155 tekens'"></span>
+                </div>
+                <textarea id="meta-description" wire:model="editingMeta.meta_description" rows="3" @input="count = $event.target.value.length"
+                    class="mt-1 w-full border-gray-300 rounded-md text-sm"></textarea>
+            </div>
+
+            <div>
+                <x-input-label for="og-title" value="OG-titel" />
+                <x-text-input id="og-title" wire:model="editingMeta.og_title" class="block mt-1 w-full" />
+            </div>
+
+            <div>
+                <x-input-label for="og-description" value="OG-omschrijving" />
+                <textarea id="og-description" wire:model="editingMeta.og_description" rows="3"
+                    class="mt-1 w-full border-gray-300 rounded-md text-sm"></textarea>
+            </div>
+
+            <div class="space-y-1">
+                <x-input-label value="OG-afbeelding" />
+                <p class="text-xs text-gray-500">Valt terug op het RZVG-logo als hier geen afbeelding is gekozen.</p>
+                <div class="flex items-center gap-3">
+                    <img src="{{ $editingMeta['og_image_url'] ?? asset('img/branding/rzvg-logo.jpg') }}" alt="" class="h-16 w-auto rounded border border-gray-200">
+                    <div class="flex items-center gap-2">
+                        <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'og-image' })"
+                            class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Uit bibliotheek</button>
+                        @if (! empty($editingMeta['og_image_media_asset_id']))
+                            <button type="button" wire:click="clearOgImage"
+                                class="px-2 py-1 border border-gray-300 rounded text-sm text-red-600 hover:bg-red-50">Verwijderen</button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2 border-t">
+                @if ($version->status->isEditable())
+                    <button type="button" wire:click="saveMeta" class="px-4 py-2 bg-rzvg-500 text-white text-sm rounded-md hover:bg-rzvg-600">Opslaan</button>
+                @else
+                    <span class="text-xs text-gray-500 italic">Alleen conceptversies zijn bewerkbaar.</span>
+                @endif
             </div>
         </div>
     @endif
@@ -117,8 +188,8 @@
                                         </div>
                                     @endif
                                 </div>
-                                <div class="text-sm text-gray-700">
-                                    @include('cms.blocks.preview', ['block' => $block])
+                                <div class="text-sm text-gray-700 overflow-hidden">
+                                    @include('cms.blocks.preview', ['block' => $block, 'fullBleed' => false])
                                 </div>
                             </div>
                         @endforeach

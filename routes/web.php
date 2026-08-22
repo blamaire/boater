@@ -2,25 +2,37 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\FailedJobsController;
-use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\PageEditorController;
 use App\Http\Controllers\Admin\PageHistoryController;
+use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\Admin\PagePushController;
 use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
+use App\Http\Controllers\Portal\ProposalDiffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\SitemapController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\Auditlogboek;
+use App\Livewire\Admin\BoekjaarBeheer;
+use App\Livewire\Admin\BtwCodeBeheer;
+use App\Livewire\Admin\ContactOnderwerpBeheer;
+use App\Livewire\Admin\ContactVerzoekBeheer;
+use App\Livewire\Admin\ContactVerzoekDetail;
+use App\Livewire\Admin\DagboekBeheer;
+use App\Livewire\Admin\DagboekDetail;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\FacturatieBeheer;
+use App\Livewire\Admin\FactuurDetail;
+use App\Livewire\Admin\FeedbackBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\GoedkeuringsgroepBeheer;
+use App\Livewire\Admin\GrootboekBeheer;
 use App\Livewire\Admin\MenuBeheer;
 use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
@@ -30,9 +42,16 @@ use App\Livewire\Admin\ReserveringBeheer;
 use App\Livewire\Admin\ReserveringsregelBeheer;
 use App\Livewire\Admin\SchademeldingBeheer;
 use App\Livewire\Admin\SiteInstellingen;
+use App\Livewire\Admin\WordpressImportBeheer;
+use App\Livewire\Admin\WordpressImportDetail;
+use App\Livewire\Admin\WordpressImportMediaOverzicht;
+use App\Livewire\Portal\LidmaatschapsaanvraagBewerken;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
+use App\Livewire\Portal\ReserveringBewerken;
 use App\Livewire\Portal\SchadeMelden;
+use App\Livewire\Portal\Wijzigingsvoorstellen;
+use App\Livewire\Public\Contact;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +64,10 @@ Route::middleware(['auth', 'verified'])
     ->name('portal.')
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
+        Route::get('/wijzigingsvoorstellen', Wijzigingsvoorstellen::class)->name('wijzigingsvoorstellen');
+        Route::get('/wijzigingsvoorstellen/{proposal}/diff', [ProposalDiffController::class, 'show'])->name('wijzigingsvoorstellen.diff');
+        Route::get('/wijzigingsvoorstellen/{proposal}/aanvraag-aanpassen', LidmaatschapsaanvraagBewerken::class)->name('wijzigingsvoorstellen.membership-application.edit');
+        Route::get('/wijzigingsvoorstellen/{proposal}/reservering-aanpassen', ReserveringBewerken::class)->name('wijzigingsvoorstellen.reservation.edit');
     });
 
 Route::middleware(['auth', 'verified', 'can:reservations.create'])
@@ -66,6 +89,7 @@ Route::middleware(['auth', 'verified'])
     ->name('admin.pages.')
     ->group(function () {
         Route::get('/', [AdminPageController::class, 'index'])->middleware('can:pages.view')->name('index');
+        Route::get('/weespaginas', [AdminPageController::class, 'orphans'])->middleware('can:pages.view')->name('orphans');
         Route::get('/nieuw', [AdminPageController::class, 'create'])->middleware('can:pages.create')->name('create');
         Route::post('/', [AdminPageController::class, 'store'])->middleware('can:pages.create')->name('store');
         Route::get('/{page}/instellingen', [AdminPageController::class, 'edit'])->middleware('can:pages.update')->name('edit');
@@ -74,15 +98,24 @@ Route::middleware(['auth', 'verified'])
         // De editor + versie-indienen staan open voor leden met `pages.propose`
         // (impliciet via een actief lidmaatschap). Redacteurs/beheerders met
         // `pages.update` krijgen `pages.propose` automatisch (impliceerregel
-        // in EffectivePermissions). De uiteindelijke bypass-check (direct
-        // publiceren i.p.v. via motor) zit op de policy (`pages.publish`).
+        // in EffectivePermissions). "Indienen" gaat altijd via de motor (ook
+        // met bypass-rechten — ProposalEngine::submit(ignoreBypass: true));
+        // wie ook `pages.publish` heeft krijgt daarnaast de expliciete
+        // "direct publiceren"-knop/route hieronder.
         Route::get('/{page}/bewerker', [PageEditorController::class, 'show'])->middleware('can:pages.propose')->name('editor');
         Route::post('/{page}/versies', [PageEditorController::class, 'startDraft'])->middleware('can:pages.propose')->name('versions.store');
+        Route::get('/{page}/versies/{version}/indienen', [PageEditorController::class, 'confirmSubmit'])->middleware('can:pages.propose')->name('versions.submit.confirm');
         Route::post('/{page}/versies/{version}/indienen', [PageEditorController::class, 'submit'])->middleware('can:pages.propose')->name('versions.submit');
+        Route::get('/{page}/versies/{version}/publiceren', [PageEditorController::class, 'confirmPublish'])->middleware('can:pages.publish')->name('versions.publish.confirm');
+        Route::post('/{page}/versies/{version}/publiceren', [PageEditorController::class, 'publishDirectly'])->middleware('can:pages.publish')->name('versions.publish');
 
         Route::get('/{page}/versies/{version}/conflict/{other}', [PageConflictController::class, 'show'])
             ->middleware('can:pages.propose')
             ->name('conflict.show');
+
+        Route::get('/{page}/versies/{version}/voorvertoning', PagePreviewController::class)
+            ->middleware('can:pages.propose')
+            ->name('versions.preview');
 
         Route::post('/{page}/push', PagePushController::class)->middleware('can:pages.push')->name('push');
 
@@ -153,16 +186,52 @@ Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
     ->get('/beheer/voorstellen/{proposal}', [ProposalController::class, 'show'])
     ->name('admin.proposals.show');
 
+Route::middleware(['auth', 'verified', 'can:feedback.manage'])
+    ->get('/beheer/terugkoppeling', FeedbackBeheer::class)
+    ->name('admin.feedback');
+
+Route::middleware(['auth', 'verified', 'can:contact_topics.manage'])
+    ->get('/beheer/contact-onderwerpen', ContactOnderwerpBeheer::class)
+    ->name('admin.contact-topics.index');
+
+Route::middleware(['auth', 'verified', 'can:contact_requests.manage'])
+    ->get('/beheer/contactverzoeken', ContactVerzoekBeheer::class)
+    ->name('admin.contact-requests.index');
+
+Route::middleware(['auth', 'verified', 'can:contact_requests.manage'])
+    ->get('/beheer/contactverzoeken/{contactRequest}', ContactVerzoekDetail::class)
+    ->name('admin.contact-requests.show');
+
 Route::middleware(['auth', 'verified', 'can:products.manage'])
     ->get('/beheer/producten', ProductBeheer::class)
     ->name('admin.products.index');
+
+Route::middleware(['auth', 'verified', 'can:boekjaren.manage'])
+    ->get('/beheer/boekjaren', BoekjaarBeheer::class)
+    ->name('admin.boekjaren.index');
+
+Route::middleware(['auth', 'verified', 'can:dagboeken.manage'])
+    ->get('/beheer/dagboeken', DagboekBeheer::class)
+    ->name('admin.dagboeken.index');
+
+Route::middleware(['auth', 'verified', 'can:dagboeken.manage'])
+    ->get('/beheer/dagboeken/{dagboek}', DagboekDetail::class)
+    ->name('admin.dagboeken.show');
+
+Route::middleware(['auth', 'verified', 'can:btw_codes.manage'])
+    ->get('/beheer/btw-codes', BtwCodeBeheer::class)
+    ->name('admin.btw-codes.index');
+
+Route::middleware(['auth', 'verified', 'can:ledger_accounts.manage'])
+    ->get('/beheer/grootboek', GrootboekBeheer::class)
+    ->name('admin.grootboek.index');
 
 Route::middleware(['auth', 'verified', 'can:invoices.manage'])
     ->get('/beheer/facturatie', FacturatieBeheer::class)
     ->name('admin.billing.index');
 
 Route::middleware(['auth', 'verified', 'can:invoices.manage'])
-    ->get('/beheer/facturen/{invoice}', [InvoiceController::class, 'show'])
+    ->get('/beheer/facturen/{invoice}', FactuurDetail::class)
     ->name('admin.invoices.show');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
@@ -176,6 +245,18 @@ Route::middleware(['auth', 'verified', 'can:site_settings.manage'])
 Route::middleware(['auth', 'verified', 'can:environments.manage'])
     ->get('/beheer/omgevingen', EnvironmentBeheer::class)
     ->name('admin.environments');
+
+Route::middleware(['auth', 'verified', 'can:wordpress_import.manage'])
+    ->get('/beheer/wordpress-import', WordpressImportBeheer::class)
+    ->name('admin.wordpress-import.index');
+
+Route::middleware(['auth', 'verified', 'can:wordpress_import.manage'])
+    ->get('/beheer/wordpress-import/media', WordpressImportMediaOverzicht::class)
+    ->name('admin.wordpress-import.media');
+
+Route::middleware(['auth', 'verified', 'can:wordpress_import.manage'])
+    ->get('/beheer/wordpress-import/{item}', WordpressImportDetail::class)
+    ->name('admin.wordpress-import.show');
 
 Route::view('/beheer/media', 'admin.media')
     ->middleware(['auth', 'verified', 'can:media.view'])
@@ -198,7 +279,9 @@ require __DIR__.'/auth.php';
 
 Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
+Route::get('/contact', Contact::class)->name('contact');
 Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')
     ->name('public.page');

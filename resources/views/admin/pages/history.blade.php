@@ -10,7 +10,7 @@
             <div class="rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800">{{ session('status') }}</div>
         @endif
 
-        <form method="GET" action="" x-data="{ a: null, b: null }" x-init="$watch('a', v => { if (a && b) window.location = '{{ url()->current() }}/'+a+'/diff/'+b; })">
+        <div x-data="{ a: null, b: null }">
             <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -26,7 +26,9 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach ($versions as $v)
                             <tr>
-                                <td class="px-4 py-2 font-mono">v{{ $v->version_no }}</td>
+                                <td class="px-4 py-2 font-mono">
+                                    <a href="{{ route('admin.pages.versions.preview', [$page, $v]) }}" target="_blank" rel="noopener" class="text-rzvg-600 hover:text-rzvg-800 underline">v{{ $v->version_no }}</a>
+                                </td>
                                 <td class="px-4 py-2 text-sm">
                                     <span @class([
                                         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
@@ -40,7 +42,7 @@
                                     @if ($v->createdBy)
                                         {{ $v->createdBy->first_name }} {{ $v->createdBy->last_name }}
                                     @else
-                                        —
+                                        Systeem
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-sm text-gray-500">{{ $v->created_at?->translatedFormat('j M Y H:i') }}</td>
@@ -61,6 +63,17 @@
                     </tbody>
                 </table>
             </div>
-        </form>
+
+            <div class="mt-3 flex items-center gap-3">
+                <button type="button"
+                    @click="if (a && b) window.location = '{{ url()->current() }}/'+a+'/diff/'+b"
+                    :disabled="!a || !b || a === b"
+                    :class="(!a || !b || a === b) ? 'opacity-50 cursor-not-allowed' : ''"
+                    class="px-4 py-2 text-sm rounded-md bg-rzvg-600 text-white hover:bg-rzvg-700">
+                    Vergelijk geselecteerde versies
+                </button>
+                <p class="text-xs text-gray-500" x-show="a && b && a === b" x-cloak>Kies twee verschillende versies.</p>
+            </div>
+        </div>
     </div>
 </x-app-layout>

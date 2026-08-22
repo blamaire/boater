@@ -59,7 +59,6 @@
                 @if ($siteSettings->termsPage)
                     <li><a href="{{ $siteSettings->termsPage->publicUrl() }}" class="hover:text-rzvg-600">Voorwaarden</a></li>
                 @endif
-                <li><a href="{{ route('lid-worden') }}" class="hover:text-rzvg-600">Lid worden</a></li>
             </ul>
         </div>
     </div>

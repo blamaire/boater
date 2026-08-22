@@ -15,9 +15,11 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property ProductType $type
  * @property int|null $ledger_account_id
+ * @property int|null $btw_code_id
  * @property bool $is_recurring
  * @property ProductRecurrence|null $recurrence
  * @property-read LedgerAccount|null $ledgerAccount
+ * @property-read BtwCode|null $btwCode
  * @property-read Collection<int, ProductPrice> $prices
  * @property-read Collection<int, MembershipType> $membershipTypes
  */
@@ -27,6 +29,7 @@ class Product extends Model
         'name',
         'type',
         'ledger_account_id',
+        'btw_code_id',
         'is_recurring',
         'recurrence',
     ];
@@ -44,6 +47,12 @@ class Product extends Model
     public function ledgerAccount(): BelongsTo
     {
         return $this->belongsTo(LedgerAccount::class);
+    }
+
+    /** @return BelongsTo<BtwCode, $this> */
+    public function btwCode(): BelongsTo
+    {
+        return $this->belongsTo(BtwCode::class);
     }
 
     /** @return HasMany<ProductPrice, $this> */

@@ -10,7 +10,7 @@
         auth()->user()?->can('damage_reports.create')
             ? $item(route('portal.schade-melden'), 'Schade melden', request()->routeIs('portal.schade-melden'))
             : $item(null, 'Schade melden', false, true),
-        $item(null, 'Voorstellen', false, true),
+        $item(route('portal.wijzigingsvoorstellen'), 'Wijzigingsvoorstellen', request()->routeIs('portal.wijzigingsvoorstellen*')),
     ];
 @endphp
 
@@ -39,7 +39,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage', 'wordpress_import.manage', 'feedback.manage', 'contact_requests.manage', 'contact_topics.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             {{-- Beheer-menu-items staan alfabetisch op label; sommige zijn gegroepeerd
@@ -67,11 +67,15 @@
                             ])>Auditlogboek</a>
                     </li>
                 @endcan
-                @canany(['invoices.manage', 'products.manage'])
+                @canany(['invoices.manage', 'products.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage'])
                     @php
                         $boekhoudingActief = request()->routeIs('admin.billing.*')
                             || request()->routeIs('admin.invoices.*')
-                            || request()->routeIs('admin.products.*');
+                            || request()->routeIs('admin.products.*')
+                            || request()->routeIs('admin.boekjaren.*')
+                            || request()->routeIs('admin.dagboeken.*')
+                            || request()->routeIs('admin.btw-codes.*')
+                            || request()->routeIs('admin.grootboek.*');
                     @endphp
                     <li x-data="{ open: {{ $boekhoudingActief ? 'true' : 'false' }} }">
                         <button type="button" @click="open = ! open"
@@ -86,6 +90,36 @@
                             </svg>
                         </button>
                         <ul x-show="open" @unless($boekhoudingActief) style="display: none;" @endunless class="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-3">
+                            @can('boekjaren.manage')
+                                <li>
+                                    <a href="{{ route('admin.boekjaren.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.boekjaren.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.boekjaren.*'),
+                                        ])>Boekjaren</a>
+                                </li>
+                            @endcan
+                            @can('btw_codes.manage')
+                                <li>
+                                    <a href="{{ route('admin.btw-codes.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.btw-codes.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.btw-codes.*'),
+                                        ])>BTW-codes</a>
+                                </li>
+                            @endcan
+                            @can('dagboeken.manage')
+                                <li>
+                                    <a href="{{ route('admin.dagboeken.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.dagboeken.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.dagboeken.*'),
+                                        ])>Dagboeken</a>
+                                </li>
+                            @endcan
                             @can('invoices.manage')
                                 <li>
                                     <a href="{{ route('admin.billing.index') }}"
@@ -96,6 +130,16 @@
                                         ])>Facturatie</a>
                                 </li>
                             @endcan
+                            @can('ledger_accounts.manage')
+                                <li>
+                                    <a href="{{ route('admin.grootboek.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.grootboek.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.grootboek.*'),
+                                        ])>Grootboek</a>
+                                </li>
+                            @endcan
                             @can('products.manage')
                                 <li>
                                     <a href="{{ route('admin.products.index') }}"
@@ -104,6 +148,46 @@
                                             'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.products.*'),
                                             'text-gray-700' => ! request()->routeIs('admin.products.*'),
                                         ])>Producten</a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
+                @canany(['contact_requests.manage', 'contact_topics.manage'])
+                    @php
+                        $contactActief = request()->routeIs('admin.contact-requests.*') || request()->routeIs('admin.contact-topics.*');
+                    @endphp
+                    <li x-data="{ open: {{ $contactActief ? 'true' : 'false' }} }">
+                        <button type="button" @click="open = ! open"
+                            @class([
+                                'flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'text-rzvg-700 font-medium' => $contactActief,
+                                'text-gray-700' => ! $contactActief,
+                            ])>
+                            <span>Contact</span>
+                            <svg width="16" height="16" class="h-4 w-4 shrink-0 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <ul x-show="open" @unless($contactActief) style="display: none;" @endunless class="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-3">
+                            @can('contact_requests.manage')
+                                <li>
+                                    <a href="{{ route('admin.contact-requests.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.contact-requests.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.contact-requests.*'),
+                                        ])>Contactverzoeken</a>
+                                </li>
+                            @endcan
+                            @can('contact_topics.manage')
+                                <li>
+                                    <a href="{{ route('admin.contact-topics.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.contact-topics.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.contact-topics.*'),
+                                        ])>Onderwerpen</a>
                                 </li>
                             @endcan
                         </ul>
@@ -206,9 +290,9 @@
                         </ul>
                     </li>
                 @endcanany
-                @canany(['pages.view', 'media.view', 'menu.manage'])
+                @canany(['pages.view', 'media.view', 'menu.manage', 'wordpress_import.manage'])
                     @php
-                        $paginaActief = request()->routeIs('admin.pages.*') || request()->routeIs('admin.media') || request()->routeIs('admin.menu');
+                        $paginaActief = request()->routeIs('admin.pages.*') || request()->routeIs('admin.media') || request()->routeIs('admin.menu') || request()->routeIs('admin.wordpress-import.*');
                     @endphp
                     <li x-data="{ open: {{ $paginaActief ? 'true' : 'false' }} }">
                         <button type="button" @click="open = ! open"
@@ -248,9 +332,27 @@
                                     <a href="{{ route('admin.pages.index') }}"
                                         @class([
                                             'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*'),
-                                            'text-gray-700' => ! request()->routeIs('admin.pages.*'),
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.*') && ! request()->routeIs('admin.pages.orphans'),
+                                            'text-gray-700' => ! (request()->routeIs('admin.pages.*') && ! request()->routeIs('admin.pages.orphans')),
                                         ])>Pagina's</a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('admin.pages.orphans') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.orphans'),
+                                            'text-gray-700' => ! request()->routeIs('admin.pages.orphans'),
+                                        ])>Weespagina's</a>
+                                </li>
+                            @endcan
+                            @can('wordpress_import.manage')
+                                <li>
+                                    <a href="{{ route('admin.wordpress-import.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.wordpress-import.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.wordpress-import.*'),
+                                        ])>WordPress-import</a>
                                 </li>
                             @endcan
                         </ul>
@@ -320,6 +422,16 @@
                         </ul>
                     </li>
                 @endcanany
+                @can('feedback.manage')
+                    <li>
+                        <a href="{{ route('admin.feedback') }}"
+                            @class([
+                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.feedback'),
+                                'text-gray-700' => ! request()->routeIs('admin.feedback'),
+                            ])>Terugkoppeling</a>
+                    </li>
+                @endcan
             </ul>
         </div>
     @endcanany

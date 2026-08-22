@@ -50,6 +50,10 @@ class PermissionSeeder extends Seeder
             // koppeling) en facturatie (posten, facturen, journaalposten).
             'products' => ['manage'],
             'invoices' => ['manage'],
+            'boekjaren' => ['manage'],
+            'dagboeken' => ['manage'],
+            'btw_codes' => ['manage'],
+            'ledger_accounts' => ['manage'],
             'audit_trail' => ['view'],
             'media' => ['view', 'upload', 'delete'],
             'queue' => ['manage'],
@@ -59,6 +63,10 @@ class PermissionSeeder extends Seeder
             'users' => ['manage'],
             'reservable_objects' => ['manage'],
             'approver_groups' => ['manage'],
+            'wordpress_import' => ['manage'],
+            'feedback' => ['manage'],
+            'contact_topics' => ['manage'],
+            'contact_requests' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -112,6 +120,10 @@ class PermissionSeeder extends Seeder
             'pages' => 'Pagina\'s',
             'products' => 'Producten',
             'invoices' => 'Facturatie',
+            'boekjaren' => 'Boekjaren',
+            'dagboeken' => 'Dagboeken',
+            'btw_codes' => 'BTW-codes',
+            'ledger_accounts' => 'Grootboekrekeningen',
             'audit_trail' => 'Auditlogboek',
             'media' => 'Media',
             'queue' => 'Queue',
@@ -121,6 +133,10 @@ class PermissionSeeder extends Seeder
             'users' => 'Gebruikers',
             'reservable_objects' => 'Objecten (reserveren)',
             'approver_groups' => 'Goedkeuringsgroepen',
+            'wordpress_import' => 'WordPress-import',
+            'feedback' => 'Terugkoppeling',
+            'contact_topics' => 'Contact-onderwerpen',
+            'contact_requests' => 'Contactverzoeken',
             default => ucfirst($module),
         };
 
