@@ -37,7 +37,7 @@ class ContactRequestSubmitted extends Notification implements ShouldQueue
             ->greeting('Hallo,')
             ->line('Er is een nieuw contactverzoek binnengekomen voor "'.$request->topic->name.'".')
             ->line('Naam: '.$request->name)
-            ->line('Voorkeur: '.$request->preferred_contact_method->label());
+            ->line('Voorkeur: '.$request->contactMethodLabel());
 
         if ($request->phone) {
             $mail->line('Telefoon: '.$request->phone);

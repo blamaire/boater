@@ -18,7 +18,10 @@ return new class extends Migration
             $table->string('name');
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
-            $table->string('preferred_contact_method'); // 'bellen' | 'mailen'
+            // Beide mogen aangevinkt zijn (bv. "bel me, en mail ter bevestiging") —
+            // vandaar twee losse vlaggen i.p.v. één voorkeur-enum.
+            $table->boolean('contact_by_phone')->default(false);
+            $table->boolean('contact_by_email')->default(false);
             $table->text('message');
             $table->string('status')->default('nieuw');
             // T.b.v. onderzoek bij misbruik/spam, naast de rate-limiter zelf.

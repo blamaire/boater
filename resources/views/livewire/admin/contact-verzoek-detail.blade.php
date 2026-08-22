@@ -25,7 +25,7 @@
             </div>
             <div>
                 <dt class="text-gray-500">Voorkeur</dt>
-                <dd class="text-gray-900">{{ $contactRequest->preferred_contact_method->label() }}</dd>
+                <dd class="text-gray-900">{{ $contactRequest->contactMethodLabel() }}</dd>
             </div>
             <div>
                 <dt class="text-gray-500">Telefoon</dt>

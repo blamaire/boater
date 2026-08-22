@@ -39,7 +39,7 @@ function contactVerzoekEntry(array $overrides = []): ContactRequest
         'contact_topic_id' => $topic->id,
         'name' => 'Bezoeker',
         'email' => 'bezoeker@example.test',
-        'preferred_contact_method' => 'mailen',
+        'contact_by_email' => true,
         'message' => 'Testbericht',
         'status' => 'nieuw',
     ], $overrides));

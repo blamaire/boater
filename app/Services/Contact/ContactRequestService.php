@@ -2,7 +2,6 @@
 
 namespace App\Services\Contact;
 
-use App\Enums\ContactPreferredMethod;
 use App\Enums\ContactRequestStatus;
 use App\Models\ContactRequest;
 use App\Models\ContactTopic;
@@ -27,17 +26,19 @@ class ContactRequestService
         string $name,
         ?string $phone,
         ?string $email,
-        ContactPreferredMethod $preferredMethod,
+        bool $contactByPhone,
+        bool $contactByEmail,
         string $message,
         ?string $ipAddress,
     ): ContactRequest {
-        return DB::transaction(function () use ($topic, $name, $phone, $email, $preferredMethod, $message, $ipAddress): ContactRequest {
+        return DB::transaction(function () use ($topic, $name, $phone, $email, $contactByPhone, $contactByEmail, $message, $ipAddress): ContactRequest {
             $request = ContactRequest::create([
                 'contact_topic_id' => $topic->id,
                 'name' => $name,
                 'phone' => $phone,
                 'email' => $email,
-                'preferred_contact_method' => $preferredMethod,
+                'contact_by_phone' => $contactByPhone,
+                'contact_by_email' => $contactByEmail,
                 'message' => $message,
                 'status' => ContactRequestStatus::Nieuw,
                 'ip_address' => $ipAddress,

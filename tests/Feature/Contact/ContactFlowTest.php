@@ -31,6 +31,20 @@ it('toont het contactformulier met de geseede onderwerpen op /contact', function
         ->assertSee($topic->name);
 });
 
+it('toont het telefoon-/e-mailveld pas nadat de bijbehorende contactwijze is aangevinkt', function () {
+    $component = Livewire::test(Contact::class)
+        ->assertDontSee('wire:model="phone"', false)
+        ->assertDontSee('wire:model="email"', false);
+
+    $component->set('contact_by_phone', true)
+        ->assertSee('wire:model="phone"', false)
+        ->assertDontSee('wire:model="email"', false);
+
+    $component->set('contact_by_email', true)
+        ->assertSee('wire:model="phone"', false)
+        ->assertSee('wire:model="email"', false);
+});
+
 it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke', function () {
     Notification::fake();
     $topic = contactFlowTopic();
@@ -38,8 +52,8 @@ it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke'
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
+        ->set('contact_by_email', true)
         ->set('email', 'jan@example.test')
-        ->set('preferred_contact_method', 'mailen')
         ->set('message', 'Ik heb een vraag over het lidmaatschap.')
         ->call('submit')
         ->assertHasNoErrors()
@@ -48,6 +62,8 @@ it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke'
     $request = ContactRequest::query()->firstOrFail();
     expect($request->name)->toBe('Jan Jansen')
         ->and($request->email)->toBe('jan@example.test')
+        ->and($request->contact_by_email)->toBeTrue()
+        ->and($request->contact_by_phone)->toBeFalse()
         ->and($request->status->value)->toBe('nieuw');
 
     Notification::assertSentOnDemand(ContactRequestSubmitted::class, function ($notification, $channels, $notifiable) {
@@ -55,7 +71,26 @@ it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke'
     });
 });
 
-it('weigert indiening zonder telefoon én zonder e-mail', function () {
+it('slaat beide contactvoorkeuren op als zowel bellen als mailen zijn aangevinkt', function () {
+    $topic = contactFlowTopic();
+
+    Livewire::test(Contact::class)
+        ->set('contact_topic_id', $topic->id)
+        ->set('name', 'Jan Jansen')
+        ->set('contact_by_phone', true)
+        ->set('phone', '0612345678')
+        ->set('contact_by_email', true)
+        ->set('email', 'jan@example.test')
+        ->set('message', 'Bericht van voldoende lengte.')
+        ->call('submit')
+        ->assertHasNoErrors();
+
+    $request = ContactRequest::query()->firstOrFail();
+    expect($request->contact_by_phone)->toBeTrue()
+        ->and($request->contact_by_email)->toBeTrue();
+});
+
+it('weigert indiening als geen enkele contactwijze is aangevinkt', function () {
     $topic = contactFlowTopic();
 
     Livewire::test(Contact::class)
@@ -63,7 +98,7 @@ it('weigert indiening zonder telefoon én zonder e-mail', function () {
         ->set('name', 'Jan Jansen')
         ->set('message', 'Bericht van voldoende lengte.')
         ->call('submit')
-        ->assertHasErrors(['phone', 'email']);
+        ->assertHasErrors('form');
 
     expect(ContactRequest::count())->toBe(0);
 });
@@ -74,8 +109,7 @@ it('weigert "bel me terug" zonder telefoonnummer', function () {
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
-        ->set('email', 'jan@example.test')
-        ->set('preferred_contact_method', 'bellen')
+        ->set('contact_by_phone', true)
         ->set('message', 'Bericht van voldoende lengte.')
         ->call('submit')
         ->assertHasErrors('phone');
@@ -90,6 +124,7 @@ it('negeert een indiening stil als het honeypot-veld is ingevuld', function () {
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Spambot')
+        ->set('contact_by_email', true)
         ->set('email', 'spam@example.test')
         ->set('message', 'Geautomatiseerd spambericht.')
         ->set('website', 'http://spam.example')
@@ -108,6 +143,7 @@ it('blokkeert na te veel verzoeken vanaf hetzelfde IP', function () {
         Livewire::test(Contact::class)
             ->set('contact_topic_id', $topic->id)
             ->set('name', 'Jan Jansen')
+            ->set('contact_by_email', true)
             ->set('email', 'jan@example.test')
             ->set('message', 'Bericht van voldoende lengte.')
             ->call('submit')
@@ -119,6 +155,7 @@ it('blokkeert na te veel verzoeken vanaf hetzelfde IP', function () {
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
+        ->set('contact_by_email', true)
         ->set('email', 'jan@example.test')
         ->set('message', 'Dit zesde verzoek mag niet meer door.')
         ->call('submit')
@@ -134,6 +171,7 @@ it('slaat Turnstile-verificatie over als er geen secret-key geconfigureerd is', 
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
+        ->set('contact_by_email', true)
         ->set('email', 'jan@example.test')
         ->set('message', 'Bericht van voldoende lengte.')
         ->call('submit')
@@ -150,6 +188,7 @@ it('weigert indiening als Turnstile de verificatie afwijst', function () {
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
+        ->set('contact_by_email', true)
         ->set('email', 'jan@example.test')
         ->set('message', 'Bericht van voldoende lengte.')
         ->set('turnstileToken', 'token')
@@ -169,6 +208,7 @@ it('accepteert indiening (fail-open) als Turnstile onbereikbaar is', function ()
     Livewire::test(Contact::class)
         ->set('contact_topic_id', $topic->id)
         ->set('name', 'Jan Jansen')
+        ->set('contact_by_email', true)
         ->set('email', 'jan@example.test')
         ->set('message', 'Bericht van voldoende lengte.')
         ->set('turnstileToken', 'token')

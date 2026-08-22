@@ -39,7 +39,7 @@ function contactDetailEntry(): ContactRequest
         'name' => 'Piet Puk',
         'phone' => '0612345678',
         'email' => 'piet@example.test',
-        'preferred_contact_method' => 'bellen',
+        'contact_by_phone' => true,
         'message' => 'Ik heb een vraag over materiaal.',
         'status' => 'nieuw',
     ]);

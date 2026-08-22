@@ -24,16 +24,23 @@
                 </label>
             </div>
 
-            <label class="block">
-                <span class="block text-sm font-medium text-gray-700">Onderwerp</span>
-                <select wire:model="contact_topic_id" class="mt-1 block w-full rounded border-gray-300">
-                    <option value="">— Kies een onderwerp —</option>
+            <div>
+                <span class="block text-sm font-medium text-gray-700 mb-1">Onderwerp</span>
+                <div class="flex flex-wrap gap-2" role="radiogroup" aria-label="Onderwerp">
                     @foreach ($topics as $topic)
-                        <option value="{{ $topic->id }}">{{ $topic->name }}</option>
+                        <button type="button" wire:click="$set('contact_topic_id', {{ $topic->id }})"
+                            role="radio" aria-checked="{{ $contact_topic_id === $topic->id ? 'true' : 'false' }}"
+                            @class([
+                                'px-4 py-2 rounded-full text-sm font-medium border transition',
+                                'bg-rzvg-600 text-white border-rzvg-600' => $contact_topic_id === $topic->id,
+                                'bg-white text-gray-700 border-gray-300 hover:bg-rzvg-50' => $contact_topic_id !== $topic->id,
+                            ])>
+                            {{ $topic->name }}
+                        </button>
                     @endforeach
-                </select>
+                </div>
                 @error('contact_topic_id') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-            </label>
+            </div>
 
             <label class="block">
                 <span class="block text-sm font-medium text-gray-700">Naam</span>
@@ -41,32 +48,38 @@
                 @error('name') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
             </label>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label class="block">
-                    <span class="block text-sm font-medium text-gray-700">Telefoon</span>
-                    <input type="tel" wire:model="phone" class="mt-1 block w-full rounded border-gray-300">
-                    @error('phone') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-                </label>
-                <label class="block">
-                    <span class="block text-sm font-medium text-gray-700">E-mail</span>
-                    <input type="email" wire:model="email" class="mt-1 block w-full rounded border-gray-300">
-                    @error('email') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
-                </label>
-            </div>
-
             <fieldset class="block">
                 <legend class="block text-sm font-medium text-gray-700">Hoe nemen we contact op?</legend>
-                <div class="mt-1 flex gap-6">
+                <div class="mt-1 flex flex-col gap-2">
                     <label class="flex items-center gap-2">
-                        <input type="radio" wire:model="preferred_contact_method" value="bellen" class="border-gray-300 text-rzvg-600">
+                        <input type="checkbox" wire:model.live="contact_by_phone" class="rounded border-gray-300 text-rzvg-600">
                         <span>Bel me terug</span>
                     </label>
                     <label class="flex items-center gap-2">
-                        <input type="radio" wire:model="preferred_contact_method" value="mailen" class="border-gray-300 text-rzvg-600">
+                        <input type="checkbox" wire:model.live="contact_by_email" class="rounded border-gray-300 text-rzvg-600">
                         <span>Mail me terug</span>
                     </label>
                 </div>
             </fieldset>
+
+            @if ($contact_by_phone || $contact_by_email)
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    @if ($contact_by_phone)
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">Telefoon</span>
+                            <input type="tel" wire:model="phone" class="mt-1 block w-full rounded border-gray-300">
+                            @error('phone') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                    @endif
+                    @if ($contact_by_email)
+                        <label class="block">
+                            <span class="block text-sm font-medium text-gray-700">E-mail</span>
+                            <input type="email" wire:model="email" class="mt-1 block w-full rounded border-gray-300">
+                            @error('email') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
+                        </label>
+                    @endif
+                </div>
+            @endif
 
             <label class="block">
                 <span class="block text-sm font-medium text-gray-700">Bericht</span>
