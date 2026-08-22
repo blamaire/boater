@@ -1,6 +1,10 @@
 <div>
+    {{-- Positionering (fixed bottom-right) zit op de gedeelde knoppenrij in de
+         layout, niet hier — zo staat dit knopje naast het contactknopje
+         i.p.v. eroverheen (zie components/public-layout.blade.php en
+         layouts/app.blade.php). --}}
     <button type="button" x-data="" x-on:click="$dispatch('open-modal', 'feedback-widget')"
-        class="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-rzvg-600 text-white text-sm font-medium shadow-lg hover:bg-rzvg-700">
+        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-rzvg-600 text-white text-sm font-medium shadow-lg hover:bg-rzvg-700">
         <svg width="18" height="18" class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.17 0-2.29-.2-3.31-.566L3 21l1.649-4.396C3.61 15.36 3 13.73 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z" />
         </svg>

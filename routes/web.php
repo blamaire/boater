@@ -21,6 +21,9 @@ use App\Livewire\Admin\ActivityCategoryBeheer;
 use App\Livewire\Admin\Auditlogboek;
 use App\Livewire\Admin\BoekjaarBeheer;
 use App\Livewire\Admin\BtwCodeBeheer;
+use App\Livewire\Admin\ContactOnderwerpBeheer;
+use App\Livewire\Admin\ContactVerzoekBeheer;
+use App\Livewire\Admin\ContactVerzoekDetail;
 use App\Livewire\Admin\DagboekBeheer;
 use App\Livewire\Admin\DagboekDetail;
 use App\Livewire\Admin\EnvironmentBeheer;
@@ -48,6 +51,7 @@ use App\Livewire\Portal\Reserveren;
 use App\Livewire\Portal\ReserveringBewerken;
 use App\Livewire\Portal\SchadeMelden;
 use App\Livewire\Portal\Wijzigingsvoorstellen;
+use App\Livewire\Public\Contact;
 use App\Livewire\Public\LidWorden;
 use Illuminate\Support\Facades\Route;
 
@@ -186,6 +190,18 @@ Route::middleware(['auth', 'verified', 'can:feedback.manage'])
     ->get('/beheer/terugkoppeling', FeedbackBeheer::class)
     ->name('admin.feedback');
 
+Route::middleware(['auth', 'verified', 'can:contact_topics.manage'])
+    ->get('/beheer/contact-onderwerpen', ContactOnderwerpBeheer::class)
+    ->name('admin.contact-topics.index');
+
+Route::middleware(['auth', 'verified', 'can:contact_requests.manage'])
+    ->get('/beheer/contactverzoeken', ContactVerzoekBeheer::class)
+    ->name('admin.contact-requests.index');
+
+Route::middleware(['auth', 'verified', 'can:contact_requests.manage'])
+    ->get('/beheer/contactverzoeken/{contactRequest}', ContactVerzoekDetail::class)
+    ->name('admin.contact-requests.show');
+
 Route::middleware(['auth', 'verified', 'can:products.manage'])
     ->get('/beheer/producten', ProductBeheer::class)
     ->name('admin.products.index');
@@ -263,6 +279,7 @@ require __DIR__.'/auth.php';
 
 Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
+Route::get('/contact', Contact::class)->name('contact');
 Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/pagina/{path}', PublicPageController::class)

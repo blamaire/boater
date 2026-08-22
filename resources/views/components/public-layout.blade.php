@@ -89,9 +89,23 @@
                         class="w-64 shrink-0 bg-white border-l border-gray-200 z-40 fixed md:sticky inset-y-0 right-0 md:top-0 md:self-stretch md:max-h-screen overflow-y-auto">
                         @include('layouts.navigation')
                     </aside>
-
-                    @livewire('feedback-widget', ['pageId' => $page?->id, 'pageVersionId' => $version?->id])
                 @endauth
+
+                {{-- bottom via inline style (i.p.v. een nieuwe bottom-*-utility): een
+                     net-geïntroduceerde klasse duikt soms pas op ná een Tailwind-scan
+                     (zie feedback-widget's eerdere fixed/bottom-4/right-4-probleem), en
+                     deze knoppenrij mag nooit onzichtbaar staan te wachten daarop. Extra
+                     hoog boven bottom-0 zodat de rij niet over de footer-onderbalk
+                     ("Roei- en Zeilvereniging Gouda") heen valt bij volledig scrollen. --}}
+                <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: 4.5rem;">
+                    @guest
+                        <x-lid-worden-button />
+                    @endguest
+                    <x-contact-button />
+                    @auth
+                        @livewire('feedback-widget', ['pageId' => $page?->id, 'pageVersionId' => $version?->id])
+                    @endauth
+                </div>
             </div>
 
             @include('public._footer')
