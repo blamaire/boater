@@ -111,4 +111,27 @@ class Page extends Model
 
         return '/pagina/'.$this->path();
     }
+
+    /**
+     * Mag $user deze pagina daadwerkelijk bekijken? `Public` altijd; `Restricted`
+     * alleen ingelogd + (`pages.view`-recht OF actief lidmaatschap). Dit is de
+     * ENIGE plek waar deze regel staat — PublicPageController::guardVisibility()
+     * en PublicNavComposer filteren hiermee, zodat ze niet uit de pas kunnen lopen.
+     */
+    public function isVisibleTo(?User $user): bool
+    {
+        if ($this->visibility === PageVisibility::Public) {
+            return true;
+        }
+
+        if ($user === null) {
+            return false;
+        }
+
+        if ($user->can('pages.view')) {
+            return true;
+        }
+
+        return $user->person?->hasActiveMembership() === true;
+    }
 }

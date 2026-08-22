@@ -250,9 +250,9 @@
                         </ul>
                     </li>
                 @endcanany
-                @canany(['pages.view', 'media.view', 'menu.manage'])
+                @canany(['pages.view', 'media.view', 'menu.manage', 'wordpress_import.manage'])
                     @php
-                        $paginaActief = request()->routeIs('admin.pages.*') || request()->routeIs('admin.media') || request()->routeIs('admin.menu');
+                        $paginaActief = request()->routeIs('admin.pages.*') || request()->routeIs('admin.media') || request()->routeIs('admin.menu') || request()->routeIs('admin.wordpress-import.*');
                     @endphp
                     <li x-data="{ open: {{ $paginaActief ? 'true' : 'false' }} }">
                         <button type="button" @click="open = ! open"
@@ -303,6 +303,16 @@
                                             'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.pages.orphans'),
                                             'text-gray-700' => ! request()->routeIs('admin.pages.orphans'),
                                         ])>Weespagina's</a>
+                                </li>
+                            @endcan
+                            @can('wordpress_import.manage')
+                                <li>
+                                    <a href="{{ route('admin.wordpress-import.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.wordpress-import.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.wordpress-import.*'),
+                                        ])>WordPress-import</a>
                                 </li>
                             @endcan
                         </ul>
@@ -380,16 +390,6 @@
                                 'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.feedback'),
                                 'text-gray-700' => ! request()->routeIs('admin.feedback'),
                             ])>Terugkoppeling</a>
-                    </li>
-                @endcan
-                @can('wordpress_import.manage')
-                    <li>
-                        <a href="{{ route('admin.wordpress-import.index') }}"
-                            @class([
-                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.wordpress-import.*'),
-                                'text-gray-700' => ! request()->routeIs('admin.wordpress-import.*'),
-                            ])>WordPress-import</a>
                     </li>
                 @endcan
             </ul>
