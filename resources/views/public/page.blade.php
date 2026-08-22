@@ -3,7 +3,8 @@
     :og-title="$version->og_title"
     :og-description="$version->og_description"
     :og-image="\App\Models\MediaAsset::resolveUrl($version->og_image_media_asset_id, asset('img/branding/rzvg-logo.jpg'))"
-    :canonical-url="rtrim(config('app.url'), '/').$page->publicUrl()">
+    :canonical-url="rtrim(config('app.url'), '/').$page->publicUrl()"
+    :page="$page" :version="$version">
     @unless($preview ?? false)
         @can('pages.propose')
             {{-- §5/§26.4 — leden mogen een wijziging voorstellen. De editor
