@@ -79,6 +79,11 @@
                     class="w-64 shrink-0 bg-white border-l border-gray-200 z-40 fixed md:sticky inset-y-0 right-0 md:top-0 md:self-stretch md:max-h-screen overflow-y-auto">
                     @include('layouts.navigation')
                 </aside>
+
+                {{-- Geen pagina-/versie-context: portaal en beheer zijn geen
+                     CMS-pagina's (zie components/public-layout.blade.php voor
+                     de variant die dat wél meegeeft). --}}
+                @livewire('feedback-widget')
             </div>
 
             <footer class="bg-white border-t border-gray-200 mt-auto">

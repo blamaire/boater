@@ -26,6 +26,7 @@ use App\Livewire\Admin\DagboekDetail;
 use App\Livewire\Admin\EnvironmentBeheer;
 use App\Livewire\Admin\FacturatieBeheer;
 use App\Livewire\Admin\FactuurDetail;
+use App\Livewire\Admin\FeedbackBeheer;
 use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\GoedkeuringsgroepBeheer;
 use App\Livewire\Admin\GrootboekBeheer;
@@ -180,6 +181,10 @@ Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
 Route::middleware(['auth', 'verified', 'can:audit_trail.view'])
     ->get('/beheer/voorstellen/{proposal}', [ProposalController::class, 'show'])
     ->name('admin.proposals.show');
+
+Route::middleware(['auth', 'verified', 'can:feedback.manage'])
+    ->get('/beheer/terugkoppeling', FeedbackBeheer::class)
+    ->name('admin.feedback');
 
 Route::middleware(['auth', 'verified', 'can:products.manage'])
     ->get('/beheer/producten', ProductBeheer::class)

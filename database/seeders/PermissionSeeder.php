@@ -64,6 +64,7 @@ class PermissionSeeder extends Seeder
             'reservable_objects' => ['manage'],
             'approver_groups' => ['manage'],
             'wordpress_import' => ['manage'],
+            'feedback' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -131,6 +132,7 @@ class PermissionSeeder extends Seeder
             'reservable_objects' => 'Objecten (reserveren)',
             'approver_groups' => 'Goedkeuringsgroepen',
             'wordpress_import' => 'WordPress-import',
+            'feedback' => 'Terugkoppeling',
             default => ucfirst($module),
         };
 

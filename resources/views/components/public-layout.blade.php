@@ -1,4 +1,4 @@
-@props(['title' => null, 'previewBanner' => null, 'description' => null, 'ogTitle' => null, 'ogDescription' => null, 'ogImage' => null, 'canonicalUrl' => null])
+@props(['title' => null, 'previewBanner' => null, 'description' => null, 'ogTitle' => null, 'ogDescription' => null, 'ogImage' => null, 'canonicalUrl' => null, 'page' => null, 'version' => null])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -89,6 +89,8 @@
                         class="w-64 shrink-0 bg-white border-l border-gray-200 z-40 fixed md:sticky inset-y-0 right-0 md:top-0 md:self-stretch md:max-h-screen overflow-y-auto">
                         @include('layouts.navigation')
                     </aside>
+
+                    @livewire('feedback-widget', ['pageId' => $page?->id, 'pageVersionId' => $version?->id])
                 @endauth
             </div>
 
