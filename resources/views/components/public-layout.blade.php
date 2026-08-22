@@ -98,7 +98,9 @@
                      hoog boven bottom-0 zodat de rij niet over de footer-onderbalk
                      ("Roei- en Zeilvereniging Gouda") heen valt bij volledig scrollen. --}}
                 <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: 4.5rem;">
-                    <x-lid-worden-button />
+                    @guest
+                        <x-lid-worden-button />
+                    @endguest
                     <x-contact-button />
                     @auth
                         @livewire('feedback-widget', ['pageId' => $page?->id, 'pageVersionId' => $version?->id])
