@@ -118,9 +118,9 @@
     @case('hero')
         @php($heroUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
         <section @class([
-            'relative flex items-center justify-center overflow-hidden bg-gray-300',
-            'w-screen left-1/2 -translate-x-1/2 h-screen min-h-[560px]' => $fullBleed,
-            'w-full h-64 md:h-80' => ! $fullBleed,
+            'relative flex items-center justify-center overflow-hidden bg-gray-300 w-full',
+            'h-screen min-h-[560px]' => $fullBleed,
+            'h-64 md:h-80' => ! $fullBleed,
         ])>
             @if ($heroUrl)
                 <img src="{{ $heroUrl }}" alt="" class="absolute inset-0 w-full h-full object-cover">
@@ -151,11 +151,7 @@
         @break
     @case('video')
         @php($videoUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
-        <section @class([
-            'relative bg-black',
-            'w-screen left-1/2 -translate-x-1/2' => $fullBleed,
-            'w-full' => ! $fullBleed,
-        ])>
+        <section class="relative bg-black w-full">
             @if ($videoUrl)
                 <video src="{{ $videoUrl }}"
                     autoplay muted loop playsinline preload="metadata"
@@ -170,11 +166,7 @@
     @case('feature_sectie')
         @php($featUrl = \App\Models\MediaAsset::resolveUrl($c['media_asset_id'] ?? null, null))
         @php($side = ($c['image_side'] ?? 'left') === 'right' ? 'right' : 'left')
-        <section @class([
-            'relative bg-white',
-            'w-screen left-1/2 -translate-x-1/2' => $fullBleed,
-            'w-full' => ! $fullBleed,
-        ])>
+        <section class="relative bg-white w-full">
             <div class="grid grid-cols-1 md:grid-cols-2 items-stretch">
                 <div @class(['aspect-[4/3] md:aspect-auto md:min-h-[28rem] overflow-hidden bg-gray-200', 'md:order-2' => $side === 'right'])>
                     @if ($featUrl)

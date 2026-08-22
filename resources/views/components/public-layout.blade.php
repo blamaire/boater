@@ -66,10 +66,15 @@
             </header>
 
             <div class="flex-1 flex">
+                {{-- Geen max-w-wrapper hier: die zou een vaste (100vw-relatieve)
+                     breedte veronderstellen. Met de rechter-sidebar (hieronder)
+                     als echte flex-sibling is <main> zelf al correct breed —
+                     inclusief wanneer de sidebar openklapt. Pagina's die een
+                     gecentreerde leesbreedte willen, wikkelen hun eigen content
+                     zelf in max-w-*/mx-auto (zie public/page.blade.php per band,
+                     of activities/show.blade.php). --}}
                 <main class="flex-1 min-w-0">
-                    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-                        {{ $slot }}
-                    </div>
+                    {{ $slot }}
                 </main>
 
                 @auth
