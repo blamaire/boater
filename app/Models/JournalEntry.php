@@ -4,19 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
+ * @property int $dagboek_id
+ * @property int $period_id
  * @property Carbon $date
  * @property string $description
  * @property string|null $reference
+ * @property-read Dagboek $dagboek
+ * @property-read Period $period
  * @property-read Collection<int, JournalLine> $lines
  */
 class JournalEntry extends Model
 {
     protected $fillable = [
+        'dagboek_id',
+        'period_id',
         'date',
         'description',
         'reference',
@@ -27,6 +34,18 @@ class JournalEntry extends Model
         return [
             'date' => 'date',
         ];
+    }
+
+    /** @return BelongsTo<Dagboek, $this> */
+    public function dagboek(): BelongsTo
+    {
+        return $this->belongsTo(Dagboek::class);
+    }
+
+    /** @return BelongsTo<Period, $this> */
+    public function period(): BelongsTo
+    {
+        return $this->belongsTo(Period::class);
     }
 
     /** @return HasMany<JournalLine, $this> */

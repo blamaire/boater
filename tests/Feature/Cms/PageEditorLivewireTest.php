@@ -74,6 +74,33 @@ it('stores a text block with rich html content (Trix-produced)', function () {
     expect($block->fresh()->content['html'])->toBe($trixHtml);
 });
 
+it('sanitizes malicious html when saving a text block via saveBlock, not only on create', function () {
+    // Regressietest voor een gevonden lek: saveBlock() sloeg content voorheen
+    // op via Block::query()->update() (een mass-update), wat Eloquent-events
+    // — en dus BlockObserver/BlockContentSanitizer — oversloeg. Bloc::create()
+    // (getest in BlockContentSanitizationTest.php) vuurt die events wél,
+    // waardoor de suite eerder groen bleef terwijl de daadwerkelijke
+    // "Opslaan"-knop in de bewerker ongesaniteerde HTML doorliet.
+    $band = Band::create([
+        'page_version_id' => $this->version->id,
+        'zone' => 'hoofd',
+        'layout' => BandLayout::OneColumn,
+        'sort_order' => 0,
+    ]);
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('addBlock', $band->id, 0, BlockType::Text->value);
+    $block = Block::where('band_id', $band->id)->firstOrFail();
+
+    Livewire::test(PageEditor::class, ['versionId' => $this->version->id])
+        ->call('startEditBlock', $block->id)
+        ->set('editingContent.html', '<p>Hallo</p><script>alert(document.cookie)</script>')
+        ->call('saveBlock');
+
+    expect($block->fresh()->content['html'])
+        ->not->toContain('<script>')
+        ->toContain('<p>Hallo</p>');
+});
+
 it('adds a block to a band via addBlock', function () {
     $band = Band::create([
         'page_version_id' => $this->version->id,

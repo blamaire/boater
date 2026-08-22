@@ -34,7 +34,7 @@ class DashboardTest extends DuskTestCase
                 ->waitForLocation('/dashboard')
                 ->assertSee('Welkom, Anne')
                 ->assertSee('Dashboard')
-                ->assertSee('Voorstellen')
+                ->assertSee('Wijzigingsvoorstellen')
                 ->assertSee('binnenkort');
         });
     }

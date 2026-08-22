@@ -27,7 +27,8 @@ it('rendert /schade-melden voor een beheerder', function () {
     $person = Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $user->id]);
     $person->roles()->attach(Role::query()->where('name', 'Beheerder')->value('id'));
 
-    $this->actingAs($user)->get('/schade-melden')->assertOk()->assertSee('Nieuwe melding');
+    $this->actingAs($user)->get('/schade-melden')->assertOk()->assertSee('Nieuwe melding')
+        ->assertSee('kies bestanden')->assertSee("Sleep foto's hierheen", false);
 });
 
 it('vereist damage_reports.view voor /beheer/schademeldingen', function () {

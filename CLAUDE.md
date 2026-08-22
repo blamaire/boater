@@ -53,6 +53,16 @@ Er zijn drie samenwerkende kerndiensten die alle domeinacties dragen:
 
 Model-laag (`app/Models/`): `Person` is de identiteit (apart van `User`); rollen, permissies, groepen en review-policies hangen daaromheen. Enums in `app/Enums/` zijn de bron voor statussen — gebruik die cases, geen losse strings.
 
+## UI-patroon: CRUD-beheerschermen
+
+Toegepast op de boekhouding-schermen (`DagboekBeheer`, `GrootboekBeheer`, `BtwCodeBeheer`, `ProductBeheer`); nieuwe of herbouwde admin-CRUD-schermen elders volgen hetzelfde patroon.
+
+- **Actie-iconen, altijd uitgelijnd.** Acties in een tabel (bekijken/bewerken/verwijderen) zijn iconen via `<x-action-icon name="eye|pencil|trash|plus|check|xmark">`, elk gewrapt in `<x-action-cell icon="..." click="..." href="..." variant="primary|danger|success" confirm="...">`. Die component rendert altijd een `<td class="w-8 ...">`, ook als `icon` leeg blijft (bv. een prullenbak die voor een bepaalde rij niet van toepassing is) — zo staat dezelfde actie altijd op dezelfde horizontale plek, ongeacht welke acties een specifieke rij toont. Geen los `text-right whitespace-nowrap`-cellen met alle iconen door elkaar meer.
+- **Eenvoudige tabellen (~2-4 velden): inline in de tabel, geen apart formulier erboven.** Een permanente "nieuw"-rij (gestippelde rand, `bg-gray-50/60`) onderaan de `tbody` met invoervelden die aan dezelfde Livewire-properties binden als bewerken; op de plek van de acties komt daar één `<x-action-icon name="plus">` in de laatste actie-kolom (leeg ervoor, net als de "laatste actie" op echte rijen — dus geen `colspan`+`text-center`, maar losse `w-8`-cellen zodat de plus exact onder de prullenbak-kolom uitlijnt). Bewerken gebeurt in-place: de rij zelf wisselt naar invoervelden, met `check`/`xmark` in plaats van `pencil`/`trash`. Voorbeeld: `DagboekBeheer`, de drie secties van `GrootboekBeheer`.
+- **Uitgebreidere tabellen (meer velden, bv. incl. datumranges): een modal.** `<x-modal name="..." maxWidth="3xl">` (of groter — geen krappe veldjes, `maxWidth` ondersteunt t/m `4xl`) i.p.v. inline. Openen voor "nieuw" gebeurt puur client-side (`x-data=""` + `x-on:click="$dispatch('open-modal', 'naam')"` op de trigger-knop); openen voor "bewerken" gebeurt server-side vanuit de PHP `edit()`-methode ná het laden van het record (`$this->dispatch('open-modal', 'naam')`), zodat de velden al gevuld zijn zodra de modal verschijnt. Sluiten na succesvol opslaan: `$this->dispatch('close-modal', 'naam')` aan het eind van `save()`. Annuleren in de modal: `x-on:click="$dispatch('close')"`. Voorbeeld: `BtwCodeBeheer` (alle CRUD via de modal), `ProductBeheer` (alleen *aanmaken* via de modal — *bewerken* blijft een inline sectie omdat die ook de prijshistorie-workflow draagt, geen simpele save-en-sluit).
+- **Consistente rij-hoogte.** Zowel databcellen als `<x-action-cell>` gebruiken `py-2` (niet `py-1.5`) — anders lopen de iconen niet verticaal gelijk met de tekst in dezelfde rij.
+- Gedeelde velden die zowel in een inline-editrij/modal als in een apart bewerkscherm nodig zijn: een `@include('livewire.admin.partials.....')`-partial zonder props (deelt de scope van het ouder-Livewire-component) i.p.v. het formulier te dupliceren — zie `partials/product-fields.blade.php`.
+
 ## Conventies die het PR-proces afdwingt
 
 - **Forward-only migraties.** Geen `down()` schrijven; corrigeer met een nieuwe migratie.

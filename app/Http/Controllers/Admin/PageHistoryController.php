@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Services\Cms\ConflictDetector;
+use App\Services\Cms\PageVersionCloner;
 use App\Services\Cms\PageVersionDiffSerializer;
+use App\Services\Cms\TextDiffer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +32,7 @@ class PageHistoryController extends Controller
         PageVersion $other,
         ConflictDetector $detector,
         PageVersionDiffSerializer $serializer,
+        TextDiffer $textDiffer,
     ): View {
         abort_unless($version->page_id === $page->id, 404);
         abort_unless($other->page_id === $page->id, 404);
@@ -37,18 +40,23 @@ class PageHistoryController extends Controller
         // Two-way diff: geen gemeenschappelijke voorouder, dus base=null.
         $report = $detector->detect($version, $other, null);
 
+        $rawAJson = (string) json_encode($serializer->raw($version), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $rawBJson = (string) json_encode($serializer->raw($other), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
         return view('admin.pages.history-diff', [
             'page' => $page,
             'a' => $version,
             'b' => $other,
             'report' => $report,
             'structuredDiff' => $serializer->structured($report),
-            'rawA' => $serializer->raw($version),
-            'rawB' => $serializer->raw($other),
+            'structuredFieldDiff' => $serializer->structuredFields($report),
+            'rawAJson' => $rawAJson,
+            'rawBJson' => $rawBJson,
+            'textDiff' => $textDiffer->diffLines($rawAJson, $rawBJson),
         ]);
     }
 
-    public function restore(Request $request, Page $page, PageVersion $version): RedirectResponse
+    public function restore(Request $request, Page $page, PageVersion $version, PageVersionCloner $cloner): RedirectResponse
     {
         abort_unless($version->page_id === $page->id, 404);
 
@@ -74,25 +82,7 @@ class PageHistoryController extends Controller
             'created_by_person_id' => $person->id,
         ]);
 
-        foreach ($version->bands()->with('blocks')->get() as $band) {
-            $newBand = $newVersion->bands()->create([
-                'origin_band_id' => $band->origin_band_id ?? $band->id,
-                'zone' => $band->zone,
-                'layout' => $band->layout,
-                'sort_order' => $band->sort_order,
-            ]);
-
-            foreach ($band->blocks as $block) {
-                $newBand->blocks()->create([
-                    'origin_block_id' => $block->origin_block_id ?? $block->id,
-                    'column_index' => $block->column_index,
-                    'sort_order' => $block->sort_order,
-                    'type' => $block->type,
-                    'content' => $block->content,
-                    'visibility' => $block->visibility,
-                ]);
-            }
-        }
+        $cloner->clone($version, $newVersion);
 
         return redirect()->route('admin.pages.editor', $page)
             ->with('status', "Nieuwe conceptversie op basis van v{$version->version_no} aangemaakt.");

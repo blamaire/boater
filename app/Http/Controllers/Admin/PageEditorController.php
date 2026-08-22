@@ -9,6 +9,8 @@ use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Person;
 use App\Services\Cms\ConflictDetector;
+use App\Services\Cms\PageVersionCloner;
+use App\Services\Cms\PageVersionMerger;
 use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\ProposalEngine;
 use Illuminate\Contracts\View\View;
@@ -20,6 +22,8 @@ class PageEditorController extends Controller
     public function __construct(
         private readonly ProposalEngine $proposalEngine,
         private readonly ConflictDetector $conflictDetector,
+        private readonly PageVersionMerger $merger,
+        private readonly PageVersionCloner $cloner,
     ) {}
 
     public function show(Request $request, Page $page): View
@@ -47,7 +51,130 @@ class PageEditorController extends Controller
             ->with('status', 'Nieuwe concept-versie aangemaakt.');
     }
 
+    /**
+     * Bevestigingspagina vóór indienen: toont de diff met de gepubliceerde
+     * versie (indien aanwezig) en vraagt een verplichte omschrijving.
+     */
+    public function confirmSubmit(Request $request, Page $page, PageVersion $version): View|RedirectResponse
+    {
+        return $this->buildConfirmView($request, $page, $version, submitRouteName: 'admin.pages.versions.submit', actionLabel: 'Indienen ter publicatie');
+    }
+
+    /**
+     * Bevestigingspagina vóór direct publiceren — zelfde opzet als
+     * {@see confirmSubmit()}, maar postend naar de publish-route.
+     */
+    public function confirmPublish(Request $request, Page $page, PageVersion $version): View|RedirectResponse
+    {
+        return $this->buildConfirmView($request, $page, $version, submitRouteName: 'admin.pages.versions.publish', actionLabel: 'Direct publiceren');
+    }
+
+    /**
+     * Return-type is een unie omdat een niet-bewerkbare versie terugleidt
+     * naar de editor in plaats van de bevestigingsview te tonen — een pure
+     * `View`-hint zou hier een runtime `TypeError` geven.
+     */
+    private function buildConfirmView(Request $request, Page $page, PageVersion $version, string $submitRouteName, string $actionLabel): View|RedirectResponse
+    {
+        abort_unless($version->page_id === $page->id, 404);
+
+        if (! $version->status->isEditable()) {
+            return redirect()->route('admin.pages.editor', $page)
+                ->with('error', 'Alleen concept-versies kunnen worden ingediend.');
+        }
+
+        $person = $request->user()?->person;
+        abort_unless($person !== null, 403, 'Account is niet gekoppeld aan een persoon.');
+
+        $result = $this->resolveSubmittableVersion($page, $version, $person);
+
+        if ($result instanceof RedirectResponse) {
+            return $result;
+        }
+
+        $version = $result['version'];
+
+        $published = $page->publishedVersion;
+        $report = $published !== null
+            ? $this->conflictDetector->detect(mine: $published, theirs: $version, base: null)
+            : null;
+
+        // Alleen bij de allereerste publicatie van een uit WordPress
+        // overgenomen pagina is "overgenomen van de oude website" een
+        // zinvolle standaardomschrijving — latere wijzigingen aan dezelfde
+        // pagina zijn geen WordPress-overname meer.
+        $defaultNote = $published === null && $page->wordpressImportItem !== null
+            ? 'Overgenomen van de oude website'
+            : null;
+
+        return view('admin.pages.versions-confirm', [
+            'page' => $page,
+            'version' => $version,
+            'published' => $published,
+            'report' => $report,
+            'submitRouteName' => $submitRouteName,
+            'actionLabel' => $actionLabel,
+            'rebaseNotice' => $result['notice'],
+            'defaultNote' => $defaultNote,
+        ]);
+    }
+
+    /**
+     * @return array{version: PageVersion, notice: ?string}|RedirectResponse
+     */
+    private function resolveSubmittableVersion(Page $page, PageVersion $version, Person $person): RedirectResponse|array
+    {
+        $published = $page->publishedVersion;
+
+        if ($published === null || $version->base_version_id === null || $version->base_version_id === $published->id) {
+            return ['version' => $version, 'notice' => null];
+        }
+
+        $base = PageVersion::query()->find($version->base_version_id);
+        $report = $this->conflictDetector->detect(mine: $version, theirs: $published, base: $base);
+
+        if ($report->hasConflicts()) {
+            return redirect()->route('admin.pages.conflict.show', [
+                'page' => $page,
+                'version' => $version,
+                'other' => $published,
+            ])->with('warning', 'De pagina is intussen bijgewerkt; los de conflicten op voor je opnieuw indient.');
+        }
+
+        $oldBaseVersionNo = $base?->version_no;
+        $rebased = $this->merger->merge($version, $published, $report, $person);
+
+        $notice = "Je conceptversie was gebaseerd op versie {$oldBaseVersionNo} en is automatisch bijgewerkt met tussentijdse wijzigingen van versie {$published->version_no} (huidige gepubliceerde versie).";
+
+        return ['version' => $rebased, 'notice' => $notice];
+    }
+
+    /**
+     * Standaardknop: altijd via de goedkeuringsmotor, ook voor wie een
+     * bypass-permissie (`pages.publish`) heeft — die krijgt in plaats
+     * daarvan de expliciete {@see publishDirectly()}-knop ernaast.
+     */
     public function submit(Request $request, Page $page, PageVersion $version): RedirectResponse
+    {
+        $validated = $request->validate(['note' => ['required', 'string', 'max:2000']]);
+
+        return $this->submitVersion($request, $page, $version, ignoreBypass: true, successMessage: 'Versie ingediend ter goedkeuring.', note: $validated['note']);
+    }
+
+    /**
+     * Expliciete knop voor wie `pages.publish` heeft (route-middleware):
+     * dezelfde motor, maar met de bypass-permissie juist wél in werking —
+     * publiceert direct zonder review, in plaats van dat impliciet te laten
+     * gebeuren via de standaard "indienen"-knop.
+     */
+    public function publishDirectly(Request $request, Page $page, PageVersion $version): RedirectResponse
+    {
+        $validated = $request->validate(['note' => ['required', 'string', 'max:2000']]);
+
+        return $this->submitVersion($request, $page, $version, ignoreBypass: false, successMessage: 'Versie direct gepubliceerd zonder goedkeuring.', note: $validated['note']);
+    }
+
+    private function submitVersion(Request $request, Page $page, PageVersion $version, bool $ignoreBypass, string $successMessage, string $note): RedirectResponse
     {
         abort_unless($version->page_id === $page->id, 404);
 
@@ -58,23 +185,13 @@ class PageEditorController extends Controller
             return back()->with('error', 'Alleen concept-versies kunnen worden ingediend.');
         }
 
-        $published = $page->publishedVersion;
+        $result = $this->resolveSubmittableVersion($page, $version, $person);
 
-        if ($published !== null && $version->base_version_id !== null && $version->base_version_id !== $published->id) {
-            $report = $this->conflictDetector->detect(
-                mine: $version,
-                theirs: $published,
-                base: PageVersion::query()->find($version->base_version_id),
-            );
-
-            if ($report->hasConflicts()) {
-                return redirect()->route('admin.pages.conflict.show', [
-                    'page' => $page,
-                    'version' => $version,
-                    'other' => $published,
-                ])->with('warning', 'De pagina is intussen bijgewerkt; los de conflicten op voor je opnieuw indient.');
-            }
+        if ($result instanceof RedirectResponse) {
+            return $result;
         }
+
+        $version = $result['version'];
 
         $version->update(['status' => PageVersionStatus::InReview]);
 
@@ -82,12 +199,14 @@ class PageEditorController extends Controller
             subjectType: PageVersionProposalHandler::SUBJECT_TYPE,
             changeType: $page->published_version_id === null ? ChangeType::Create : ChangeType::Update,
             payload: ['page_id' => $page->id],
+            note: $note,
             proposer: $person,
             subjectId: $version->id,
+            ignoreBypass: $ignoreBypass,
         );
 
-        return redirect()->route('admin.pages.editor', $page)
-            ->with('status', 'Versie ingediend ter goedkeuring.');
+        return redirect()->route('portal.wijzigingsvoorstellen')
+            ->with('status', $successMessage);
     }
 
     /**
@@ -131,32 +250,9 @@ class PageEditorController extends Controller
         ]);
 
         if ($base !== null) {
-            $this->copyContent($base, $version);
+            $this->cloner->clone($base, $version);
         }
 
         return $version;
-    }
-
-    private function copyContent(PageVersion $source, PageVersion $target): void
-    {
-        foreach ($source->bands()->with('blocks')->get() as $band) {
-            $newBand = $target->bands()->create([
-                'origin_band_id' => $band->origin_band_id ?? $band->id,
-                'zone' => $band->zone,
-                'layout' => $band->layout,
-                'sort_order' => $band->sort_order,
-            ]);
-
-            foreach ($band->blocks as $block) {
-                $newBand->blocks()->create([
-                    'origin_block_id' => $block->origin_block_id ?? $block->id,
-                    'column_index' => $block->column_index,
-                    'sort_order' => $block->sort_order,
-                    'type' => $block->type,
-                    'content' => $block->content,
-                    'visibility' => $block->visibility,
-                ]);
-            }
-        }
     }
 }

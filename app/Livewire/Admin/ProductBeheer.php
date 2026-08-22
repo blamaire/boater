@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Enums\ProductRecurrence;
 use App\Enums\ProductType;
+use App\Models\BtwCode;
 use App\Models\LedgerAccount;
 use App\Models\MembershipType;
 use App\Models\Product;
@@ -29,6 +30,8 @@ class ProductBeheer extends Component
     public string $type = 'contributie';
 
     public ?int $ledgerAccountId = null;
+
+    public ?int $btwCodeId = null;
 
     public bool $isRecurring = false;
 
@@ -69,6 +72,7 @@ class ProductBeheer extends Component
         $this->name = $product->name;
         $this->type = $product->type->value;
         $this->ledgerAccountId = $product->ledger_account_id;
+        $this->btwCodeId = $product->btw_code_id;
         $this->isRecurring = $product->is_recurring;
         $this->recurrence = $product->recurrence?->value;
         $this->linkedMembershipTypeIds = $product->membershipTypes->pluck('id')->all();
@@ -78,7 +82,7 @@ class ProductBeheer extends Component
     public function resetForm(): void
     {
         $this->reset([
-            'editingId', 'name', 'ledgerAccountId', 'isRecurring',
+            'editingId', 'name', 'ledgerAccountId', 'btwCodeId', 'isRecurring',
             'recurrence', 'linkedMembershipTypeIds',
         ]);
         $this->type = 'contributie';
@@ -93,6 +97,7 @@ class ProductBeheer extends Component
             'name' => ['required', 'string', 'max:150'],
             'type' => ['required', 'in:'.implode(',', array_column(ProductType::cases(), 'value'))],
             'ledgerAccountId' => ['nullable', 'integer', 'exists:ledger_accounts,id'],
+            'btwCodeId' => ['nullable', 'integer', 'exists:btw_codes,id'],
             'isRecurring' => ['boolean'],
             'recurrence' => [
                 'nullable',
@@ -118,6 +123,7 @@ class ProductBeheer extends Component
                 'name' => $data['name'],
                 'type' => $data['type'],
                 'ledger_account_id' => $data['ledgerAccountId'],
+                'btw_code_id' => $data['btwCodeId'],
                 'is_recurring' => $data['isRecurring'],
                 'recurrence' => $data['isRecurring'] ? $data['recurrence'] : null,
             ];
@@ -147,6 +153,10 @@ class ProductBeheer extends Component
 
         // Blijf op het product staan zodat er direct meer prijzen bij kunnen.
         $this->loadProduct($product->id);
+
+        if ($creating) {
+            $this->dispatch('close-modal', 'product-form');
+        }
     }
 
     /**
@@ -248,13 +258,14 @@ class ProductBeheer extends Component
     {
         return view('livewire.admin.product-beheer', [
             'products' => Product::query()
-                ->with(['ledgerAccount', 'membershipTypes'])
+                ->with(['ledgerAccount', 'btwCode', 'membershipTypes'])
                 ->orderBy('type')
                 ->orderBy('name')
                 ->get(),
             'types' => ProductType::cases(),
             'recurrences' => ProductRecurrence::cases(),
             'ledgerAccounts' => LedgerAccount::query()->orderBy('code')->get(),
+            'btwCodes' => BtwCode::query()->orderBy('name')->get(),
             'membershipTypes' => MembershipType::query()->orderBy('sort_order')->orderBy('name')->get(),
             'editingPrices' => $this->editingId !== null
                 ? Product::query()->findOrFail($this->editingId)->prices()->get()

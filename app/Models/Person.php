@@ -174,4 +174,9 @@ class Person extends Model
             })
             ->exists();
     }
+
+    public function fullName(): string
+    {
+        return trim(collect([$this->first_name, $this->last_name_prefix, $this->last_name])->filter()->implode(' '));
+    }
 }

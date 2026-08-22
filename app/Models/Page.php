@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Collection<int, Page> $children
  * @property-read Collection<int, PageVersion> $versions
  * @property-read PageVersion|null $publishedVersion
+ * @property-read WordpressImportItem|null $wordpressImportItem
  */
 class Page extends Model
 {
@@ -74,6 +76,12 @@ class Page extends Model
         return $this->belongsTo(PageVersion::class, 'published_version_id');
     }
 
+    /** @return HasOne<WordpressImportItem, $this> */
+    public function wordpressImportItem(): HasOne
+    {
+        return $this->hasOne(WordpressImportItem::class);
+    }
+
     /**
      * Full slug from root: "ouder/kind/kleinkind".
      */
@@ -102,5 +110,28 @@ class Page extends Model
         }
 
         return '/pagina/'.$this->path();
+    }
+
+    /**
+     * Mag $user deze pagina daadwerkelijk bekijken? `Public` altijd; `Restricted`
+     * alleen ingelogd + (`pages.view`-recht OF actief lidmaatschap). Dit is de
+     * ENIGE plek waar deze regel staat — PublicPageController::guardVisibility()
+     * en PublicNavComposer filteren hiermee, zodat ze niet uit de pas kunnen lopen.
+     */
+    public function isVisibleTo(?User $user): bool
+    {
+        if ($this->visibility === PageVisibility::Public) {
+            return true;
+        }
+
+        if ($user === null) {
+            return false;
+        }
+
+        if ($user->can('pages.view')) {
+            return true;
+        }
+
+        return $user->person?->hasActiveMembership() === true;
     }
 }

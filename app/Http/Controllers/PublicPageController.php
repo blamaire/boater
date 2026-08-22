@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PageType;
-use App\Enums\PageVisibility;
 use App\Models\Page;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -92,17 +91,13 @@ class PublicPageController extends Controller
      */
     private function guardVisibility(Page $page, Request $request): void
     {
-        if ($page->visibility === PageVisibility::Public) {
-            return;
-        }
-
         $user = $request->user();
-        abort_unless($user !== null, 403, 'Deze pagina is alleen voor ingelogde leden.');
 
-        if ($user->can('pages.view')) {
+        if ($page->isVisibleTo($user)) {
             return;
         }
 
-        abort_unless($user->person?->hasActiveMembership() === true, 403);
+        abort_unless($user !== null, 403, 'Deze pagina is alleen voor ingelogde leden.');
+        abort(403);
     }
 }

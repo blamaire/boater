@@ -63,4 +63,18 @@ class ReviewStep extends Model
     {
         return $this->belongsTo(Person::class, 'decided_by_person_id');
     }
+
+    /**
+     * Leesbare naam van de toegewezene, ongeacht assignee_type — voor
+     * weergave in "wacht op ..." zonder dat de view zelf Role/ApproverGroup/
+     * Person moet opzoeken.
+     */
+    public function assigneeName(): string
+    {
+        return match ($this->assignee_type) {
+            AssigneeType::Person => Person::query()->find($this->assignee_id)?->fullName() ?? 'Onbekende persoon',
+            AssigneeType::Role => Role::query()->whereKey($this->assignee_id)->value('name') ?? 'Onbekende rol',
+            AssigneeType::Group => ApproverGroup::query()->whereKey($this->assignee_id)->value('name') ?? 'Onbekende groep',
+        };
+    }
 }

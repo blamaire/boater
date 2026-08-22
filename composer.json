@@ -11,7 +11,8 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^4.3",
-        "symfony/filesystem": "^8.1"
+        "symfony/filesystem": "^8.1",
+        "symfony/html-sanitizer": "^8.1"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -55,7 +56,7 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "@php artisan test"
+            "@php artisan test --parallel"
         ],
         "lint": "vendor/bin/pint --test",
         "stan": "vendor/bin/phpstan analyse --memory-limit=512M",
