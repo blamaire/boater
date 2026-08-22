@@ -39,7 +39,7 @@
         </ul>
     </div>
 
-    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage', 'wordpress_import.manage', 'feedback.manage'])
+    @canany(['pages.view', 'media.view', 'menu.manage', 'site_settings.manage', 'environments.manage', 'roles.view', 'users.manage', 'activities.view', 'reservable_objects.manage', 'reservations.view', 'reservations.update', 'damage_reports.view', 'approver_groups.manage', 'audit_trail.view', 'products.manage', 'invoices.manage', 'boekjaren.manage', 'dagboeken.manage', 'btw_codes.manage', 'ledger_accounts.manage', 'wordpress_import.manage', 'feedback.manage', 'contact_requests.manage', 'contact_topics.manage'])
         <div>
             <h3 class="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Beheer</h3>
             {{-- Beheer-menu-items staan alfabetisch op label; sommige zijn gegroepeerd
@@ -148,6 +148,46 @@
                                             'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.products.*'),
                                             'text-gray-700' => ! request()->routeIs('admin.products.*'),
                                         ])>Producten</a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
+                @canany(['contact_requests.manage', 'contact_topics.manage'])
+                    @php
+                        $contactActief = request()->routeIs('admin.contact-requests.*') || request()->routeIs('admin.contact-topics.*');
+                    @endphp
+                    <li x-data="{ open: {{ $contactActief ? 'true' : 'false' }} }">
+                        <button type="button" @click="open = ! open"
+                            @class([
+                                'flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'text-rzvg-700 font-medium' => $contactActief,
+                                'text-gray-700' => ! $contactActief,
+                            ])>
+                            <span>Contact</span>
+                            <svg width="16" height="16" class="h-4 w-4 shrink-0 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <ul x-show="open" @unless($contactActief) style="display: none;" @endunless class="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-3">
+                            @can('contact_requests.manage')
+                                <li>
+                                    <a href="{{ route('admin.contact-requests.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.contact-requests.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.contact-requests.*'),
+                                        ])>Contactverzoeken</a>
+                                </li>
+                            @endcan
+                            @can('contact_topics.manage')
+                                <li>
+                                    <a href="{{ route('admin.contact-topics.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.contact-topics.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.contact-topics.*'),
+                                        ])>Onderwerpen</a>
                                 </li>
                             @endcan
                         </ul>

@@ -80,10 +80,14 @@
                     @include('layouts.navigation')
                 </aside>
 
-                {{-- Geen pagina-/versie-context: portaal en beheer zijn geen
-                     CMS-pagina's (zie components/public-layout.blade.php voor
-                     de variant die dat wél meegeeft). --}}
-                @livewire('feedback-widget')
+                {{-- bottom via inline style, zie components/public-layout.blade.php voor
+                     de uitleg (Tailwind-scan-risico bij een net-nieuwe bottom-*-klasse +
+                     ruimte boven de footer-onderbalk). Geen pagina-/versie-context: portaal
+                     en beheer zijn geen CMS-pagina's. --}}
+                <div class="fixed right-4 z-40 flex items-center gap-3" style="bottom: 4.5rem;">
+                    <x-contact-button />
+                    @livewire('feedback-widget')
+                </div>
             </div>
 
             <footer class="bg-white border-t border-gray-200 mt-auto">

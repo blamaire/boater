@@ -65,6 +65,8 @@ class PermissionSeeder extends Seeder
             'approver_groups' => ['manage'],
             'wordpress_import' => ['manage'],
             'feedback' => ['manage'],
+            'contact_topics' => ['manage'],
+            'contact_requests' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -133,6 +135,8 @@ class PermissionSeeder extends Seeder
             'approver_groups' => 'Goedkeuringsgroepen',
             'wordpress_import' => 'WordPress-import',
             'feedback' => 'Terugkoppeling',
+            'contact_topics' => 'Contact-onderwerpen',
+            'contact_requests' => 'Contactverzoeken',
             default => ucfirst($module),
         };
 
