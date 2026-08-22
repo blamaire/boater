@@ -43,7 +43,7 @@
                         <td class="px-4 py-2 text-gray-700 whitespace-nowrap">{{ $item->created_at?->format('d-m-Y H:i') }}</td>
                         <td class="px-4 py-2 text-gray-900">{{ $item->name }}</td>
                         <td class="px-4 py-2 text-gray-700">{{ $item->topic?->name ?? '—' }}</td>
-                        <td class="px-4 py-2 text-gray-700">{{ $item->preferred_contact_method->label() }}</td>
+                        <td class="px-4 py-2 text-gray-700">{{ $item->contactMethodLabel() }}</td>
                         <td class="px-4 py-2">
                             <select wire:change="updateStatus({{ $item->id }}, $event.target.value)" class="border-gray-300 rounded shadow-sm text-xs">
                                 @foreach ($statuses as $st)

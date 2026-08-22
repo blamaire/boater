@@ -73,7 +73,7 @@ it('blokkeert verwijderen van een onderwerp met bestaande contactverzoeken', fun
         'contact_topic_id' => $topic->id,
         'name' => 'Bezoeker',
         'email' => 'bezoeker@example.test',
-        'preferred_contact_method' => 'mailen',
+        'contact_by_email' => true,
         'message' => 'Vraag',
         'status' => 'nieuw',
     ]);

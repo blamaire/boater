@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Public;
 
-use App\Enums\ContactPreferredMethod;
 use App\Models\ContactTopic;
 use App\Services\Contact\ContactRequestService;
 use App\Services\Contact\TurnstileVerifier;
@@ -31,7 +30,10 @@ class Contact extends Component
 
     public ?string $email = null;
 
-    public string $preferred_contact_method = 'mailen';
+    /** Beide mogen aangevinkt zijn — bepaalt of het telefoon-/e-mailveld getoond wordt. */
+    public bool $contact_by_phone = false;
+
+    public bool $contact_by_email = false;
 
     public string $message = '';
 
@@ -63,24 +65,25 @@ class Contact extends Component
         $data = $this->validate([
             'contact_topic_id' => ['required', 'integer', 'exists:contact_topics,id'],
             'name' => ['required', 'string', 'max:150'],
-            'phone' => ['nullable', 'string', 'max:30', 'required_without:email'],
-            'email' => ['nullable', 'email', 'max:200', 'required_without:phone'],
-            'preferred_contact_method' => ['required', 'in:bellen,mailen'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:200'],
             'message' => ['required', 'string', 'min:10', 'max:2000'],
-        ], [
-            'phone.required_without' => 'Vul een telefoonnummer of e-mailadres in.',
-            'email.required_without' => 'Vul een telefoonnummer of e-mailadres in.',
         ]);
 
-        $preferredMethod = ContactPreferredMethod::from($data['preferred_contact_method']);
-
-        if ($preferredMethod === ContactPreferredMethod::Bellen && blank($data['phone'])) {
-            $this->addError('phone', 'Vul een telefoonnummer in als je liever gebeld wordt.');
+        if (! $this->contact_by_phone && ! $this->contact_by_email) {
+            $this->addError('form', 'Kies of je gebeld en/of gemaild wilt worden.');
 
             return;
         }
-        if ($preferredMethod === ContactPreferredMethod::Mailen && blank($data['email'])) {
-            $this->addError('email', 'Vul een e-mailadres in als je liever gemaild wordt.');
+
+        if ($this->contact_by_phone && blank($data['phone'])) {
+            $this->addError('phone', 'Vul een telefoonnummer in als je gebeld wilt worden.');
+
+            return;
+        }
+
+        if ($this->contact_by_email && blank($data['email'])) {
+            $this->addError('email', 'Vul een e-mailadres in als je gemaild wilt worden.');
 
             return;
         }
@@ -98,7 +101,8 @@ class Contact extends Component
             name: $data['name'],
             phone: $data['phone'],
             email: $data['email'],
-            preferredMethod: $preferredMethod,
+            contactByPhone: $this->contact_by_phone,
+            contactByEmail: $this->contact_by_email,
             message: $data['message'],
             ipAddress: request()->ip(),
         );
@@ -108,7 +112,7 @@ class Contact extends Component
         // venster niet onnodig opvullen, dus hit() gebeurt bewust pas hier.
         RateLimiter::hit($key, 600);
 
-        $this->reset(['name', 'phone', 'email', 'message', 'turnstileToken']);
+        $this->reset(['name', 'phone', 'email', 'contact_by_phone', 'contact_by_email', 'message', 'turnstileToken']);
         $this->submitted = true;
     }
 

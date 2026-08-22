@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ContactPreferredMethod;
 use App\Enums\ContactRequestStatus;
 use App\Models\AuditEntry;
 use App\Models\ContactTopic;
@@ -30,7 +29,8 @@ it('maakt een contactverzoek aan en mailt de verantwoordelijke van het onderwerp
         name: 'Piet Test',
         phone: null,
         email: 'piet@example.test',
-        preferredMethod: ContactPreferredMethod::Mailen,
+        contactByPhone: false,
+        contactByEmail: true,
         message: 'Testbericht',
         ipAddress: '127.0.0.1',
     );
@@ -53,7 +53,8 @@ it('maakt het verzoek wél aan als de verantwoordelijke geen e-mailadres heeft, 
         name: 'Piet Test',
         phone: '0612345678',
         email: null,
-        preferredMethod: ContactPreferredMethod::Bellen,
+        contactByPhone: true,
+        contactByEmail: false,
         message: 'Testbericht',
         ipAddress: null,
     );
@@ -69,7 +70,8 @@ it('wijzigt de status en legt het vast in het auditlogboek', function () {
         name: 'Piet Test',
         phone: null,
         email: 'piet@example.test',
-        preferredMethod: ContactPreferredMethod::Mailen,
+        contactByPhone: false,
+        contactByEmail: true,
         message: 'Testbericht',
         ipAddress: null,
     );
