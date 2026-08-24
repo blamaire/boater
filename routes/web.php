@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
+use App\Http\Controllers\ActivitySeriesController;
 use App\Http\Controllers\Admin\FailedJobsController;
 use App\Http\Controllers\Admin\PageConflictController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\SitemapController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
+use App\Livewire\Admin\ActivityPageBeheer;
 use App\Livewire\Admin\Auditlogboek;
 use App\Livewire\Admin\BoekjaarBeheer;
 use App\Livewire\Admin\BtwCodeBeheer;
@@ -45,6 +47,7 @@ use App\Livewire\Admin\SiteInstellingen;
 use App\Livewire\Admin\WordpressImportBeheer;
 use App\Livewire\Admin\WordpressImportDetail;
 use App\Livewire\Admin\WordpressImportMediaOverzicht;
+use App\Livewire\Portal\BeheerdeActiviteiten;
 use App\Livewire\Portal\LidmaatschapsaanvraagBewerken;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
@@ -64,6 +67,7 @@ Route::middleware(['auth', 'verified'])
     ->name('portal.')
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
+        Route::get('/beheerde-activiteiten', BeheerdeActiviteiten::class)->name('beheerde-activiteiten');
         Route::get('/wijzigingsvoorstellen', Wijzigingsvoorstellen::class)->name('wijzigingsvoorstellen');
         Route::get('/wijzigingsvoorstellen/{proposal}/diff', [ProposalDiffController::class, 'show'])->name('wijzigingsvoorstellen.diff');
         Route::get('/wijzigingsvoorstellen/{proposal}/aanvraag-aanpassen', LidmaatschapsaanvraagBewerken::class)->name('wijzigingsvoorstellen.membership-application.edit');
@@ -155,6 +159,10 @@ Route::middleware(['auth', 'verified', 'can:activities.view'])
 Route::middleware(['auth', 'verified', 'can:activities.update'])
     ->get('/beheer/activiteiten/categorieen', ActivityCategoryBeheer::class)
     ->name('admin.activity-categories.index');
+
+Route::middleware(['auth', 'verified', 'can:activities.update'])
+    ->get('/beheer/activiteiten/activiteitenpaginas', ActivityPageBeheer::class)
+    ->name('admin.activity-pages.index');
 
 Route::middleware(['auth', 'verified', 'can:reservable_objects.manage'])
     ->get('/beheer/objectcategorieen', ObjectCategoryBeheer::class)
@@ -281,6 +289,7 @@ Route::get('/', [PublicPageController::class, 'home'])->name('public.home');
 Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
 Route::get('/contact', Contact::class)->name('contact');
 Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
+Route::get('/activiteitenreeks/{series}', [ActivitySeriesController::class, 'show'])->name('activiteitenreeks.show');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')

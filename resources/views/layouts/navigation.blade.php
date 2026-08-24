@@ -4,6 +4,7 @@
     $items = [
         $item(route('dashboard'), 'Dashboard', request()->routeIs('dashboard')),
         $item(route('portal.mijn-lidmaatschap'), 'Mijn lidmaatschap', request()->routeIs('portal.mijn-lidmaatschap')),
+        $item(route('portal.beheerde-activiteiten'), 'Beheerde activiteiten', request()->routeIs('portal.beheerde-activiteiten')),
         auth()->user()?->can('reservations.create')
             ? $item(route('portal.reserveren'), 'Reserveren', request()->routeIs('portal.reserveren'))
             : $item(null, 'Reserveren', false, true),
@@ -47,16 +48,54 @@
                  Instellingen, Paginabeheer, Reserveringen). Submodules staan standaard
                  ingeklapt, behalve de groep waarin de huidige pagina valt. --}}
             <ul class="mt-2 space-y-1">
-                @can('activities.view')
-                    <li>
-                        <a href="{{ route('admin.activities.index') }}"
+                @canany(['activities.view', 'activities.update'])
+                    @php
+                        $activiteitenActief = request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*') || request()->routeIs('admin.activity-pages.*');
+                    @endphp
+                    <li x-data="{ open: {{ $activiteitenActief ? 'true' : 'false' }} }">
+                        <button type="button" @click="open = ! open"
                             @class([
-                                'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                                'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*'),
-                                'text-gray-700' => ! (request()->routeIs('admin.activities.*') || request()->routeIs('admin.activity-categories.*')),
-                            ])>Activiteiten</a>
+                                'flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'text-rzvg-700 font-medium' => $activiteitenActief,
+                                'text-gray-700' => ! $activiteitenActief,
+                            ])>
+                            <span>Activiteiten</span>
+                            <svg width="16" height="16" class="h-4 w-4 shrink-0 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <ul x-show="open" @unless($activiteitenActief) style="display: none;" @endunless class="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-3">
+                            @can('activities.view')
+                                <li>
+                                    <a href="{{ route('admin.activities.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activities.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.activities.*'),
+                                        ])>Activiteiten</a>
+                                </li>
+                            @endcan
+                            @can('activities.update')
+                                <li>
+                                    <a href="{{ route('admin.activity-pages.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activity-pages.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.activity-pages.*'),
+                                        ])>Activiteitenpagina's</a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('admin.activity-categories.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.activity-categories.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.activity-categories.*'),
+                                        ])>Categorieën</a>
+                                </li>
+                            @endcan
+                        </ul>
                     </li>
-                @endcan
+                @endcanany
                 @can('audit_trail.view')
                     <li>
                         <a href="{{ route('admin.audit.index') }}"

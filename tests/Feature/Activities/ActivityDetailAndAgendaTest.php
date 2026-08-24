@@ -2,18 +2,45 @@
 
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityVisibility;
+use App\Enums\PageVersionStatus;
 use App\Livewire\Public\ActiviteitInschrijven;
 use App\Livewire\Public\AgendaBlock;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
+use App\Models\ActivityPage;
+use App\Models\Page;
+use App\Models\PageVersion;
 use App\Models\Person;
 use App\Models\PersonRelation;
+use App\Models\Template;
 use App\Models\User;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->category = ActivityCategory::create(['name' => 'Roeien', 'slug' => 'roeien', 'sort_order' => 10]);
     $this->cat2 = ActivityCategory::create(['name' => 'Zeilen', 'slug' => 'zeilen', 'sort_order' => 20]);
+    $this->template = Template::create(['name' => 'Standaard', 'zones' => [['key' => 'hoofd', 'label' => 'Hoofd']]]);
+});
+
+it('toont een link naar de infopagina van de gekoppelde activiteitenpagina', function () {
+    $page = Page::create(['slug' => 'zomerkamp', 'title' => 'Zomerkamp 2027', 'type' => 'content', 'template_id' => $this->template->id]);
+    $version = PageVersion::create(['page_id' => $page->id, 'version_no' => 1, 'status' => PageVersionStatus::Published]);
+    $page->update(['published_version_id' => $version->id]);
+    $event = ActivityPage::create(['page_id' => $page->id]);
+
+    $activity = Activity::create([
+        'activity_category_id' => $this->category->id,
+        'activity_page_id' => $event->id,
+        'title' => 'Kampdag 1',
+        'starts_at' => now()->addDays(3),
+        'visibility' => ActivityVisibility::Public,
+        'status' => ActivityStatus::Published,
+    ]);
+
+    $this->get(route('activiteit.show', $activity))
+        ->assertOk()
+        ->assertSee('Zomerkamp 2027')
+        ->assertSee($page->publicUrl(), false);
 });
 
 it('weigert publieke bezoeker op een members-only activiteit', function () {

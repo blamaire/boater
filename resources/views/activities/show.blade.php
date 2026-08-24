@@ -23,6 +23,28 @@
                     Deze activiteit is afgelast.
                 </div>
             @endif
+            @if ($activity->activityPage && $activity->activityPage->page->published_version_id && $activity->activityPage->page->isVisibleTo(auth()->user()))
+                <div class="text-sm text-gray-600">
+                    Onderdeel van
+                    <a href="{{ $activity->activityPage->page->publicUrl() }}" class="text-rzvg-600 hover:text-rzvg-800 underline">
+                        {{ $activity->activityPage->page->title }}
+                    </a>
+                </div>
+            @endif
+            @if ($activity->series)
+                <div class="text-sm text-gray-600">
+                    Onderdeel van reeks
+                    <a href="{{ route('activiteitenreeks.show', $activity->series) }}" class="text-rzvg-600 hover:text-rzvg-800 underline">
+                        {{ $activity->series->title }}
+                    </a>
+                </div>
+            @endif
+
+            <x-activity-timeline
+                :dates="[['start' => $activity->starts_at, 'end' => $activity->ends_at]]"
+                :publish-from="$activity->publish_from"
+                :publish-until="$activity->publish_until"
+            />
         </header>
 
         @if ($activity->description)
@@ -31,10 +53,31 @@
             </article>
         @endif
 
+        @if ($activity->files->isNotEmpty())
+            <section>
+                <h2 class="font-display text-lg text-gray-900 mb-2">Bijlagen</h2>
+                <ul class="space-y-1 text-sm">
+                    @foreach ($activity->files as $file)
+                        <li>
+                            <a href="{{ $file->displayUrl() }}" class="text-rzvg-600 hover:text-rzvg-800 underline">{{ $file->original_name }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
         @if ($activity->status !== \App\Enums\ActivityStatus::Cancelled)
             <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="font-display text-lg text-gray-900 mb-2">Inschrijven</h2>
-                @livewire('public.activiteit-inschrijven', ['activityId' => $activity->id], key('inschrijven-'.$activity->id))
+                @if ($activity->series && ! $activity->series->enrollment_level->allowsPerVoorkomen())
+                    <h2 class="font-display text-lg text-gray-900 mb-2">Inschrijven</h2>
+                    <p class="text-sm text-gray-600">
+                        Voor dit voorkomen kun je niet los inschrijven — dat kan alleen voor de hele reeks, via
+                        <a href="{{ route('activiteitenreeks.show', $activity->series) }}" class="text-rzvg-600 hover:text-rzvg-800 underline">{{ $activity->series->title }}</a>.
+                    </p>
+                @else
+                    <h2 class="font-display text-lg text-gray-900 mb-2">Inschrijven</h2>
+                    @livewire('public.activiteit-inschrijven', ['activityId' => $activity->id], key('inschrijven-'.$activity->id))
+                @endif
             </section>
         @endif
     </div>

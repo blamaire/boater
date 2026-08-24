@@ -433,29 +433,46 @@ Nieuwe modules zijn later toe te voegen zonder het paginamodel te wijzigen (regi
 ### 17.2 Beheeraspecten (3.02)
 
 - CRUD plus levenscyclus en goed-/afkeuren.
-- **Series en voorkomens**: een serie met herhaalpatroon genereert voorkomens; een voorkomen kan afwijken (uitzondering).
-- **Inschrijvingenbeheer**: deelnemerslijsten per voorkomen en/of serie, capaciteit, wachtlijst, aanwezigheid en afmeldingen.
+- **Eén beheerscherm** (`/beheer/activiteiten`) voor alles: platte lijst van alle voorkomens, een activiteit met minimaal één datum aanmaken (handmatig/gegenereerd, bundel-of-reeks-keuze), groep-brede bewerking (hele groep of "dit en volgende"), beheerders en bestanden per voorkomen. Geen apart aanmaak- of "reeksen"-scherm meer.
+- **Groep en voorkomens**: data worden per voorkomen toegevoegd (handmatig en/of gegenereerd); een voorkomen kan afwijken (uitzondering).
+- **Inschrijvingenbeheer**: deelnemerslijsten per voorkomen en/of groep, capaciteit, wachtlijst, aanwezigheid en afmeldingen.
 - **Koppelingen**: categorieën, locaties/objecten (mogelijk gekoppeld aan Reserveren) en kosten (Facturatie/Betalingen).
 
 ### 17.3 Datamodel
 
-- **ACTIVITY_SERIES** — `id`, `category_id`, `title`, `recurrence_rule`, `enrollment_level` (serie/voorkomen/beide), `default_capacity`, `status`, `visibility`, `split_from` (bij afsplitsing via "dit en volgende").
-- **ACTIVITY** (voorkomen of losse activiteit) — `id`, `series_id` (optioneel), `title`, `starts_at`, `ends_at`, `location`, `capacity`, `status`, `is_exception`, `product_id` (activiteitsbijdrage, optioneel).
-- **ACTIVITY_OPTION** — `id`, `activity_id` of `series_id`, `name` (bijvoorbeeld maaltijd, opleidingsniveau, aantal deelnemers), `type` (keuze/aantal), `price_effect`.
-- **ENROLLMENT** — `id`, `person_id` (begunstigde), `requested_by` (wie inschrijft), `series_id`, `activity_id`, `level` (serie/voorkomen), `status` (aangemeld/wachtlijst/afgemeld/aanwezig), `enrolled_at`.
-- **ENROLLMENT_OPTION** — `id`, `enrollment_id`, `activity_option_id`, `value` (gekozen optie of aantal).
+- **ACTIVITY_SERIES** — `id`, `category_id`, `title`, `description`, `location`, `default_capacity`, `min_capacity`, `min_age`, `max_age`, `publish_from`, `publish_until`, `enrollment_level` (**bundel**/**reeks** — géén derde "beide"-optie meer), `status`, `visibility`, `split_from` (bij afsplitsing via "dit en volgende"). Géén `recurrence_rule`: data worden per voorkomen toegevoegd — handmatig, via een wekelijkse generator, of beide gecombineerd (eerst genereren, dan losse rijen verwijderen) — in plaats van een cron-achtig herhaalpatroon; dat maakt niet-aaneensluitende data net zo makkelijk als aaneensluitende. Elke activiteit ontstaat met minimaal één datum (meer is optioneel) — er is geen apart "losse activiteit zonder groep"-aanmaakpad meer; **bundel** = elk voorkomen apart aanmelden maar gezamenlijk bewerkt, **reeks** = in één keer aanmelden voor alles. Bij één datum maakt de keuze functioneel niets uit.
+- **ACTIVITY** (voorkomen of losse activiteit) — `id`, `series_id` (optioneel), `activity_page_id` (optioneel, §17.5), `title`, `starts_at`, `ends_at`, `location`, `capacity`, `min_capacity`, `min_age`, `max_age`, `publish_from`, `publish_until`, `status`, `is_exception`, `created_by_person_id`, `product_id` (activiteitsbijdrage, nog te bouwen — zie Fase 3-koppeling hieronder).
+- **ACTIVITY_MANAGER** — pivot `activity_id`/`person_id`/`notify`: gedelegeerd beheer op objectniveau (§6, destijds aangekondigd als latere uitbreiding). Zo'n beheerder ziet inschrijvingen en mag de activiteit wijzigen zonder de globale permissie `activities.update`; `notify` bepaalt of hij/zij mail krijgt bij wijzigingen en in-/uitschrijvingen.
+- **ACTIVITY_MEDIA** — pivot `activity_id`/`media_asset_id`: bijlagen bij een activiteit (`MEDIA_ASSET` met `context='activity'`, buiten de mediabibliotheek, zichtbaarheid `beperkt`).
+- **ACTIVITY_OPTION** — `id`, `activity_id` of `series_id`, `name` (bijvoorbeeld maaltijd, opleidingsniveau, aantal deelnemers), `type` (keuze/aantal), `price_effect`. Nog niet gebouwd (hangt samen met Facturatie, Fase 3).
+- **ENROLLMENT** — `id`, `person_id` (begunstigde), `requested_by_person_id` (wie inschrijft), `series_id`, `activity_id`, `level` (voorkomen/serie), `status` (aangemeld/wachtlijst/afgemeld), `enrolled_at`.
+- **ENROLLMENT_OPTION** — `id`, `enrollment_id`, `activity_option_id`, `value` (gekozen optie of aantal). Nog niet gebouwd, zie ACTIVITY_OPTION.
 - **ACTIVITY_CATEGORY** — `id`, `name`.
 - **PERSON** — verwijst naar het rechten- en rollenmodel (hoofdstuk 6).
 
 ### 17.4 Vastgestelde gedragsregels
 
-- **Inschrijfniveau** is een instelling op de serie (`enrollment_level`). Een serie-inschrijving omvat alle voorkomens, met de mogelijkheid zich per voorkomen af te melden. Bij "beide" kiest het lid één ingang. Capaciteit wordt altijd per voorkomen bewaakt. Een losse activiteit kent inschrijving op dat ene voorkomen.
+- **Bundel of reeks** is een instelling op de groep (`enrollment_level`, §17.3). Een reeks-inschrijving omvat alle voorkomens (technisch: één `ENROLLMENT`-rij per voorkomen, samen getagd met `series_id`+`level=reeks`), met de mogelijkheid zich per voorkomen af te melden. Een bundel kent inschrijving per los voorkomen. Capaciteit wordt altijd per voorkomen bewaakt.
 - **Wachtlijst** staat altijd aan: zit een voorkomen vol, dan komen nieuwe inschrijvingen op status "wachtlijst" en schuiven ze door zodra een plek vrijkomt.
-- **Serie-bewerking** kent drie reikwijdtes: alleen dit voorkomen, dit en volgende, of de hele serie. Bij "dit en volgende" splitst de serie op dat punt: voorkomens ervóór blijven bij het origineel, vanaf het gekozen voorkomen ontstaat een vervolgserie (gekoppeld via `split_from`). Reeds aangepaste voorkomens (`is_exception`) blijven beschermd tegen serie-brede wijzigingen.
-- **Activiteitsbijdrage als eigenschap van de activiteit**: de prijs hangt af van het lidmaatschapstype én van aanvullende keuzes binnen de activiteit (`ACTIVITY_OPTION`), bijvoorbeeld een maaltijd, het opleidingsniveau dat het tarief bepaalt, of bij een extern team het aantal deelnemers.
-- **Inschrijving genereert een post**: een inschrijving leidt, op basis van het lidmaatschapstype en de gekozen opties, tot een `CHARGE` (zie §23) die op een factuur wordt gebundeld.
+- **Serie-bewerking** kent drie reikwijdtes: alleen dit voorkomen (rechtstreeks op het voorkomen, zet automatisch `is_exception`), dit en volgende, of de hele serie. Bij "dit en volgende" splitst de serie op dat punt: voorkomens ervóór blijven bij het origineel, vanaf het gekozen voorkomen ontstaat een vervolgserie (gekoppeld via `split_from`). Reeds aangepaste voorkomens (`is_exception`) blijven beschermd tegen serie-brede wijzigingen.
+- **Publicatievenster** (`publish_from`/`publish_until`) is los van `starts_at`/`ends_at`: dat laatste is wannéér de activiteit plaatsvindt, het venster bepaalt wannéér ze publiek zichtbaar/vindbaar is.
+- **Leeftijdsgrens** (`min_age`/`max_age`) wordt getoetst tegen `Person.date_of_birth` op de datum van het voorkomen (`starts_at`); ontbreekt de geboortedatum, dan wordt niet geblokkeerd.
+- **Minimum aantal deelnemers** (`min_capacity`) is puur signalerend (getoond aan beheer), geen harde inschrijfblokkade.
+- **Activiteitsbijdrage als eigenschap van de activiteit**: de prijs hangt af van het lidmaatschapstype én van aanvullende keuzes binnen de activiteit (`ACTIVITY_OPTION`), bijvoorbeeld een maaltijd, het opleidingsniveau dat het tarief bepaalt, of bij een extern team het aantal deelnemers. Nog niet gebouwd.
+- **Inschrijving genereert een post**: een inschrijving leidt, op basis van het lidmaatschapstype en de gekozen opties, tot een `CHARGE` (zie §23) die op een factuur wordt gebundeld. Nog niet gebouwd.
 - **Inschrijven namens**: een inschrijving legt expliciet de begunstigde vast (`person_id`); de inschrijver kiest actief of het voor zichzelf is of voor iemand voor wie hij gemachtigd is (zie §19, "handelen namens").
-- **Wachtlijst-notificatie**: komt een plek vrij, dan wordt de eerste op de wachtlijst per e-mail genotificeerd (Mailing).
+- **Wachtlijst-notificatie**: komt een plek vrij, dan wordt de eerste op de wachtlijst per e-mail genotificeerd. Nog niet gebouwd (§24 Mailing-infrastructuur).
+- **Beheerder-notificatie** (wél gebouwd, los van bovenstaande Mailing-afhankelijkheid): `ACTIVITY_MANAGER`s met `notify=true` krijgen een directe (niet-sjabloon) mail bij een wijziging van de activiteit en bij elke nieuwe in-/uitschrijving.
+
+### 17.5 Activiteitenpagina's (ACTIVITY_PAGE) — los van ACTIVITY_SERIES
+
+Naast de strakke `ACTIVITY_SERIES` (§17.3) bestaat een losser containerbegrip: een **activiteitenpagina** bundelt activiteiten die inhoudelijk bij elkaar horen en periodiek terugkeren (bijvoorbeeld "Zomerkamp", "Clubkampioenschap"), zónder automatische voorkomens-generatie. Een activiteit hoort optioneel bij precies één activiteitenpagina. (Eerder in dit document/de code "RecurringEvent" genoemd — hernoemd omdat de naam verwarrend dicht bij `ACTIVITY_SERIES` lag.)
+
+- **ACTIVITY_PAGE** — `id`, `page_id` (de eigen CMS-infopagina), `created_by_person_id`.
+- Een activiteitenpagina heeft een **volwaardige CMS-infopagina** (`PAGE`/`PAGE_VERSION` met banden/blokken, via de goedkeuringsmotor bewerkbaar) — geen apart, beperkter paginatype. De titel ís de paginatitel; er is geen los naamveld.
+- `ACTIVITY.activity_page_id` (optioneel) koppelt een activiteit aan een activiteitenpagina. Verwijderen met gekoppelde activiteiten is geblokkeerd; verwijderen zelf laat de infopagina bestaan (die blijft gewoon beheerbaar onder Pagina's).
+- Beheer op `/beheer/activiteiten/activiteitenpaginas`, permissie `activities.update` (zelfde als categorieën — conceptueel onderdeel van de Activiteiten-module).
+- Op de publieke activiteit-detailpagina staat, als de activiteit bij een activiteitenpagina hoort én de infopagina zichtbaar/gepubliceerd is, een link "Onderdeel van: {titel}" naar die infopagina.
 
 ---
 
@@ -968,7 +985,7 @@ Alle entiteiten gegroepeerd per domein; `PERSON` is de centrale, gedeelde entite
 
 **CMS en content** — PAGE, PAGE_VERSION, BAND, BLOCK, MODULE, TEMPLATE, NAV_ITEM, MEDIA_ASSET, POST, POST_CATEGORY, DOCUMENT, DOCUMENT_FOLDER.
 
-**Activiteiten** — ACTIVITY_SERIES, ACTIVITY, ENROLLMENT, ACTIVITY_CATEGORY.
+**Activiteiten** — ACTIVITY_SERIES, ACTIVITY, ENROLLMENT, ACTIVITY_CATEGORY, ACTIVITY_PAGE, ACTIVITY_MANAGER, ACTIVITY_MEDIA.
 
 **Reserveren en objecten** — OBJECT_CATEGORY, RESERVABLE_OBJECT, RESERVATION_RULE, RESERVATION, CATEGORY_RESPONSIBLE, DAMAGE_REPORT, DAMAGE_REPORT_MEDIA.
 
