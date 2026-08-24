@@ -213,7 +213,12 @@
                             this.rangeEnd = date;
                             this.sync();
                         },
-                    }">
+                    }" x-init="
+                        $watch('rangeStart', () => sync());
+                        $watch('startTime', () => sync());
+                        $watch('rangeEnd', () => sync());
+                        $watch('endTime', () => sync());
+                    ">
                         <div class="max-w-xs">
                             <div class="flex items-center justify-between mb-1">
                                 <button type="button" @click="prevMonth" class="p-1 text-gray-500 hover:text-gray-800">&laquo;</button>
@@ -246,16 +251,16 @@
                             <div>
                                 <x-input-label for="g-starts-at" value="Begint op" />
                                 <div class="flex items-center gap-2 mt-1">
-                                    <input id="g-starts-at" type="date" x-model="rangeStart" @change="sync()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                    <input type="time" x-model="startTime" @change="sync()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                    <input id="g-starts-at" type="date" x-model="rangeStart" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                    <input type="time" x-model="startTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                                 </div>
                                 @error('startsAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <x-input-label for="g-ends-at" value="Eindigt op (optioneel)" />
                                 <div class="flex items-center gap-2 mt-1">
-                                    <input id="g-ends-at" type="date" x-model="rangeEnd" @change="sync()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                    <input type="time" x-model="endTime" @change="sync()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                    <input id="g-ends-at" type="date" x-model="rangeEnd" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                    <input type="time" x-model="endTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                                 </div>
                                 @error('endsAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
@@ -306,28 +311,35 @@
                     syncOpens() { $wire.set('enrollmentOpensAt', this.opensDate ? this.opensDate + 'T' + (this.opensTime || '00:00') : ''); },
                     syncCloses() { $wire.set('enrollmentClosesAt', this.closesDate ? this.closesDate + 'T' + (this.closesTime || '23:59') : ''); },
                     syncDeadline() { $wire.set('cancellationDeadline', this.deadlineDate ? this.deadlineDate + 'T' + (this.deadlineTime || '23:59') : ''); },
-                }">
+                }" x-init="
+                    $watch('opensDate', () => syncOpens());
+                    $watch('opensTime', () => syncOpens());
+                    $watch('closesDate', () => syncCloses());
+                    $watch('closesTime', () => syncCloses());
+                    $watch('deadlineDate', () => syncDeadline());
+                    $watch('deadlineTime', () => syncDeadline());
+                ">
                     <div>
                         <x-input-label value="Inschrijven mogelijk vanaf (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="opensDate" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="opensTime" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="opensDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="opensTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('enrollmentOpensAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <x-input-label value="Inschrijven mogelijk tot (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="closesDate" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="closesTime" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="closesDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="closesTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('enrollmentClosesAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <x-input-label value="Laatste moment om te annuleren (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="deadlineDate" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="deadlineTime" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="deadlineDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="deadlineTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('cancellationDeadline') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -424,19 +436,24 @@
                         untilTime: @js($publishUntil !== '' ? substr($publishUntil, 11, 5) : ''),
                         syncFrom() { $wire.set('publishFrom', this.fromDate ? this.fromDate + 'T' + (this.fromTime || '00:00') : ''); },
                         syncUntil() { $wire.set('publishUntil', this.untilDate ? this.untilDate + 'T' + (this.untilTime || '23:59') : ''); },
-                    }">
+                    }" x-init="
+                        $watch('fromDate', () => syncFrom());
+                        $watch('fromTime', () => syncFrom());
+                        $watch('untilDate', () => syncUntil());
+                        $watch('untilTime', () => syncUntil());
+                    ">
                         <div>
                             <x-input-label for="g-publish-from" value="Gepubliceerd vanaf (optioneel)" />
                             <div class="flex items-center gap-2 mt-1">
-                                <input id="g-publish-from" type="date" x-model="fromDate" @change="syncFrom()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                <input type="time" x-model="fromTime" @change="syncFrom()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input id="g-publish-from" type="date" x-model="fromDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input type="time" x-model="fromTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                             </div>
                         </div>
                         <div>
                             <x-input-label for="g-publish-until" value="Gepubliceerd tot en met (optioneel)" />
                             <div class="flex items-center gap-2 mt-1">
-                                <input id="g-publish-until" type="date" x-model="untilDate" @change="syncUntil()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                <input type="time" x-model="untilTime" @change="syncUntil()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input id="g-publish-until" type="date" x-model="untilDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input type="time" x-model="untilTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                             </div>
                             @error('publishUntil') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -580,28 +597,35 @@
                     syncOpens() { $wire.set('enrollmentOpensAt', this.opensDate ? this.opensDate + 'T' + (this.opensTime || '00:00') : ''); },
                     syncCloses() { $wire.set('enrollmentClosesAt', this.closesDate ? this.closesDate + 'T' + (this.closesTime || '23:59') : ''); },
                     syncDeadline() { $wire.set('cancellationDeadline', this.deadlineDate ? this.deadlineDate + 'T' + (this.deadlineTime || '23:59') : ''); },
-                }">
+                }" x-init="
+                    $watch('opensDate', () => syncOpens());
+                    $watch('opensTime', () => syncOpens());
+                    $watch('closesDate', () => syncCloses());
+                    $watch('closesTime', () => syncCloses());
+                    $watch('deadlineDate', () => syncDeadline());
+                    $watch('deadlineTime', () => syncDeadline());
+                ">
                     <div>
                         <x-input-label value="Inschrijven mogelijk vanaf (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="opensDate" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="opensTime" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="opensDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="opensTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('enrollmentOpensAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <x-input-label value="Inschrijven mogelijk tot (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="closesDate" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="closesTime" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="closesDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="closesTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('enrollmentClosesAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
                         <x-input-label value="Laatste moment om te annuleren (optioneel)" />
                         <div class="flex items-center gap-2 mt-1">
-                            <input type="date" x-model="deadlineDate" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                            <input type="time" x-model="deadlineTime" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="date" x-model="deadlineDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="deadlineTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                         </div>
                         @error('cancellationDeadline') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -637,19 +661,24 @@
                         untilTime: @js($publishUntil !== '' ? substr($publishUntil, 11, 5) : ''),
                         syncFrom() { $wire.set('publishFrom', this.fromDate ? this.fromDate + 'T' + (this.fromTime || '00:00') : ''); },
                         syncUntil() { $wire.set('publishUntil', this.untilDate ? this.untilDate + 'T' + (this.untilTime || '23:59') : ''); },
-                    }">
+                    }" x-init="
+                        $watch('fromDate', () => syncFrom());
+                        $watch('fromTime', () => syncFrom());
+                        $watch('untilDate', () => syncUntil());
+                        $watch('untilTime', () => syncUntil());
+                    ">
                         <div>
                             <x-input-label for="a-publish-from" value="Gepubliceerd vanaf (optioneel)" />
                             <div class="flex items-center gap-2 mt-1">
-                                <input id="a-publish-from" type="date" x-model="fromDate" @change="syncFrom()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                <input type="time" x-model="fromTime" @change="syncFrom()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input id="a-publish-from" type="date" x-model="fromDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input type="time" x-model="fromTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                             </div>
                         </div>
                         <div>
                             <x-input-label for="a-publish-until" value="Gepubliceerd tot en met (optioneel)" />
                             <div class="flex items-center gap-2 mt-1">
-                                <input id="a-publish-until" type="date" x-model="untilDate" @change="syncUntil()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
-                                <input type="time" x-model="untilTime" @change="syncUntil()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input id="a-publish-until" type="date" x-model="untilDate" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                                <input type="time" x-model="untilTime" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
                             </div>
                             @error('publishUntil') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
