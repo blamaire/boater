@@ -7,7 +7,9 @@ use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\Enrollment;
 use App\Models\Person;
+use App\Notifications\EnrollmentConfirmed;
 use App\Services\Activities\EnrollmentService;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->category = ActivityCategory::create(['name' => 'Roeien', 'slug' => 'roeien', 'sort_order' => 10]);
@@ -100,4 +102,50 @@ it('weigert inschrijving op een niet-gepubliceerde activiteit', function () {
 
     expect(fn () => app(EnrollmentService::class)->enroll($activity, $person))
         ->toThrow(RuntimeException::class);
+});
+
+it('weigert inschrijving buiten het inschrijfvenster', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $activity->update(['enrollment_opens_at' => now()->addDay()]);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+
+    expect(fn () => app(EnrollmentService::class)->enroll($activity, $person))
+        ->toThrow(RuntimeException::class);
+
+    $activity->update(['enrollment_opens_at' => null, 'enrollment_closes_at' => now()->subDay()]);
+
+    expect(fn () => app(EnrollmentService::class)->enroll($activity, $person))
+        ->toThrow(RuntimeException::class);
+});
+
+it('staat inschrijving toe binnen het inschrijfvenster', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $activity->update(['enrollment_opens_at' => now()->subDay(), 'enrollment_closes_at' => now()->addDay()]);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+
+    $enrollment = app(EnrollmentService::class)->enroll($activity, $person);
+
+    expect($enrollment->status)->toBe(EnrollmentStatus::Enrolled);
+});
+
+it('weigert annuleren na de uiterste annuleringsdatum', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+    $enrollment = app(EnrollmentService::class)->enroll($activity, $person);
+
+    $activity->update(['cancellation_deadline' => now()->subDay()]);
+
+    expect(fn () => app(EnrollmentService::class)->cancel($enrollment))
+        ->toThrow(RuntimeException::class);
+});
+
+it('mailt de ingeschrevene zelf een bevestiging', function () {
+    Notification::fake();
+
+    $activity = newActivity($this->category->id, capacity: 5);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@example.test']);
+
+    app(EnrollmentService::class)->enroll($activity, $person);
+
+    Notification::assertSentOnDemand(EnrollmentConfirmed::class);
 });

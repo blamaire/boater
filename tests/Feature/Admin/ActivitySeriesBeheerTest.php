@@ -44,6 +44,29 @@ it('maakt een losse activiteit aan (standaardkeuze), eventueel over meerdere dag
         ->and((int) $series->activities()->first()->starts_at->diffInDays($series->activities()->first()->ends_at))->toBe(2);
 });
 
+it('slaat inschrijfvenster en annuleringsdeadline op en past die toe op elk voorkomen', function () {
+    $this->actingAs($this->beheerder);
+    $opens = now()->addDay()->format('Y-m-d\TH:i');
+    $closes = now()->addDays(4)->format('Y-m-d\TH:i');
+    $deadline = now()->addDays(4)->format('Y-m-d\TH:i');
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('startCreateGroup')
+        ->set('categoryId', $this->category->id)
+        ->set('title', 'Clinic')
+        ->set('startsAt', now()->addDays(5)->format('Y-m-d\TH:i'))
+        ->set('enrollmentOpensAt', $opens)
+        ->set('enrollmentClosesAt', $closes)
+        ->set('cancellationDeadline', $deadline)
+        ->call('createGroup')
+        ->assertHasNoErrors();
+
+    $activity = Activity::query()->where('title', 'Clinic')->firstOrFail();
+    expect($activity->enrollment_opens_at->format('Y-m-d\TH:i'))->toBe($opens)
+        ->and($activity->enrollment_closes_at->format('Y-m-d\TH:i'))->toBe($closes)
+        ->and($activity->cancellation_deadline->format('Y-m-d\TH:i'))->toBe($deadline);
+});
+
 it('koppelt de aanmaker automatisch als beheerder, plus eventueel extra gekozen beheerders', function () {
     $this->actingAs($this->beheerder);
     $manager = Person::create(['first_name' => 'Marieke', 'last_name' => 'Beheer']);

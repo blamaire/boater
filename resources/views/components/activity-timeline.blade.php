@@ -1,4 +1,11 @@
-@props(['dates' => [], 'publishFrom' => null, 'publishUntil' => null])
+@props([
+    'dates' => [],
+    'publishFrom' => null,
+    'publishUntil' => null,
+    'enrollmentOpensAt' => null,
+    'enrollmentClosesAt' => null,
+    'cancellationDeadline' => null,
+])
 
 @php
     use Illuminate\Support\Carbon;
@@ -17,6 +24,15 @@
     }
     if ($publishUntil) {
         $points->push($publishUntil->getTimestamp());
+    }
+    if ($enrollmentOpensAt) {
+        $points->push($enrollmentOpensAt->getTimestamp());
+    }
+    if ($enrollmentClosesAt) {
+        $points->push($enrollmentClosesAt->getTimestamp());
+    }
+    if ($cancellationDeadline) {
+        $points->push($cancellationDeadline->getTimestamp());
     }
 
     $hasPoints = $points->isNotEmpty();
@@ -44,6 +60,14 @@
         <span class="inline-flex items-center gap-1.5">
             <span class="inline-block h-2.5 w-2.5 rounded-full bg-rzvg-200"></span>
             Wanneer deze zichtbaar is
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+            <span class="inline-block h-2.5 w-2.5 rounded-full bg-blue-400"></span>
+            Wanneer ingeschreven kan worden
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+            <span class="inline-block h-2.5 w-1 rounded-sm bg-amber-500"></span>
+            Uiterste annuleringsdatum
         </span>
     </div>
 
@@ -75,6 +99,24 @@
                 @endphp
                 <div class="absolute top-0 h-3 rounded bg-rzvg-200" style="left: {{ $left }}%; width: {{ max($right - $left, 1.2) }}%"
                     title="@if($publishFrom){{ $publishFrom->translatedFormat('d-m-Y H:i') }}@else Altijd @endif – @if($publishUntil){{ $publishUntil->translatedFormat('d-m-Y H:i') }}@else altijd @endif"></div>
+            @endif
+        </div>
+    </div>
+
+    <div>
+        <div class="mb-1 font-medium text-gray-700">Inschrijven / annuleren</div>
+        <div class="relative h-3 bg-gray-100 rounded">
+            @if ($hasPoints && ($enrollmentOpensAt || $enrollmentClosesAt))
+                @php
+                    $left = $enrollmentOpensAt ? $pct($enrollmentOpensAt) : 0;
+                    $right = $enrollmentClosesAt ? $pct($enrollmentClosesAt) : 100;
+                @endphp
+                <div class="absolute top-0 h-3 rounded bg-blue-400" style="left: {{ $left }}%; width: {{ max($right - $left, 1.2) }}%"
+                    title="Inschrijven: @if($enrollmentOpensAt){{ $enrollmentOpensAt->translatedFormat('d-m-Y H:i') }}@else altijd @endif – @if($enrollmentClosesAt){{ $enrollmentClosesAt->translatedFormat('d-m-Y H:i') }}@else altijd @endif"></div>
+            @endif
+            @if ($hasPoints && $cancellationDeadline)
+                <div class="absolute top-0 h-3 w-1 rounded-sm bg-amber-500" style="left: {{ $pct($cancellationDeadline) }}%"
+                    title="Uiterste annuleringsdatum: {{ $cancellationDeadline->translatedFormat('d-m-Y H:i') }}"></div>
             @endif
         </div>
     </div>

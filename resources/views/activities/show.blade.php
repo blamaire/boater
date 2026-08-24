@@ -44,6 +44,9 @@
                 :dates="[['start' => $activity->starts_at, 'end' => $activity->ends_at]]"
                 :publish-from="$activity->publish_from"
                 :publish-until="$activity->publish_until"
+                :enrollment-opens-at="$activity->enrollment_opens_at"
+                :enrollment-closes-at="$activity->enrollment_closes_at"
+                :cancellation-deadline="$activity->cancellation_deadline"
             />
         </header>
 

@@ -9,10 +9,12 @@ use App\Models\Activity;
 use App\Models\ActivitySeries;
 use App\Models\Enrollment;
 use App\Models\Person;
+use App\Notifications\EnrollmentConfirmed;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 /**
@@ -47,6 +49,10 @@ class EnrollmentService
     ): Enrollment {
         if ($activity->status !== ActivityStatus::Published) {
             throw new RuntimeException('Deze activiteit staat niet open voor inschrijving.');
+        }
+
+        if (! $activity->isEnrollmentOpen()) {
+            throw new RuntimeException('Het inschrijfvenster voor deze activiteit is nog niet geopend of al gesloten.');
         }
 
         if ($level === EnrollmentLevel::Bundel && $activity->series !== null && ! $activity->series->enrollment_level->allowsPerVoorkomen()) {
@@ -100,6 +106,10 @@ class EnrollmentService
 
         $this->notifier->notifyEnrollment($activity, $person, true);
 
+        if ($person->email !== null && $person->email !== '') {
+            Notification::route('mail', $person->email)->notify(new EnrollmentConfirmed($activity, $enrollment->status));
+        }
+
         return $enrollment;
     }
 
@@ -141,6 +151,11 @@ class EnrollmentService
      */
     public function cancel(Enrollment $enrollment, ?Person $actor = null): void
     {
+        $activity = $enrollment->activity()->firstOrFail();
+        if (! $activity->canCancel()) {
+            throw new RuntimeException('De uiterste annuleringsdatum voor deze activiteit is verstreken.');
+        }
+
         DB::transaction(function () use ($enrollment, $actor): void {
             $before = ['status' => $enrollment->status->value];
 

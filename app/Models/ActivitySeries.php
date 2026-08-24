@@ -29,6 +29,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $max_age
  * @property Carbon|null $publish_from
  * @property Carbon|null $publish_until
+ * @property Carbon|null $enrollment_opens_at
+ * @property Carbon|null $enrollment_closes_at
+ * @property Carbon|null $cancellation_deadline
  * @property EnrollmentLevel $enrollment_level
  * @property ActivityVisibility $visibility
  * @property ActivityStatus $status
@@ -53,6 +56,9 @@ class ActivitySeries extends Model
         'max_age',
         'publish_from',
         'publish_until',
+        'enrollment_opens_at',
+        'enrollment_closes_at',
+        'cancellation_deadline',
         'enrollment_level',
         'visibility',
         'status',
@@ -65,6 +71,9 @@ class ActivitySeries extends Model
         return [
             'publish_from' => 'datetime',
             'publish_until' => 'datetime',
+            'enrollment_opens_at' => 'datetime',
+            'enrollment_closes_at' => 'datetime',
+            'cancellation_deadline' => 'datetime',
             'default_capacity' => 'int',
             'min_capacity' => 'int',
             'min_age' => 'int',

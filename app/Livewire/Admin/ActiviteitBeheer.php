@@ -81,6 +81,14 @@ class ActiviteitBeheer extends Component
 
     public string $publishUntil = '';
 
+    // Fase B: los van het publicatievenster — wanneer inschrijven mag, en
+    // tot wanneer een inschrijving geannuleerd mag worden.
+    public string $enrollmentOpensAt = '';
+
+    public string $enrollmentClosesAt = '';
+
+    public string $cancellationDeadline = '';
+
     public string $visibility = 'members';
 
     public string $status = 'gepubliceerd';
@@ -189,6 +197,7 @@ class ActiviteitBeheer extends Component
             'editingActivityId', 'creatingGroup', 'editingGroupId', 'addingOccurrencesToId',
             'categoryId', 'title', 'description', 'location', 'capacity',
             'minCapacity', 'minAge', 'maxAge', 'publishFrom', 'publishUntil',
+            'enrollmentOpensAt', 'enrollmentClosesAt', 'cancellationDeadline',
             'visibility', 'status', 'activityPageId', 'startsAt', 'endsAt',
             'enrollmentLevel', 'creationMode', 'editScope', 'splitFromActivityId',
             'pendingDates', 'manualDate', 'manualEndTime', 'genStartDate', 'genEndDate', 'genCount',
@@ -218,6 +227,9 @@ class ActiviteitBeheer extends Component
         $this->maxAge = $activity->max_age;
         $this->publishFrom = $activity->publish_from?->format('Y-m-d\TH:i') ?? '';
         $this->publishUntil = $activity->publish_until?->format('Y-m-d\TH:i') ?? '';
+        $this->enrollmentOpensAt = $activity->enrollment_opens_at?->format('Y-m-d\TH:i') ?? '';
+        $this->enrollmentClosesAt = $activity->enrollment_closes_at?->format('Y-m-d\TH:i') ?? '';
+        $this->cancellationDeadline = $activity->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
         $this->visibility = $activity->visibility->value;
         $this->status = $activity->status->value;
     }
@@ -292,6 +304,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $this->maxAge,
             'publish_from' => $this->publishFrom !== '' ? Carbon::parse($this->publishFrom) : null,
             'publish_until' => $this->publishUntil !== '' ? Carbon::parse($this->publishUntil) : null,
+            'enrollment_opens_at' => $this->enrollmentOpensAt !== '' ? Carbon::parse($this->enrollmentOpensAt) : null,
+            'enrollment_closes_at' => $this->enrollmentClosesAt !== '' ? Carbon::parse($this->enrollmentClosesAt) : null,
+            'cancellation_deadline' => $this->cancellationDeadline !== '' ? Carbon::parse($this->cancellationDeadline) : null,
             'visibility' => $this->visibility,
             'status' => $this->status,
         ];
@@ -311,6 +326,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $activity->max_age,
             'publish_from' => $activity->publish_from?->toDateTimeString(),
             'publish_until' => $activity->publish_until?->toDateTimeString(),
+            'enrollment_opens_at' => $activity->enrollment_opens_at?->toDateTimeString(),
+            'enrollment_closes_at' => $activity->enrollment_closes_at?->toDateTimeString(),
+            'cancellation_deadline' => $activity->cancellation_deadline?->toDateTimeString(),
             'visibility' => $activity->visibility->value,
             'status' => $activity->status->value,
         ];
@@ -326,6 +344,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $new['max_age'],
             'publish_from' => $new['publish_from']?->toDateTimeString(),
             'publish_until' => $new['publish_until']?->toDateTimeString(),
+            'enrollment_opens_at' => $new['enrollment_opens_at']?->toDateTimeString(),
+            'enrollment_closes_at' => $new['enrollment_closes_at']?->toDateTimeString(),
+            'cancellation_deadline' => $new['cancellation_deadline']?->toDateTimeString(),
             'visibility' => $new['visibility'],
             'status' => $new['status'],
         ];
@@ -611,6 +632,9 @@ class ActiviteitBeheer extends Component
         $this->maxAge = $series->max_age;
         $this->publishFrom = $series->publish_from?->format('Y-m-d\TH:i') ?? '';
         $this->publishUntil = $series->publish_until?->format('Y-m-d\TH:i') ?? '';
+        $this->enrollmentOpensAt = $series->enrollment_opens_at?->format('Y-m-d\TH:i') ?? '';
+        $this->enrollmentClosesAt = $series->enrollment_closes_at?->format('Y-m-d\TH:i') ?? '';
+        $this->cancellationDeadline = $series->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
         $this->visibility = $series->visibility->value;
         $this->status = $series->status->value;
         $this->enrollmentLevel = $series->enrollment_level->value;
@@ -812,6 +836,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $this->maxAge,
             'publish_from' => $this->publishFrom !== '' ? Carbon::parse($this->publishFrom) : null,
             'publish_until' => $this->publishUntil !== '' ? Carbon::parse($this->publishUntil) : null,
+            'enrollment_opens_at' => $this->enrollmentOpensAt !== '' ? Carbon::parse($this->enrollmentOpensAt) : null,
+            'enrollment_closes_at' => $this->enrollmentClosesAt !== '' ? Carbon::parse($this->enrollmentClosesAt) : null,
+            'cancellation_deadline' => $this->cancellationDeadline !== '' ? Carbon::parse($this->cancellationDeadline) : null,
             'visibility' => $this->visibility,
             'status' => $this->status,
         ];
@@ -842,6 +869,9 @@ class ActiviteitBeheer extends Component
             'maxAge' => ['nullable', 'integer', 'min:0', 'max:120', 'gte:minAge'],
             'publishFrom' => ['nullable', 'date'],
             'publishUntil' => ['nullable', 'date', 'after_or_equal:publishFrom'],
+            'enrollmentOpensAt' => ['nullable', 'date'],
+            'enrollmentClosesAt' => ['nullable', 'date', 'after_or_equal:enrollmentOpensAt'],
+            'cancellationDeadline' => ['nullable', 'date'],
             'visibility' => ['required', 'in:public,members,staff'],
             'status' => ['required', 'in:concept,gepubliceerd,afgelast'],
         ];
@@ -956,6 +986,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $series->max_age,
             'publish_from' => $series->publish_from,
             'publish_until' => $series->publish_until,
+            'enrollment_opens_at' => $series->enrollment_opens_at,
+            'enrollment_closes_at' => $series->enrollment_closes_at,
+            'cancellation_deadline' => $series->cancellation_deadline,
             'visibility' => $series->visibility->value,
             'status' => $series->status->value,
             'created_by_person_id' => auth()->user()?->person?->id,
@@ -1057,6 +1090,9 @@ class ActiviteitBeheer extends Component
             'max_age' => $shared['max_age'],
             'publish_from' => $shared['publish_from'],
             'publish_until' => $shared['publish_until'],
+            'enrollment_opens_at' => $shared['enrollment_opens_at'],
+            'enrollment_closes_at' => $shared['enrollment_closes_at'],
+            'cancellation_deadline' => $shared['cancellation_deadline'],
             'visibility' => $shared['visibility'],
             'status' => $shared['status'],
         ];
@@ -1106,6 +1142,9 @@ class ActiviteitBeheer extends Component
             'timelineDates' => $this->timelineDates($occurrences),
             'timelinePublishFrom' => $this->safeParse($this->publishFrom),
             'timelinePublishUntil' => $this->safeParse($this->publishUntil),
+            'timelineEnrollmentOpensAt' => $this->safeParse($this->enrollmentOpensAt),
+            'timelineEnrollmentClosesAt' => $this->safeParse($this->enrollmentClosesAt),
+            'timelineCancellationDeadline' => $this->safeParse($this->cancellationDeadline),
         ]);
     }
 

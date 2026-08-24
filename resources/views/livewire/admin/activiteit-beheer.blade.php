@@ -74,6 +74,9 @@
                     :dates="$timelineDates"
                     :publish-from="$timelinePublishFrom"
                     :publish-until="$timelinePublishUntil"
+                    :enrollment-opens-at="$timelineEnrollmentOpensAt"
+                    :enrollment-closes-at="$timelineEnrollmentClosesAt"
+                    :cancellation-deadline="$timelineCancellationDeadline"
                 />
             </div>
 
@@ -290,7 +293,48 @@
                 </div>
             </div>
 
-            {{-- 5. Gedelegeerde beheerders --}}
+            {{-- 5. Inschrijven en annuleren --}}
+            <div class="border-t border-gray-200 pt-4 space-y-3">
+                <h3 class="font-medium text-gray-900 text-sm">Inschrijven en annuleren</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm" x-data="{
+                    opensDate: @js($enrollmentOpensAt !== '' ? substr($enrollmentOpensAt, 0, 10) : ''),
+                    opensTime: @js($enrollmentOpensAt !== '' ? substr($enrollmentOpensAt, 11, 5) : ''),
+                    closesDate: @js($enrollmentClosesAt !== '' ? substr($enrollmentClosesAt, 0, 10) : ''),
+                    closesTime: @js($enrollmentClosesAt !== '' ? substr($enrollmentClosesAt, 11, 5) : ''),
+                    deadlineDate: @js($cancellationDeadline !== '' ? substr($cancellationDeadline, 0, 10) : ''),
+                    deadlineTime: @js($cancellationDeadline !== '' ? substr($cancellationDeadline, 11, 5) : ''),
+                    syncOpens() { $wire.set('enrollmentOpensAt', this.opensDate ? this.opensDate + 'T' + (this.opensTime || '00:00') : ''); },
+                    syncCloses() { $wire.set('enrollmentClosesAt', this.closesDate ? this.closesDate + 'T' + (this.closesTime || '23:59') : ''); },
+                    syncDeadline() { $wire.set('cancellationDeadline', this.deadlineDate ? this.deadlineDate + 'T' + (this.deadlineTime || '23:59') : ''); },
+                }">
+                    <div>
+                        <x-input-label value="Inschrijven mogelijk vanaf (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="opensDate" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="opensTime" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('enrollmentOpensAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <x-input-label value="Inschrijven mogelijk tot (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="closesDate" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="closesTime" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('enrollmentClosesAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <x-input-label value="Laatste moment om te annuleren (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="deadlineDate" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="deadlineTime" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('cancellationDeadline') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            </div>
+
+            {{-- 6. Gedelegeerde beheerders --}}
             @if ($creatingGroup)
                 <div class="border-t border-gray-200 pt-4 space-y-3">
                     <h3 class="font-medium text-gray-900 text-sm">Gedelegeerde beheerders (optioneel)</h3>
@@ -353,7 +397,7 @@
                 </div>
             @endif
 
-            {{-- 6. Zichtbaarheid en publicatie --}}
+            {{-- 7. Zichtbaarheid en publicatie --}}
             <div class="border-t border-gray-200 pt-4 space-y-3">
                 <h3 class="font-medium text-gray-900 text-sm">Zichtbaarheid en publicatie</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -474,6 +518,9 @@
                     :dates="$timelineDates"
                     :publish-from="$timelinePublishFrom"
                     :publish-until="$timelinePublishUntil"
+                    :enrollment-opens-at="$timelineEnrollmentOpensAt"
+                    :enrollment-closes-at="$timelineEnrollmentClosesAt"
+                    :cancellation-deadline="$timelineCancellationDeadline"
                 />
             </div>
 
@@ -520,7 +567,48 @@
                 </div>
             </div>
 
-            {{-- 4. Zichtbaarheid en publicatie --}}
+            {{-- 4. Inschrijven en annuleren --}}
+            <div class="border-t border-gray-200 pt-4 space-y-3">
+                <h3 class="font-medium text-gray-900 text-sm">Inschrijven en annuleren</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm" x-data="{
+                    opensDate: @js($enrollmentOpensAt !== '' ? substr($enrollmentOpensAt, 0, 10) : ''),
+                    opensTime: @js($enrollmentOpensAt !== '' ? substr($enrollmentOpensAt, 11, 5) : ''),
+                    closesDate: @js($enrollmentClosesAt !== '' ? substr($enrollmentClosesAt, 0, 10) : ''),
+                    closesTime: @js($enrollmentClosesAt !== '' ? substr($enrollmentClosesAt, 11, 5) : ''),
+                    deadlineDate: @js($cancellationDeadline !== '' ? substr($cancellationDeadline, 0, 10) : ''),
+                    deadlineTime: @js($cancellationDeadline !== '' ? substr($cancellationDeadline, 11, 5) : ''),
+                    syncOpens() { $wire.set('enrollmentOpensAt', this.opensDate ? this.opensDate + 'T' + (this.opensTime || '00:00') : ''); },
+                    syncCloses() { $wire.set('enrollmentClosesAt', this.closesDate ? this.closesDate + 'T' + (this.closesTime || '23:59') : ''); },
+                    syncDeadline() { $wire.set('cancellationDeadline', this.deadlineDate ? this.deadlineDate + 'T' + (this.deadlineTime || '23:59') : ''); },
+                }">
+                    <div>
+                        <x-input-label value="Inschrijven mogelijk vanaf (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="opensDate" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="opensTime" @change="syncOpens()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('enrollmentOpensAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <x-input-label value="Inschrijven mogelijk tot (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="closesDate" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="closesTime" @change="syncCloses()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('enrollmentClosesAt') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <x-input-label value="Laatste moment om te annuleren (optioneel)" />
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="date" x-model="deadlineDate" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                            <input type="time" x-model="deadlineTime" @change="syncDeadline()" class="border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600" />
+                        </div>
+                        @error('cancellationDeadline') <p class="text-sm text-red-600 mt-1">{{ $message }}</p> @enderror
+                    </div>
+                </div>
+            </div>
+
+            {{-- 5. Zichtbaarheid en publicatie --}}
             <div class="border-t border-gray-200 pt-4 space-y-3">
                 <h3 class="font-medium text-gray-900 text-sm">Zichtbaarheid en publicatie</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">

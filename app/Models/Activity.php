@@ -29,6 +29,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $max_age
  * @property Carbon|null $publish_from
  * @property Carbon|null $publish_until
+ * @property Carbon|null $enrollment_opens_at
+ * @property Carbon|null $enrollment_closes_at
+ * @property Carbon|null $cancellation_deadline
  * @property ActivityVisibility $visibility
  * @property ActivityStatus $status
  * @property int|null $created_by_person_id
@@ -59,6 +62,9 @@ class Activity extends Model
         'max_age',
         'publish_from',
         'publish_until',
+        'enrollment_opens_at',
+        'enrollment_closes_at',
+        'cancellation_deadline',
         'visibility',
         'status',
         'created_by_person_id',
@@ -76,6 +82,9 @@ class Activity extends Model
             'max_age' => 'int',
             'publish_from' => 'datetime',
             'publish_until' => 'datetime',
+            'enrollment_opens_at' => 'datetime',
+            'enrollment_closes_at' => 'datetime',
+            'cancellation_deadline' => 'datetime',
             'visibility' => ActivityVisibility::class,
             'status' => ActivityStatus::class,
         ];
@@ -207,6 +216,37 @@ class Activity extends Model
         }
 
         return true;
+    }
+
+    /**
+     * Los van het publicatievenster: mag er nu ingeschreven worden? Zonder
+     * `enrollment_opens_at`/`enrollment_closes_at` staat inschrijven altijd
+     * open (§17.4, Fase B).
+     */
+    public function isEnrollmentOpen(?Carbon $moment = null): bool
+    {
+        $moment ??= Carbon::now();
+
+        if ($this->enrollment_opens_at !== null && $moment->lt($this->enrollment_opens_at)) {
+            return false;
+        }
+
+        if ($this->enrollment_closes_at !== null && $moment->gt($this->enrollment_closes_at)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Mag een bestaande inschrijving nu nog geannuleerd worden? Zonder
+     * `cancellation_deadline` mag dat altijd.
+     */
+    public function canCancel(?Carbon $moment = null): bool
+    {
+        $moment ??= Carbon::now();
+
+        return $this->cancellation_deadline === null || $moment->lte($this->cancellation_deadline);
     }
 
     public function isAgeEligible(Person $person): bool
