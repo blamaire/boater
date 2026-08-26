@@ -23,7 +23,10 @@ class ActivityController extends Controller
         );
 
         return view('activities.show', [
-            'activity' => $activity->load(['category', 'activityPage.page', 'series', 'enrollments.person', 'files']),
+            'activity' => $activity->load([
+                'category', 'activityPage.page', 'enrollments.person', 'files',
+                'series' => fn ($query) => $query->withCount('activities'),
+            ]),
         ]);
     }
 }

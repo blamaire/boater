@@ -93,7 +93,12 @@ it('toont op het voorkomen zelf een link naar de reeks en verbergt losse inschri
     ]);
     $activity = Activity::create([
         'activity_category_id' => $this->category->id, 'series_id' => $series->id,
-        'title' => 'Kampdag', 'starts_at' => now()->addDays(3),
+        'title' => 'Kampdag 1', 'starts_at' => now()->addDays(3),
+        'visibility' => 'public', 'status' => 'gepubliceerd',
+    ]);
+    Activity::create([
+        'activity_category_id' => $this->category->id, 'series_id' => $series->id,
+        'title' => 'Kampdag 2', 'starts_at' => now()->addDays(4),
         'visibility' => 'public', 'status' => 'gepubliceerd',
     ]);
 
@@ -102,4 +107,22 @@ it('toont op het voorkomen zelf een link naar de reeks en verbergt losse inschri
         ->assertSee('Onderdeel van reeks')
         ->assertSee('kun je niet los inschrijven')
         ->assertDontSee('wire:click="enroll"', false);
+});
+
+it('verbergt "onderdeel van reeks" voor een losse activiteit (reeks met maar één voorkomen)', function () {
+    $series = ActivitySeries::create([
+        'activity_category_id' => $this->category->id,
+        'title' => 'Zomerkamp weekend',
+        'visibility' => 'public',
+        'enrollment_level' => 'bundel',
+    ]);
+    $activity = Activity::create([
+        'activity_category_id' => $this->category->id, 'series_id' => $series->id,
+        'title' => 'Zomerkamp weekend', 'starts_at' => now()->addDays(3),
+        'visibility' => 'public', 'status' => 'gepubliceerd',
+    ]);
+
+    $this->get(route('activiteit.show', $activity))
+        ->assertOk()
+        ->assertDontSee('Onderdeel van reeks');
 });

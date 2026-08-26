@@ -31,7 +31,9 @@
                     </a>
                 </div>
             @endif
-            @if ($activity->series)
+            {{-- Een losse activiteit hangt technisch ook aan een ActivitySeries
+                (met precies dit ene voorkomen) — dat telt niet als "reeks". --}}
+            @if ($activity->series && $activity->series->activities_count > 1)
                 <div class="text-sm text-gray-600">
                     Onderdeel van reeks
                     <a href="{{ route('activiteitenreeks.show', $activity->series) }}" class="text-rzvg-600 hover:text-rzvg-800 underline">
