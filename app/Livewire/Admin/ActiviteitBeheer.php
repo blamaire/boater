@@ -92,8 +92,15 @@ class ActiviteitBeheer extends Component
 
     public string $cancellationDeadline = '';
 
-    // Fase D: bedrag komt uit de actuele prijs van het gekoppelde product,
-    // geen los bedragveld hier (§23.5).
+    // Fase D (§23.5): de beheerder typt gewoon een bedrag; resolveCostProduct()
+    // zorgt op het moment van opslaan voor een (impliciet, activiteit-gebonden)
+    // Product + ProductPrice erachter, zodat Charge/BTW-routing gewoon via het
+    // bestaande boekhoudkundige domein loopt. *ProductId hieronder is alleen
+    // het resultaat daarvan — niet rechtstreeks door de beheerder gezet.
+    public ?float $standardCostAmount = null;
+
+    public ?float $cancellationCostAmount = null;
+
     public ?int $standardCostProductId = null;
 
     public ?int $cancellationCostProductId = null;
@@ -234,7 +241,7 @@ class ActiviteitBeheer extends Component
             'categoryId', 'title', 'description', 'location', 'capacity',
             'minCapacity', 'minAge', 'maxAge', 'publishFrom', 'publishUntil',
             'enrollmentOpensAt', 'enrollmentClosesAt', 'cancellationDeadline',
-            'standardCostProductId', 'cancellationCostProductId',
+            'standardCostAmount', 'cancellationCostAmount', 'standardCostProductId', 'cancellationCostProductId',
             'visibility', 'status', 'activityPageId', 'startsAt', 'endsAt',
             'enrollmentLevel', 'creationMode', 'editScope', 'splitFromActivityId',
             'pendingDates', 'manualDate', 'manualEndTime', 'genStartDate', 'genEndDate', 'genCount',
@@ -271,6 +278,8 @@ class ActiviteitBeheer extends Component
         $this->cancellationDeadline = $activity->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
         $this->standardCostProductId = $activity->standard_cost_product_id;
         $this->cancellationCostProductId = $activity->cancellation_cost_product_id;
+        $this->standardCostAmount = $this->costAmountFor($activity->standardCostProduct);
+        $this->cancellationCostAmount = $this->costAmountFor($activity->cancellationCostProduct);
         $this->visibility = $activity->visibility->value;
         $this->status = $activity->status->value;
     }
@@ -285,6 +294,7 @@ class ActiviteitBeheer extends Component
             'startsAt.required' => 'Startdatum en -tijd zijn verplicht.',
             'endsAt.after_or_equal' => 'De einddatum kan niet vóór de startdatum liggen.',
         ]);
+        $this->resolveCostProducts();
 
         $activity = Activity::query()->findOrFail($this->editingActivityId);
 
@@ -821,6 +831,8 @@ class ActiviteitBeheer extends Component
         $this->cancellationDeadline = $series->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
         $this->standardCostProductId = $series->standard_cost_product_id;
         $this->cancellationCostProductId = $series->cancellation_cost_product_id;
+        $this->standardCostAmount = $this->costAmountFor($series->standardCostProduct);
+        $this->cancellationCostAmount = $this->costAmountFor($series->cancellationCostProduct);
         $this->visibility = $series->visibility->value;
         $this->status = $series->status->value;
         $this->enrollmentLevel = $series->enrollment_level->value;
@@ -1060,11 +1072,68 @@ class ActiviteitBeheer extends Component
             'enrollmentOpensAt' => ['nullable', 'date'],
             'enrollmentClosesAt' => ['nullable', 'date', 'after_or_equal:enrollmentOpensAt'],
             'cancellationDeadline' => ['nullable', 'date'],
-            'standardCostProductId' => ['nullable', 'integer', 'exists:products,id'],
-            'cancellationCostProductId' => ['nullable', 'integer', 'exists:products,id'],
+            'standardCostAmount' => ['nullable', 'numeric', 'min:0'],
+            'cancellationCostAmount' => ['nullable', 'numeric', 'min:0'],
             'visibility' => ['required', 'in:public,members,staff'],
             'status' => ['required', 'in:concept,gepubliceerd,afgelast'],
         ];
+    }
+
+    /**
+     * Vertaalt standardCostAmount/cancellationCostAmount naar een (impliciet,
+     * activiteit-gebonden) Product-id — aangeroepen vlak vóór opslaan, zodat
+     * activityAttributes()/sharedGroupAttributes() puur blijven (geen
+     * database-mutaties bij bv. deleteActivity()'s before-snapshot).
+     */
+    private function resolveCostProducts(): void
+    {
+        $this->standardCostProductId = $this->resolveCostProduct(
+            $this->standardCostProductId, $this->standardCostAmount, "Standaardkosten: {$this->title}",
+        );
+        $this->cancellationCostProductId = $this->resolveCostProduct(
+            $this->cancellationCostProductId, $this->cancellationCostAmount, "Annuleringskosten: {$this->title}",
+        );
+    }
+
+    private function resolveCostProduct(?int $existingProductId, ?float $amount, string $label): ?int
+    {
+        if ($amount === null) {
+            return null;
+        }
+
+        $amountStr = number_format($amount, 2, '.', '');
+        $product = $existingProductId !== null ? Product::query()->find($existingProductId) : null;
+
+        if ($product === null) {
+            $product = Product::query()->create(['name' => $label, 'type' => ProductType::ActiviteitsBijdrage->value]);
+        } elseif ($product->name !== $label) {
+            $product->update(['name' => $label]);
+        }
+
+        // Bestaande prijsregel bijwerken i.p.v. een nieuwe prijshistorie-rij
+        // op te bouwen — deze producten zijn puur activiteit-intern, geen
+        // prijsgeschiedenis nodig. (Niet via updateOrCreate(['valid_from' =>
+        // ...]): een kale datumstring matcht niet betrouwbaar met de
+        // opgeslagen datetime-representatie van de 'date'-cast.)
+        $existingPrice = $product->currentPrice();
+        if ($existingPrice !== null) {
+            $existingPrice->update(['amount' => $amountStr]);
+        } else {
+            $product->prices()->create(['valid_from' => Carbon::now()->startOfDay(), 'amount' => $amountStr]);
+        }
+
+        return $product->id;
+    }
+
+    private function costAmountFor(?Product $product): ?float
+    {
+        if ($product === null) {
+            return null;
+        }
+
+        $price = $product->currentPrice();
+
+        return $price !== null ? (float) $price->amount : null;
     }
 
     /** @return array<string, mixed> */
@@ -1114,6 +1183,8 @@ class ActiviteitBeheer extends Component
 
             return;
         }
+
+        $this->resolveCostProducts();
 
         DB::transaction(function () use ($audit): void {
             $series = ActivitySeries::query()->create($this->seriesAttributes() + [
@@ -1228,6 +1299,7 @@ class ActiviteitBeheer extends Component
     public function applyGroupEdit(AuditLogger $audit): void
     {
         $this->validate($this->groupValidationRules());
+        $this->resolveCostProducts();
         $series = ActivitySeries::query()->findOrFail($this->editingGroupId);
 
         if ($this->editScope === 'dit_en_volgende') {
@@ -1346,7 +1418,6 @@ class ActiviteitBeheer extends Component
             'statuses' => ActivityStatus::cases(),
             'personsForAssignment' => Person::query()->orderBy('last_name')->orderBy('first_name')->limit(500)->get(),
             'groupsForAssignment' => ApproverGroup::query()->orderBy('name')->get(),
-            'costProducts' => Product::query()->with('prices')->where('type', ProductType::ActiviteitsBijdrage->value)->orderBy('name')->get(),
             'occurrences' => $occurrences,
             'weekdays' => [1 => 'Maandag', 2 => 'Dinsdag', 3 => 'Woensdag', 4 => 'Donderdag', 5 => 'Vrijdag', 6 => 'Zaterdag', 7 => 'Zondag'],
             'timelineDates' => $this->timelineDates($occurrences),

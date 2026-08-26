@@ -127,24 +127,48 @@ it('weigert een keuzeveld zonder minstens één optie', function () {
         ->assertHasErrors('newFieldOptions');
 });
 
-it('koppelt standaard- en annuleringskostenproducten en past ze toe op elk voorkomen', function () {
+it('maakt bij het aanmaken automatisch producten aan voor de ingevulde standaard-/annuleringskosten', function () {
     $this->actingAs($this->beheerder);
-    $standard = Product::create(['name' => 'Kampbijdrage', 'type' => 'activiteitsbijdrage']);
-    $cancellation = Product::create(['name' => 'Annuleringskosten', 'type' => 'activiteitsbijdrage']);
 
     Livewire::test(ActiviteitBeheer::class)
         ->call('startCreateGroup')
         ->set('categoryId', $this->category->id)
         ->set('title', 'Kamp')
         ->set('startsAt', now()->addDays(5)->format('Y-m-d\TH:i'))
-        ->set('standardCostProductId', $standard->id)
-        ->set('cancellationCostProductId', $cancellation->id)
+        ->set('standardCostAmount', 25)
+        ->set('cancellationCostAmount', 10)
         ->call('createGroup')
         ->assertHasNoErrors();
 
+    $activity = Activity::query()->where('title', 'Kamp')->with(['standardCostProduct', 'cancellationCostProduct'])->firstOrFail();
+    expect($activity->standardCostProduct)->not->toBeNull()
+        ->and((float) $activity->standardCostProduct->currentPrice()->amount)->toBe(25.0)
+        ->and((float) $activity->cancellationCostProduct->currentPrice()->amount)->toBe(10.0);
+});
+
+it('werkt het bedrag van een al gekoppeld kostenproduct bij i.p.v. een nieuw product aan te maken', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('startCreateGroup')
+        ->set('categoryId', $this->category->id)
+        ->set('title', 'Kamp')
+        ->set('startsAt', now()->addDays(5)->format('Y-m-d\TH:i'))
+        ->set('standardCostAmount', 25)
+        ->call('createGroup');
+
     $activity = Activity::query()->where('title', 'Kamp')->firstOrFail();
-    expect($activity->standard_cost_product_id)->toBe($standard->id)
-        ->and($activity->cancellation_cost_product_id)->toBe($cancellation->id);
+    $productId = $activity->standard_cost_product_id;
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('editActivity', $activity->id)
+        ->set('standardCostAmount', 30)
+        ->call('saveActivity');
+
+    $activity->refresh();
+    expect($activity->standard_cost_product_id)->toBe($productId)
+        ->and((float) $activity->standardCostProduct->currentPrice()->amount)->toBe(30.0)
+        ->and(Product::query()->count())->toBe(1);
 });
 
 it('koppelt de aanmaker automatisch als beheerder, plus eventueel extra gekozen beheerders', function () {
