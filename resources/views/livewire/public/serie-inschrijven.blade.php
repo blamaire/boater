@@ -27,6 +27,8 @@
                 Afmelden voor de hele reeks
             </button>
         @else
+            @include('livewire.public.partials.registration-fields', ['fields' => $registrationFields])
+
             <button type="button" wire:click="enroll"
                 class="text-sm px-4 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
                 Inschrijven voor de hele reeks

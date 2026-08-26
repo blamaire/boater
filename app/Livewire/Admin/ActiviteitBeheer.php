@@ -8,6 +8,7 @@ use App\Enums\PageVisibility;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\ActivityPage;
+use App\Models\ActivityRegistrationField;
 use App\Models\ActivitySeries;
 use App\Models\ApproverGroup;
 use App\Models\MediaAsset;
@@ -172,6 +173,33 @@ class ActiviteitBeheer extends Component
 
     public ?int $pendingManagerGroupId = null;
 
+    // Extra inschrijfvelden (tekst/keuze/aantal, Fase C): tijdens het
+    // aanmaken opgebouwd in pendingRegistrationFields (toegepast op elk
+    // voorkomen bij createOccurrence()); dezelfde new*-eigenschappen worden
+    // hergebruikt voor het toevoegen van een veld aan een bestaand voorkomen
+    // via het "Velden"-paneel in de platte lijst (nooit tegelijk actief).
+    /** @var array<int, array{type: string, label: string, required: bool, price_per_unit: ?float, max_count: ?int, options: array<int, array{label: string, price: ?float}>}> */
+    public array $pendingRegistrationFields = [];
+
+    public string $newFieldType = 'text';
+
+    public string $newFieldLabel = '';
+
+    public bool $newFieldRequired = false;
+
+    public ?float $newFieldPricePerUnit = null;
+
+    public ?int $newFieldMaxCount = null;
+
+    /** @var array<int, array{label: string, price: ?float}> */
+    public array $newFieldOptions = [];
+
+    public string $newFieldOptionLabel = '';
+
+    public ?float $newFieldOptionPrice = null;
+
+    public ?int $expandedFieldsId = null;
+
     // Beheerders/bestanden — werken altijd op een los voorkomen, ongeacht modus.
     public ?int $expandedManagersId = null;
 
@@ -203,7 +231,9 @@ class ActiviteitBeheer extends Component
             'pendingDates', 'manualDate', 'manualEndTime', 'genStartDate', 'genEndDate', 'genCount',
             'manualStartTime', 'genStartTime', 'genWeekday', 'genMode', 'genMonthlyDayMode',
             'genDayOfMonth', 'genOrdinal', 'genBoundMode', 'pendingManagers', 'pendingManagerPersonId',
-            'pendingManagerGroups', 'pendingManagerGroupId',
+            'pendingManagerGroups', 'pendingManagerGroupId', 'pendingRegistrationFields',
+            'newFieldType', 'newFieldLabel', 'newFieldRequired', 'newFieldPricePerUnit',
+            'newFieldMaxCount', 'newFieldOptions', 'newFieldOptionLabel', 'newFieldOptionPrice',
         ]);
     }
 
@@ -513,6 +543,143 @@ class ActiviteitBeheer extends Component
                 return;
             }
         }
+    }
+
+    // ── Extra inschrijfvelden (§17.3/17.4, Fase C) ───────────────────────
+
+    public function selectNewFieldType(string $type): void
+    {
+        $this->newFieldType = $type;
+        $this->newFieldPricePerUnit = null;
+        $this->newFieldMaxCount = null;
+        $this->newFieldOptions = [];
+        $this->newFieldOptionLabel = '';
+        $this->newFieldOptionPrice = null;
+    }
+
+    public function addNewFieldOption(): void
+    {
+        $this->validate(['newFieldOptionLabel' => ['required', 'string', 'max:255']], [], ['newFieldOptionLabel' => 'optielabel']);
+
+        $this->newFieldOptions[] = ['label' => $this->newFieldOptionLabel, 'price' => $this->newFieldOptionPrice];
+        $this->newFieldOptionLabel = '';
+        $this->newFieldOptionPrice = null;
+    }
+
+    public function removeNewFieldOption(int $index): void
+    {
+        unset($this->newFieldOptions[$index]);
+        $this->newFieldOptions = array_values($this->newFieldOptions);
+    }
+
+    /** @return array<string, mixed> */
+    private function newFieldValidationRules(): array
+    {
+        $rules = [
+            'newFieldLabel' => ['required', 'string', 'max:255'],
+            'newFieldType' => ['required', 'in:text,choice,count'],
+        ];
+
+        if ($this->newFieldType === ActivityRegistrationField::TYPE_COUNT) {
+            $rules['newFieldPricePerUnit'] = ['nullable', 'numeric', 'min:0'];
+            $rules['newFieldMaxCount'] = ['nullable', 'integer', 'min:1'];
+        }
+
+        return $rules;
+    }
+
+    /** @return array{type: string, label: string, required: bool, price_per_unit: ?float, max_count: ?int, options: array<int, array{label: string, price: ?float}>}|null */
+    private function buildNewFieldOrFail(): ?array
+    {
+        $this->validate($this->newFieldValidationRules());
+
+        if ($this->newFieldType === ActivityRegistrationField::TYPE_CHOICE && count($this->newFieldOptions) === 0) {
+            $this->addError('newFieldOptions', 'Voeg minstens één keuzeoptie toe.');
+
+            return null;
+        }
+
+        $field = [
+            'type' => $this->newFieldType,
+            'label' => $this->newFieldLabel,
+            'required' => $this->newFieldRequired,
+            'price_per_unit' => $this->newFieldType === ActivityRegistrationField::TYPE_COUNT ? $this->newFieldPricePerUnit : null,
+            'max_count' => $this->newFieldType === ActivityRegistrationField::TYPE_COUNT ? $this->newFieldMaxCount : null,
+            'options' => $this->newFieldType === ActivityRegistrationField::TYPE_CHOICE ? $this->newFieldOptions : [],
+        ];
+
+        $this->reset(['newFieldType', 'newFieldLabel', 'newFieldRequired', 'newFieldPricePerUnit', 'newFieldMaxCount', 'newFieldOptions', 'newFieldOptionLabel', 'newFieldOptionPrice']);
+
+        return $field;
+    }
+
+    public function addPendingRegistrationField(): void
+    {
+        $field = $this->buildNewFieldOrFail();
+        if ($field === null) {
+            return;
+        }
+
+        $this->pendingRegistrationFields[] = $field;
+    }
+
+    public function removePendingRegistrationField(int $index): void
+    {
+        unset($this->pendingRegistrationFields[$index]);
+        $this->pendingRegistrationFields = array_values($this->pendingRegistrationFields);
+    }
+
+    public function toggleRegistrationFields(int $activityId): void
+    {
+        $this->expandedFieldsId = $this->expandedFieldsId === $activityId ? null : $activityId;
+        $this->newFieldType = 'text';
+        $this->newFieldLabel = '';
+        $this->newFieldRequired = false;
+        $this->newFieldPricePerUnit = null;
+        $this->newFieldMaxCount = null;
+        $this->newFieldOptions = [];
+    }
+
+    public function addRegistrationFieldToActivity(int $activityId, AuditLogger $audit): void
+    {
+        $field = $this->buildNewFieldOrFail();
+        if ($field === null) {
+            return;
+        }
+
+        $activity = Activity::query()->findOrFail($activityId);
+
+        DB::transaction(function () use ($activity, $field, $audit): void {
+            $sortOrder = (int) $activity->registrationFields()->max('sort_order') + 1;
+
+            $created = $activity->registrationFields()->create([
+                'type' => $field['type'],
+                'label' => $field['label'],
+                'required' => $field['required'],
+                'sort_order' => $sortOrder,
+                'price_per_unit' => $field['price_per_unit'],
+                'max_count' => $field['max_count'],
+            ]);
+
+            foreach ($field['options'] as $i => $option) {
+                $created->options()->create(['label' => $option['label'], 'price' => $option['price'], 'sort_order' => $i]);
+            }
+
+            $audit->log('activity.registration_field_added', $activity, after: ['field_id' => $created->id, 'label' => $created->label]);
+        });
+
+        $this->statusMessage = "Inschrijfveld [{$field['label']}] toegevoegd aan [{$activity->title}].";
+    }
+
+    public function removeRegistrationField(int $activityId, int $fieldId, AuditLogger $audit): void
+    {
+        $activity = Activity::query()->findOrFail($activityId);
+        $field = ActivityRegistrationField::query()->where('activity_id', $activityId)->findOrFail($fieldId);
+        $label = $field->label;
+
+        $field->delete();
+        $audit->log('activity.registration_field_removed', $activity, before: ['field_id' => $fieldId, 'label' => $label]);
+        $this->statusMessage = "Inschrijfveld [{$label}] verwijderd van [{$activity->title}].";
     }
 
     // ── Bestanden per voorkomen ──────────────────────────────────────────
@@ -1002,6 +1169,21 @@ class ActiviteitBeheer extends Component
             $activity->managerGroups()->attach($pmg['approver_group_id'], ['notify' => $pmg['notify']]);
         }
 
+        foreach ($this->pendingRegistrationFields as $i => $pf) {
+            $field = $activity->registrationFields()->create([
+                'type' => $pf['type'],
+                'label' => $pf['label'],
+                'required' => $pf['required'],
+                'sort_order' => $i,
+                'price_per_unit' => $pf['price_per_unit'],
+                'max_count' => $pf['max_count'],
+            ]);
+
+            foreach ($pf['options'] as $j => $option) {
+                $field->options()->create(['label' => $option['label'], 'price' => $option['price'], 'sort_order' => $j]);
+            }
+        }
+
         return $activity;
     }
 
@@ -1114,7 +1296,7 @@ class ActiviteitBeheer extends Component
     public function render(): View
     {
         $query = Activity::query()
-            ->with(['category', 'enrollments', 'activityPage.page', 'series', 'managers', 'managerGroups', 'files'])
+            ->with(['category', 'enrollments', 'activityPage.page', 'series', 'managers', 'managerGroups', 'files', 'registrationFields.options'])
             ->orderBy('starts_at');
 
         if ($this->filterStatus !== 'all') {

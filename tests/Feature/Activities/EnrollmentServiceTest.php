@@ -6,6 +6,7 @@ use App\Enums\EnrollmentStatus;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\Enrollment;
+use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
 use App\Notifications\EnrollmentConfirmed;
 use App\Services\Activities\EnrollmentService;
@@ -148,4 +149,40 @@ it('mailt de ingeschrevene zelf een bevestiging', function () {
     app(EnrollmentService::class)->enroll($activity, $person);
 
     Notification::assertSentOnDemand(EnrollmentConfirmed::class);
+});
+
+it('weigert inschrijving zonder antwoord op een verplicht inschrijfveld', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $field = $activity->registrationFields()->create(['type' => 'text', 'label' => 'Opmerking', 'required' => true]);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+
+    expect(fn () => app(EnrollmentService::class)->enroll($activity, $person, fieldAnswers: []))
+        ->toThrow(RuntimeException::class);
+
+    $enrollment = app(EnrollmentService::class)->enroll($activity, $person, fieldAnswers: [$field->id => 'Geen noten']);
+    expect(EnrollmentFieldValue::query()->where('enrollment_id', $enrollment->id)->where('field_id', $field->id)->first()->text_value)
+        ->toBe('Geen noten');
+});
+
+it('weigert een aantal boven het maximum en slaat prijzen indicatief op', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $countField = $activity->registrationFields()->create([
+        'type' => 'count', 'label' => 'Introducees', 'price_per_unit' => 5, 'max_count' => 2,
+    ]);
+    $choiceField = $activity->registrationFields()->create(['type' => 'choice', 'label' => 'Maaltijd']);
+    $option = $choiceField->options()->create(['label' => 'Vega', 'price' => 10]);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+
+    expect(fn () => app(EnrollmentService::class)->enroll($activity, $person, fieldAnswers: [$countField->id => 3]))
+        ->toThrow(RuntimeException::class);
+
+    expect(fn () => app(EnrollmentService::class)->enroll($activity, $person, fieldAnswers: [$choiceField->id => 999]))
+        ->toThrow(RuntimeException::class);
+
+    $enrollment = app(EnrollmentService::class)->enroll($activity, $person, fieldAnswers: [
+        $countField->id => 2,
+        $choiceField->id => $option->id,
+    ]);
+
+    expect($enrollment->fresh()->indicativeFieldsTotal())->toBe(20.0);
 });

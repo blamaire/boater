@@ -22,6 +22,9 @@ class SerieInschrijven extends Component
 
     public ?int $selectedPersonId = null;
 
+    /** @var array<int, mixed> */
+    public array $fieldAnswers = [];
+
     public ?string $statusMessage = null;
 
     public function mount(int $seriesId): void
@@ -51,7 +54,7 @@ class SerieInschrijven extends Component
         }
 
         try {
-            $created = $service->enrollSeries($series, $target, $user->person);
+            $created = $service->enrollSeries($series, $target, $user->person, $this->fieldAnswers);
         } catch (RuntimeException $e) {
             $this->statusMessage = $e->getMessage();
 
@@ -114,10 +117,15 @@ class SerieInschrijven extends Component
                 ->count();
         }
 
+        // Inschrijfvelden zijn identiek per voorkomen (gekopieerd bij aanmaken,
+        // §17.3/17.4) — het eerste voorkomen is representatief voor de reeks.
+        $representativeActivity = $series->activities()->with('registrationFields.options')->first();
+
         return view('livewire.public.serie-inschrijven', [
             'series' => $series,
             'eligible' => $eligible,
             'activeCount' => $activeCount,
+            'registrationFields' => $representativeActivity !== null ? $representativeActivity->registrationFields : collect(),
         ]);
     }
 }

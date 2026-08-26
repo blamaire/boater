@@ -409,7 +409,12 @@
                 </div>
             @endif
 
-            {{-- 7. Zichtbaarheid en publicatie --}}
+            {{-- 7. Extra inschrijfvelden --}}
+            @if ($creatingGroup)
+                @include('livewire.admin.partials.activity-registration-fields', ['mode' => 'pending'])
+            @endif
+
+            {{-- 8. Zichtbaarheid en publicatie --}}
             <div class="border-t border-gray-200 pt-4 space-y-3">
                 <h3 class="font-medium text-gray-900 text-sm">Zichtbaarheid en publicatie</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -753,6 +758,9 @@
                             <button type="button" wire:click="toggleFiles({{ $activity->id }})" class="text-rzvg-600 hover:text-rzvg-800">
                                 Bestanden ({{ $activity->files->count() }})
                             </button>
+                            <button type="button" wire:click="toggleRegistrationFields({{ $activity->id }})" class="text-rzvg-600 hover:text-rzvg-800">
+                                Velden ({{ $activity->registrationFields->count() }})
+                            </button>
                             @if ($activity->status !== \App\Enums\ActivityStatus::Cancelled)
                                 <button type="button" wire:click="cancelActivity({{ $activity->id }})"
                                     onclick="return confirm('Activiteit afgelasten?');"
@@ -845,6 +853,14 @@
                                         class="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50">Uploaden</button>
                                 </div>
                                 @error('newFiles.*') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
+                            </td>
+                        </tr>
+                    @endif
+                    @if ($expandedFieldsId === $activity->id)
+                        <tr wire:key="fields-{{ $activity->id }}">
+                            <td colspan="6" class="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                                <div class="text-xs font-semibold text-gray-500 uppercase mb-2">Extra inschrijfvelden</div>
+                                @include('livewire.admin.partials.activity-registration-fields', ['mode' => 'existing', 'activityId' => $activity->id, 'existingFields' => $activity->registrationFields])
                             </td>
                         </tr>
                     @endif

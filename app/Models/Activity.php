@@ -43,6 +43,7 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, Person> $managers
  * @property-read Collection<int, ApproverGroup> $managerGroups
  * @property-read Collection<int, MediaAsset> $files
+ * @property-read Collection<int, ActivityRegistrationField> $registrationFields
  */
 class Activity extends Model
 {
@@ -154,6 +155,16 @@ class Activity extends Model
     {
         return $this->belongsToMany(MediaAsset::class, 'activity_media')
             ->withTimestamps();
+    }
+
+    /**
+     * Extra inschrijfvelden (§17.3/17.4, Fase C).
+     *
+     * @return HasMany<ActivityRegistrationField, $this>
+     */
+    public function registrationFields(): HasMany
+    {
+        return $this->hasMany(ActivityRegistrationField::class)->orderBy('sort_order');
     }
 
     public function isManagedBy(?Person $person): bool

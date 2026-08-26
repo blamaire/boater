@@ -6,8 +6,10 @@ use App\Enums\ActivityStatus;
 use App\Enums\EnrollmentLevel;
 use App\Enums\EnrollmentStatus;
 use App\Models\Activity;
+use App\Models\ActivityRegistrationField;
 use App\Models\ActivitySeries;
 use App\Models\Enrollment;
+use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
 use App\Notifications\EnrollmentConfirmed;
 use App\Services\Audit\AuditLogger;
@@ -37,8 +39,11 @@ class EnrollmentService
      * @param  Person  $person  De begunstigde (degene die daadwerkelijk meedoet).
      * @param  Person|null  $requestedBy  Wie de inschrijving doet (kan gelijk zijn aan $person).
      * @param  ActivitySeries|null  $series  Meegegeven bij een serie-brede inschrijving (intern gebruik, zie enrollSeries()).
+     * @param  array<int, mixed>  $fieldAnswers  Antwoorden op `Activity::registrationFields()`, per veld-id: tekst (string),
+     *                                           keuze (option-id, int) of aantal (int). Fase C — nog indicatief, geen Charge (§17.3/17.4).
      *
-     * @throws RuntimeException Bij een gesloten of afgelaste activiteit, buiten leeftijd, verkeerd inschrijfniveau, of dubbele actieve inschrijving.
+     * @throws RuntimeException Bij een gesloten of afgelaste activiteit, buiten leeftijd, verkeerd inschrijfniveau,
+     *                          dubbele actieve inschrijving, of een ongeldig/ontbrekend antwoord op een inschrijfveld.
      */
     public function enroll(
         Activity $activity,
@@ -46,6 +51,7 @@ class EnrollmentService
         ?Person $requestedBy = null,
         ?ActivitySeries $series = null,
         EnrollmentLevel $level = EnrollmentLevel::Bundel,
+        array $fieldAnswers = [],
     ): Enrollment {
         if ($activity->status !== ActivityStatus::Published) {
             throw new RuntimeException('Deze activiteit staat niet open voor inschrijving.');
@@ -63,7 +69,9 @@ class EnrollmentService
             throw new RuntimeException('Deze persoon voldoet niet aan de leeftijdseis van deze activiteit.');
         }
 
-        $enrollment = DB::transaction(function () use ($activity, $person, $requestedBy, $series, $level): Enrollment {
+        $this->assertFieldAnswersValid($activity, $fieldAnswers);
+
+        $enrollment = DB::transaction(function () use ($activity, $person, $requestedBy, $series, $level, $fieldAnswers): Enrollment {
             $existing = Enrollment::query()
                 ->where('activity_id', $activity->id)
                 ->where('person_id', $person->id)
@@ -94,6 +102,8 @@ class EnrollmentService
                 ]);
             }
 
+            $this->saveFieldAnswers($activity, $enrollment, $fieldAnswers);
+
             $this->audit->log('activity.enrolled', $activity, after: [
                 'person_id' => $person->id,
                 'enrollment_id' => $enrollment->id,
@@ -119,22 +129,24 @@ class EnrollmentService
      * overgeslagen (geen fout) zodat een gedeeltelijke eerdere inschrijving
      * de rest van de reeks niet blokkeert.
      *
+     * @param  array<int, mixed>  $fieldAnswers  Zelfde antwoorden toegepast op elk voorkomen (§17.3/17.4) — de
+     *                                           inschrijfvelden van een reeks/bundel zijn identiek per voorkomen (gekopieerd bij aanmaken).
      * @return Collection<int, Enrollment>
      *
      * @throws RuntimeException Als de reeks geen serie-brede inschrijving toestaat.
      */
-    public function enrollSeries(ActivitySeries $series, Person $person, ?Person $requestedBy = null): Collection
+    public function enrollSeries(ActivitySeries $series, Person $person, ?Person $requestedBy = null, array $fieldAnswers = []): Collection
     {
         if (! $series->enrollment_level->allowsSerie()) {
             throw new RuntimeException('Voor deze reeks kun je alleen per voorkomen inschrijven.');
         }
 
-        return DB::transaction(function () use ($series, $person, $requestedBy): Collection {
+        return DB::transaction(function () use ($series, $person, $requestedBy, $fieldAnswers): Collection {
             $created = collect();
 
             foreach ($series->activities()->where('status', ActivityStatus::Published->value)->get() as $activity) {
                 try {
-                    $created->push($this->enroll($activity, $person, $requestedBy, $series, EnrollmentLevel::Reeks));
+                    $created->push($this->enroll($activity, $person, $requestedBy, $series, EnrollmentLevel::Reeks, $fieldAnswers));
                 } catch (RuntimeException) {
                     // Al actief ingeschreven op dit voorkomen (of niet leeftijdsgeschikt) — overslaan.
                     continue;
@@ -230,5 +242,66 @@ class EnrollmentService
         }
 
         return $promoted;
+    }
+
+    /**
+     * @param  array<int, mixed>  $fieldAnswers
+     *
+     * @throws RuntimeException Als een verplicht veld ontbreekt, een aantal buiten de grenzen valt, of een
+     *                          opgegeven keuze niet bij het veld hoort.
+     */
+    private function assertFieldAnswersValid(Activity $activity, array $fieldAnswers): void
+    {
+        foreach ($activity->registrationFields as $field) {
+            $answer = $fieldAnswers[$field->id] ?? null;
+
+            if ($field->required && ($answer === null || $answer === '')) {
+                throw new RuntimeException("Het veld \"{$field->label}\" is verplicht.");
+            }
+
+            if ($answer === null || $answer === '') {
+                continue;
+            }
+
+            if ($field->type === ActivityRegistrationField::TYPE_COUNT) {
+                if (! is_numeric($answer) || (int) $answer < 0) {
+                    throw new RuntimeException("Ongeldig aantal voor \"{$field->label}\".");
+                }
+                if ($field->max_count !== null && (int) $answer > $field->max_count) {
+                    throw new RuntimeException("Het aantal voor \"{$field->label}\" mag niet hoger zijn dan {$field->max_count}.");
+                }
+            }
+
+            if ($field->type === ActivityRegistrationField::TYPE_CHOICE && ! $field->options->contains('id', (int) $answer)) {
+                throw new RuntimeException("Ongeldige keuze voor \"{$field->label}\".");
+            }
+        }
+    }
+
+    /** @param  array<int, mixed>  $fieldAnswers */
+    private function saveFieldAnswers(Activity $activity, Enrollment $enrollment, array $fieldAnswers): void
+    {
+        foreach ($activity->registrationFields as $field) {
+            $answer = $fieldAnswers[$field->id] ?? null;
+
+            if ($answer === null || $answer === '') {
+                EnrollmentFieldValue::query()
+                    ->where('enrollment_id', $enrollment->id)
+                    ->where('field_id', $field->id)
+                    ->delete();
+
+                continue;
+            }
+
+            EnrollmentFieldValue::query()->updateOrCreate(
+                ['enrollment_id' => $enrollment->id, 'field_id' => $field->id],
+                match ($field->type) {
+                    ActivityRegistrationField::TYPE_TEXT => ['text_value' => (string) $answer, 'option_id' => null, 'count_value' => null],
+                    ActivityRegistrationField::TYPE_CHOICE => ['text_value' => null, 'option_id' => (int) $answer, 'count_value' => null],
+                    ActivityRegistrationField::TYPE_COUNT => ['text_value' => null, 'option_id' => null, 'count_value' => (int) $answer],
+                    default => ['text_value' => null, 'option_id' => null, 'count_value' => null],
+                },
+            );
+        }
     }
 }

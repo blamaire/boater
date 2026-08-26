@@ -157,3 +157,30 @@ it('laat een ouder inschrijven voor het gekoppelde jeugdlid via person_relations
 
     expect($activity->enrollments()->where('person_id', $kind->id)->count())->toBe(1);
 });
+
+it('toont en verwerkt extra inschrijfvelden op het publieke inschrijfformulier', function () {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $person = Person::create(['first_name' => 'L', 'last_name' => 'id', 'account_id' => $user->id]);
+
+    $activity = Activity::create([
+        'activity_category_id' => $this->category->id,
+        'title' => 'Kamp', 'starts_at' => now()->addDays(3), 'capacity' => 5,
+        'visibility' => ActivityVisibility::Members, 'status' => ActivityStatus::Published,
+    ]);
+    $field = $activity->registrationFields()->create([
+        'type' => 'count', 'label' => 'Introducees', 'price_per_unit' => 5, 'max_count' => 3,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ActiviteitInschrijven::class, ['activityId' => $activity->id])
+        ->assertSee('Introducees')
+        ->set("fieldAnswers.{$field->id}", 2)
+        ->assertSee('€10,00')
+        ->call('enroll')
+        ->assertHasNoErrors();
+
+    $enrollment = $activity->enrollments()->where('person_id', $person->id)->firstOrFail();
+    expect($enrollment->fieldValues()->first()->count_value)->toBe(2)
+        ->and($enrollment->indicativeFieldsTotal())->toBe(10.0);
+});

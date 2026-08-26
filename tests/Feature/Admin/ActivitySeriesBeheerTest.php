@@ -67,6 +67,65 @@ it('slaat inschrijfvenster en annuleringsdeadline op en past die toe op elk voor
         ->and($activity->cancellation_deadline->format('Y-m-d\TH:i'))->toBe($deadline);
 });
 
+it('maakt tijdens het aanmaken extra inschrijfvelden aan (tekst, keuze, aantal) op elk voorkomen', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('startCreateGroup')
+        ->set('categoryId', $this->category->id)
+        ->set('title', 'Kamp')
+        ->set('startsAt', now()->addDays(5)->format('Y-m-d\TH:i'))
+        // Tekstveld.
+        ->call('selectNewFieldType', 'text')
+        ->set('newFieldLabel', 'Allergieën')
+        ->call('addPendingRegistrationField')
+        // Aantal-veld met prijs en maximum.
+        ->call('selectNewFieldType', 'count')
+        ->set('newFieldLabel', 'Introducees')
+        ->set('newFieldRequired', true)
+        ->set('newFieldPricePerUnit', 5)
+        ->set('newFieldMaxCount', 3)
+        ->call('addPendingRegistrationField')
+        // Keuzeveld met twee opties.
+        ->call('selectNewFieldType', 'choice')
+        ->set('newFieldLabel', 'Maaltijd')
+        ->set('newFieldOptionLabel', 'Vega')
+        ->set('newFieldOptionPrice', 10)
+        ->call('addNewFieldOption')
+        ->set('newFieldOptionLabel', 'Vlees')
+        ->set('newFieldOptionPrice', 12)
+        ->call('addNewFieldOption')
+        ->call('addPendingRegistrationField')
+        ->call('createGroup')
+        ->assertHasNoErrors();
+
+    $activity = Activity::query()->where('title', 'Kamp')->firstOrFail();
+    $fields = $activity->registrationFields()->with('options')->orderBy('sort_order')->get();
+
+    expect($fields)->toHaveCount(3)
+        ->and($fields[0]->type)->toBe('text')
+        ->and($fields[0]->label)->toBe('Allergieën')
+        ->and($fields[1]->type)->toBe('count')
+        ->and($fields[1]->required)->toBeTrue()
+        ->and($fields[1]->price_per_unit)->toBe(5.0)
+        ->and($fields[1]->max_count)->toBe(3)
+        ->and($fields[2]->type)->toBe('choice')
+        ->and($fields[2]->options)->toHaveCount(2)
+        ->and($fields[2]->options[0]->label)->toBe('Vega')
+        ->and($fields[2]->options[0]->price)->toBe(10.0);
+});
+
+it('weigert een keuzeveld zonder minstens één optie', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('startCreateGroup')
+        ->call('selectNewFieldType', 'choice')
+        ->set('newFieldLabel', 'Maaltijd')
+        ->call('addPendingRegistrationField')
+        ->assertHasErrors('newFieldOptions');
+});
+
 it('koppelt de aanmaker automatisch als beheerder, plus eventueel extra gekozen beheerders', function () {
     $this->actingAs($this->beheerder);
     $manager = Person::create(['first_name' => 'Marieke', 'last_name' => 'Beheer']);
