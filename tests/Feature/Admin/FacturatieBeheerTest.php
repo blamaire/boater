@@ -68,6 +68,31 @@ it('factureert de openstaande posten van een betaler via het scherm', function (
         ->and((float) Invoice::query()->first()->total)->toBe(90.0);
 });
 
+it('factureert in één keer de openstaande posten van alle betalers', function () {
+    $otherDebtor = Person::create(['first_name' => 'Anna', 'last_name' => 'Andere']);
+    app(BillingService::class)->createCharge($this->product, $this->debtor, '90.00', 'Post 1');
+    app(BillingService::class)->createCharge($this->product, $otherDebtor, '25.00', 'Post 2');
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(FacturatieBeheer::class)
+        ->call('invoiceAllDebtors')
+        ->assertSet('statusMessage', '2 factuur/facturen aangemaakt (€ 115,00 totaal).');
+
+    expect(Invoice::query()->count())->toBe(2)
+        ->and(Charge::query()->whereNull('invoice_id')->count())->toBe(0);
+});
+
+it('meldt dat er niets te factureren valt als er geen openstaande posten zijn', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(FacturatieBeheer::class)
+        ->call('invoiceAllDebtors')
+        ->assertSet('statusMessage', 'Geen openstaande posten om te factureren.');
+
+    expect(Invoice::query()->count())->toBe(0);
+});
+
 it('bereidt een contributie-run voor en voert die uit via het scherm', function () {
     ProductPrice::create(['product_id' => $this->product->id, 'valid_from' => '2026-01-01', 'amount' => '120.00']);
     $type = MembershipType::create(['key' => 'a-livewire-test', 'name' => 'A-lid', 'product_id' => $this->product->id]);

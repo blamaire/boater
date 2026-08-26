@@ -131,7 +131,16 @@
 
     {{-- Openstaande posten per betaler --}}
     <section class="space-y-4">
-        <h2 class="font-medium text-gray-900">Openstaande posten</h2>
+        <div class="flex items-center justify-between">
+            <h2 class="font-medium text-gray-900">Openstaande posten</h2>
+            @if ($openChargesByDebtor->isNotEmpty())
+                <button type="button" wire:click="invoiceAllDebtors"
+                    onclick="return confirm('Voor alle {{ $openChargesByDebtor->count() }} betaler(s) met openstaande posten nu een factuur aanmaken?');"
+                    class="px-3 py-1.5 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-xs">
+                    Factureer alles ({{ $openChargesByDebtor->count() }})
+                </button>
+            @endif
+        </div>
         @forelse ($openChargesByDebtor as $charges)
             @php($debtor = $charges->first()->debtor)
             @php($subtotal = $charges->sum(fn ($c) => (float) $c->amount))
