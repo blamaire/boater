@@ -409,12 +409,15 @@
                 </div>
             @endif
 
-            {{-- 7. Extra inschrijfvelden --}}
+            {{-- 7. Standaard- en annuleringskosten --}}
+            @include('livewire.admin.partials.activity-cost-products', ['prefix' => 'g'])
+
+            {{-- 8. Extra inschrijfvelden --}}
             @if ($creatingGroup)
                 @include('livewire.admin.partials.activity-registration-fields', ['mode' => 'pending'])
             @endif
 
-            {{-- 8. Zichtbaarheid en publicatie --}}
+            {{-- 9. Zichtbaarheid en publicatie --}}
             <div class="border-t border-gray-200 pt-4 space-y-3">
                 <h3 class="font-medium text-gray-900 text-sm">Zichtbaarheid en publicatie</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -637,7 +640,10 @@
                 </div>
             </div>
 
-            {{-- 5. Zichtbaarheid en publicatie --}}
+            {{-- 5. Standaard- en annuleringskosten --}}
+            @include('livewire.admin.partials.activity-cost-products', ['prefix' => 'a'])
+
+            {{-- 6. Zichtbaarheid en publicatie --}}
             <div class="border-t border-gray-200 pt-4 space-y-3">
                 <h3 class="font-medium text-gray-900 text-sm">Zichtbaarheid en publicatie</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">

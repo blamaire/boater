@@ -32,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $enrollment_opens_at
  * @property Carbon|null $enrollment_closes_at
  * @property Carbon|null $cancellation_deadline
+ * @property int|null $standard_cost_product_id
+ * @property int|null $cancellation_cost_product_id
  * @property EnrollmentLevel $enrollment_level
  * @property ActivityVisibility $visibility
  * @property ActivityStatus $status
@@ -42,6 +44,8 @@ use Illuminate\Support\Carbon;
  * @property-read Collection<int, ActivitySeries> $splits
  * @property-read Person|null $createdBy
  * @property-read Collection<int, Activity> $activities
+ * @property-read Product|null $standardCostProduct
+ * @property-read Product|null $cancellationCostProduct
  */
 class ActivitySeries extends Model
 {
@@ -59,6 +63,8 @@ class ActivitySeries extends Model
         'enrollment_opens_at',
         'enrollment_closes_at',
         'cancellation_deadline',
+        'standard_cost_product_id',
+        'cancellation_cost_product_id',
         'enrollment_level',
         'visibility',
         'status',
@@ -106,6 +112,18 @@ class ActivitySeries extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(Person::class, 'created_by_person_id');
+    }
+
+    /** @return BelongsTo<Product, $this> */
+    public function standardCostProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'standard_cost_product_id');
+    }
+
+    /** @return BelongsTo<Product, $this> */
+    public function cancellationCostProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'cancellation_cost_product_id');
     }
 
     /** @return HasMany<Activity, $this> */

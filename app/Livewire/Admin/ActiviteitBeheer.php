@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityVisibility;
 use App\Enums\PageVisibility;
+use App\Enums\ProductType;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\ActivityPage;
@@ -13,6 +14,7 @@ use App\Models\ActivitySeries;
 use App\Models\ApproverGroup;
 use App\Models\MediaAsset;
 use App\Models\Person;
+use App\Models\Product;
 use App\Services\Activities\ActivityManagerNotifier;
 use App\Services\Audit\AuditLogger;
 use App\Services\Media\MediaUploadService;
@@ -89,6 +91,12 @@ class ActiviteitBeheer extends Component
     public string $enrollmentClosesAt = '';
 
     public string $cancellationDeadline = '';
+
+    // Fase D: bedrag komt uit de actuele prijs van het gekoppelde product,
+    // geen los bedragveld hier (§23.5).
+    public ?int $standardCostProductId = null;
+
+    public ?int $cancellationCostProductId = null;
 
     public string $visibility = 'members';
 
@@ -226,6 +234,7 @@ class ActiviteitBeheer extends Component
             'categoryId', 'title', 'description', 'location', 'capacity',
             'minCapacity', 'minAge', 'maxAge', 'publishFrom', 'publishUntil',
             'enrollmentOpensAt', 'enrollmentClosesAt', 'cancellationDeadline',
+            'standardCostProductId', 'cancellationCostProductId',
             'visibility', 'status', 'activityPageId', 'startsAt', 'endsAt',
             'enrollmentLevel', 'creationMode', 'editScope', 'splitFromActivityId',
             'pendingDates', 'manualDate', 'manualEndTime', 'genStartDate', 'genEndDate', 'genCount',
@@ -260,6 +269,8 @@ class ActiviteitBeheer extends Component
         $this->enrollmentOpensAt = $activity->enrollment_opens_at?->format('Y-m-d\TH:i') ?? '';
         $this->enrollmentClosesAt = $activity->enrollment_closes_at?->format('Y-m-d\TH:i') ?? '';
         $this->cancellationDeadline = $activity->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
+        $this->standardCostProductId = $activity->standard_cost_product_id;
+        $this->cancellationCostProductId = $activity->cancellation_cost_product_id;
         $this->visibility = $activity->visibility->value;
         $this->status = $activity->status->value;
     }
@@ -337,6 +348,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $this->enrollmentOpensAt !== '' ? Carbon::parse($this->enrollmentOpensAt) : null,
             'enrollment_closes_at' => $this->enrollmentClosesAt !== '' ? Carbon::parse($this->enrollmentClosesAt) : null,
             'cancellation_deadline' => $this->cancellationDeadline !== '' ? Carbon::parse($this->cancellationDeadline) : null,
+            'standard_cost_product_id' => $this->standardCostProductId,
+            'cancellation_cost_product_id' => $this->cancellationCostProductId,
             'visibility' => $this->visibility,
             'status' => $this->status,
         ];
@@ -359,6 +372,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $activity->enrollment_opens_at?->toDateTimeString(),
             'enrollment_closes_at' => $activity->enrollment_closes_at?->toDateTimeString(),
             'cancellation_deadline' => $activity->cancellation_deadline?->toDateTimeString(),
+            'standard_cost_product_id' => $activity->standard_cost_product_id,
+            'cancellation_cost_product_id' => $activity->cancellation_cost_product_id,
             'visibility' => $activity->visibility->value,
             'status' => $activity->status->value,
         ];
@@ -377,6 +392,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $new['enrollment_opens_at']?->toDateTimeString(),
             'enrollment_closes_at' => $new['enrollment_closes_at']?->toDateTimeString(),
             'cancellation_deadline' => $new['cancellation_deadline']?->toDateTimeString(),
+            'standard_cost_product_id' => $new['standard_cost_product_id'],
+            'cancellation_cost_product_id' => $new['cancellation_cost_product_id'],
             'visibility' => $new['visibility'],
             'status' => $new['status'],
         ];
@@ -802,6 +819,8 @@ class ActiviteitBeheer extends Component
         $this->enrollmentOpensAt = $series->enrollment_opens_at?->format('Y-m-d\TH:i') ?? '';
         $this->enrollmentClosesAt = $series->enrollment_closes_at?->format('Y-m-d\TH:i') ?? '';
         $this->cancellationDeadline = $series->cancellation_deadline?->format('Y-m-d\TH:i') ?? '';
+        $this->standardCostProductId = $series->standard_cost_product_id;
+        $this->cancellationCostProductId = $series->cancellation_cost_product_id;
         $this->visibility = $series->visibility->value;
         $this->status = $series->status->value;
         $this->enrollmentLevel = $series->enrollment_level->value;
@@ -1006,6 +1025,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $this->enrollmentOpensAt !== '' ? Carbon::parse($this->enrollmentOpensAt) : null,
             'enrollment_closes_at' => $this->enrollmentClosesAt !== '' ? Carbon::parse($this->enrollmentClosesAt) : null,
             'cancellation_deadline' => $this->cancellationDeadline !== '' ? Carbon::parse($this->cancellationDeadline) : null,
+            'standard_cost_product_id' => $this->standardCostProductId,
+            'cancellation_cost_product_id' => $this->cancellationCostProductId,
             'visibility' => $this->visibility,
             'status' => $this->status,
         ];
@@ -1039,6 +1060,8 @@ class ActiviteitBeheer extends Component
             'enrollmentOpensAt' => ['nullable', 'date'],
             'enrollmentClosesAt' => ['nullable', 'date', 'after_or_equal:enrollmentOpensAt'],
             'cancellationDeadline' => ['nullable', 'date'],
+            'standardCostProductId' => ['nullable', 'integer', 'exists:products,id'],
+            'cancellationCostProductId' => ['nullable', 'integer', 'exists:products,id'],
             'visibility' => ['required', 'in:public,members,staff'],
             'status' => ['required', 'in:concept,gepubliceerd,afgelast'],
         ];
@@ -1156,6 +1179,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $series->enrollment_opens_at,
             'enrollment_closes_at' => $series->enrollment_closes_at,
             'cancellation_deadline' => $series->cancellation_deadline,
+            'standard_cost_product_id' => $series->standard_cost_product_id,
+            'cancellation_cost_product_id' => $series->cancellation_cost_product_id,
             'visibility' => $series->visibility->value,
             'status' => $series->status->value,
             'created_by_person_id' => auth()->user()?->person?->id,
@@ -1275,6 +1300,8 @@ class ActiviteitBeheer extends Component
             'enrollment_opens_at' => $shared['enrollment_opens_at'],
             'enrollment_closes_at' => $shared['enrollment_closes_at'],
             'cancellation_deadline' => $shared['cancellation_deadline'],
+            'standard_cost_product_id' => $shared['standard_cost_product_id'],
+            'cancellation_cost_product_id' => $shared['cancellation_cost_product_id'],
             'visibility' => $shared['visibility'],
             'status' => $shared['status'],
         ];
@@ -1319,6 +1346,7 @@ class ActiviteitBeheer extends Component
             'statuses' => ActivityStatus::cases(),
             'personsForAssignment' => Person::query()->orderBy('last_name')->orderBy('first_name')->limit(500)->get(),
             'groupsForAssignment' => ApproverGroup::query()->orderBy('name')->get(),
+            'costProducts' => Product::query()->with('prices')->where('type', ProductType::ActiviteitsBijdrage->value)->orderBy('name')->get(),
             'occurrences' => $occurrences,
             'weekdays' => [1 => 'Maandag', 2 => 'Dinsdag', 3 => 'Woensdag', 4 => 'Donderdag', 5 => 'Vrijdag', 6 => 'Zaterdag', 7 => 'Zondag'],
             'timelineDates' => $this->timelineDates($occurrences),

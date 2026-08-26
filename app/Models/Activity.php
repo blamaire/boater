@@ -32,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $enrollment_opens_at
  * @property Carbon|null $enrollment_closes_at
  * @property Carbon|null $cancellation_deadline
+ * @property int|null $standard_cost_product_id
+ * @property int|null $cancellation_cost_product_id
  * @property ActivityVisibility $visibility
  * @property ActivityStatus $status
  * @property int|null $created_by_person_id
@@ -39,6 +41,8 @@ use Illuminate\Support\Carbon;
  * @property-read ActivityPage|null $activityPage
  * @property-read ActivitySeries|null $series
  * @property-read Person|null $createdBy
+ * @property-read Product|null $standardCostProduct
+ * @property-read Product|null $cancellationCostProduct
  * @property-read Collection<int, Enrollment> $enrollments
  * @property-read Collection<int, Person> $managers
  * @property-read Collection<int, ApproverGroup> $managerGroups
@@ -66,6 +70,8 @@ class Activity extends Model
         'enrollment_opens_at',
         'enrollment_closes_at',
         'cancellation_deadline',
+        'standard_cost_product_id',
+        'cancellation_cost_product_id',
         'visibility',
         'status',
         'created_by_person_id',
@@ -165,6 +171,23 @@ class Activity extends Model
     public function registrationFields(): HasMany
     {
         return $this->hasMany(ActivityRegistrationField::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Fase D: het bedrag komt uit de actuele prijs (`Product::currentPrice()`)
+     * van dit product, niet uit een los bedrag hier.
+     *
+     * @return BelongsTo<Product, $this>
+     */
+    public function standardCostProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'standard_cost_product_id');
+    }
+
+    /** @return BelongsTo<Product, $this> */
+    public function cancellationCostProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'cancellation_cost_product_id');
     }
 
     public function isManagedBy(?Person $person): bool

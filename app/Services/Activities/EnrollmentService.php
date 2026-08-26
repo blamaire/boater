@@ -8,11 +8,14 @@ use App\Enums\EnrollmentStatus;
 use App\Models\Activity;
 use App\Models\ActivityRegistrationField;
 use App\Models\ActivitySeries;
+use App\Models\Charge;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
+use App\Models\Product;
 use App\Notifications\EnrollmentConfirmed;
 use App\Services\Audit\AuditLogger;
+use App\Services\Finance\BillingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,12 +28,16 @@ use RuntimeException;
  * voorkomen bewaakt, ook bij een serie-brede inschrijving (`enrollSeries`) —
  * die schrijft per voorkomen een losse `Enrollment` in, samen getagd met
  * `series_id`/`level` zodat ze als één geheel herkenbaar en af te melden zijn.
+ * Fase D: standaard-/annuleringskosten worden bij een bevestigde inschrijving
+ * resp. annulering als `Charge` geboekt via `BillingService`, met het bedrag
+ * uit de actuele prijs van het gekoppelde `Product` (§23.5).
  */
 class EnrollmentService
 {
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly ActivityManagerNotifier $notifier,
+        private readonly BillingService $billing,
     ) {}
 
     /**
@@ -104,6 +111,10 @@ class EnrollmentService
 
             $this->saveFieldAnswers($activity, $enrollment, $fieldAnswers);
 
+            if ($status === EnrollmentStatus::Enrolled) {
+                $this->chargeStandardCost($activity, $enrollment);
+            }
+
             $this->audit->log('activity.enrolled', $activity, after: [
                 'person_id' => $person->id,
                 'enrollment_id' => $enrollment->id,
@@ -168,7 +179,9 @@ class EnrollmentService
             throw new RuntimeException('De uiterste annuleringsdatum voor deze activiteit is verstreken.');
         }
 
-        DB::transaction(function () use ($enrollment, $actor): void {
+        $wasEnrolled = $enrollment->status === EnrollmentStatus::Enrolled;
+
+        DB::transaction(function () use ($enrollment, $actor, $activity, $wasEnrolled): void {
             $before = ['status' => $enrollment->status->value];
 
             $enrollment->update([
@@ -181,7 +194,12 @@ class EnrollmentService
                 'actor_id' => $actor?->id,
             ]);
 
-            $this->promoteWaitlist($enrollment->activity()->firstOrFail());
+            // Alleen een al bevestigde plek (niet de wachtlijst) kost iets om te annuleren.
+            if ($wasEnrolled) {
+                $this->chargeCancellationCost($activity, $enrollment);
+            }
+
+            $this->promoteWaitlist($activity);
         });
 
         $this->notifier->notifyEnrollment($enrollment->activity, $enrollment->person, false);
@@ -234,6 +252,7 @@ class EnrollmentService
             }
 
             $next->update(['status' => EnrollmentStatus::Enrolled]);
+            $this->chargeStandardCost($activity, $next);
             $this->audit->log('activity.waitlist_promoted', $activity, after: [
                 'enrollment_id' => $next->id,
                 'person_id' => $next->person_id,
@@ -303,5 +322,58 @@ class EnrollmentService
                 },
             );
         }
+    }
+
+    /**
+     * Boekt de standaardkosten (§23.5, Fase D) — alleen bij een bevestigde
+     * plek, nooit voor de wachtlijst. Zonder gekoppeld product of zonder
+     * geldende prijs gebeurt er niets. Al geboekt voor dit voorkomen (bv. bij
+     * een eerdere aanmelding die weer geannuleerd en herstart is): overslaan.
+     */
+    private function chargeStandardCost(Activity $activity, Enrollment $enrollment): void
+    {
+        $this->chargeOnce($activity->standardCostProduct, $enrollment, fn (Product $product) => "Deelname \"{$activity->title}\" ({$activity->starts_at->format('d-m-Y')})");
+    }
+
+    /**
+     * Boekt de annuleringskosten (§23.5, Fase D) bij het afmelden van een
+     * bevestigde plek.
+     */
+    private function chargeCancellationCost(Activity $activity, Enrollment $enrollment): void
+    {
+        $this->chargeOnce($activity->cancellationCostProduct, $enrollment, fn (Product $product) => "Annulering \"{$activity->title}\" ({$activity->starts_at->format('d-m-Y')})");
+    }
+
+    /** @param  callable(Product): string  $describe */
+    private function chargeOnce(?Product $product, Enrollment $enrollment, callable $describe): void
+    {
+        if ($product === null) {
+            return;
+        }
+
+        $price = $product->currentPrice();
+        if ($price === null) {
+            return;
+        }
+
+        $alreadyCharged = Charge::query()
+            ->where('subject_type', Enrollment::class)
+            ->where('subject_id', $enrollment->id)
+            ->where('product_id', $product->id)
+            ->exists();
+
+        if ($alreadyCharged) {
+            return;
+        }
+
+        $debtor = $enrollment->requestedBy ?? $enrollment->person;
+
+        $this->billing->createCharge(
+            product: $product,
+            debtor: $debtor,
+            amount: $price->amount,
+            description: $describe($product),
+            subject: $enrollment,
+        );
     }
 }

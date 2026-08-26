@@ -5,15 +5,22 @@ use App\Enums\ActivityVisibility;
 use App\Enums\EnrollmentStatus;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
+use App\Models\Charge;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
+use App\Models\Product;
+use App\Models\ProductPrice;
 use App\Notifications\EnrollmentConfirmed;
 use App\Services\Activities\EnrollmentService;
+use Database\Seeders\DagboekSeeder;
+use Database\Seeders\LedgerAccountSeeder;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->category = ActivityCategory::create(['name' => 'Roeien', 'slug' => 'roeien', 'sort_order' => 10]);
+    $this->seed(LedgerAccountSeeder::class);
+    $this->seed(DagboekSeeder::class);
 });
 
 function newActivity(int $categoryId, ?int $capacity = null, ActivityStatus $status = ActivityStatus::Published): Activity
@@ -185,4 +192,65 @@ it('weigert een aantal boven het maximum en slaat prijzen indicatief op', functi
     ]);
 
     expect($enrollment->fresh()->indicativeFieldsTotal())->toBe(20.0);
+});
+
+it('boekt standaardkosten als post bij een bevestigde inschrijving, niet bij de wachtlijst', function () {
+    $product = Product::create(['name' => 'Kampbijdrage', 'type' => 'activiteitsbijdrage']);
+    ProductPrice::create(['product_id' => $product->id, 'valid_from' => now()->subDay(), 'amount' => '25.00']);
+
+    $activity = newActivity($this->category->id, capacity: 1);
+    $activity->update(['standard_cost_product_id' => $product->id]);
+
+    $a = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+    $b = Person::create(['first_name' => 'B', 'last_name' => 'C']);
+
+    $enrolledA = app(EnrollmentService::class)->enroll($activity, $a);
+    $waitlistedB = app(EnrollmentService::class)->enroll($activity, $b);
+
+    expect(Charge::query()->where('subject_type', Enrollment::class)->where('subject_id', $enrolledA->id)->count())->toBe(1)
+        ->and(Charge::query()->where('subject_type', Enrollment::class)->where('subject_id', $waitlistedB->id)->count())->toBe(0);
+
+    $charge = Charge::query()->where('subject_id', $enrolledA->id)->firstOrFail();
+    expect((float) $charge->amount)->toBe(25.0)
+        ->and($charge->debtor_person_id)->toBe($a->id);
+
+    // Bij promotie vanaf de wachtlijst wordt alsnog geboekt.
+    app(EnrollmentService::class)->cancel($enrolledA);
+    expect(Charge::query()->where('subject_type', Enrollment::class)->where('subject_id', $waitlistedB->id)->count())->toBe(1);
+});
+
+it('boekt annuleringskosten alleen bij het afmelden van een bevestigde plek', function () {
+    $cancelProduct = Product::create(['name' => 'Annuleringskosten kamp', 'type' => 'activiteitsbijdrage']);
+    ProductPrice::create(['product_id' => $cancelProduct->id, 'valid_from' => now()->subDay(), 'amount' => '10.00']);
+
+    $activity = newActivity($this->category->id, capacity: 1);
+    $activity->update(['cancellation_cost_product_id' => $cancelProduct->id]);
+
+    $a = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+    $b = Person::create(['first_name' => 'B', 'last_name' => 'C']);
+
+    $enrolledA = app(EnrollmentService::class)->enroll($activity, $a);
+    $waitlistedB = app(EnrollmentService::class)->enroll($activity, $b);
+
+    app(EnrollmentService::class)->cancel($waitlistedB);
+    expect(Charge::query()->where('subject_type', Enrollment::class)->where('subject_id', $waitlistedB->id)->count())->toBe(0);
+
+    app(EnrollmentService::class)->cancel($enrolledA);
+    $charge = Charge::query()->where('subject_type', Enrollment::class)->where('subject_id', $enrolledA->id)->firstOrFail();
+    expect((float) $charge->amount)->toBe(10.0);
+});
+
+it('boekt geen kosten zonder gekoppeld product of zonder geldende prijs', function () {
+    $activity = newActivity($this->category->id, capacity: 5);
+    $person = Person::create(['first_name' => 'A', 'last_name' => 'B']);
+
+    app(EnrollmentService::class)->enroll($activity, $person);
+    expect(Charge::query()->count())->toBe(0);
+
+    $productZonderPrijs = Product::create(['name' => 'Geen prijs', 'type' => 'activiteitsbijdrage']);
+    $activity->update(['standard_cost_product_id' => $productZonderPrijs->id]);
+    $other = Person::create(['first_name' => 'C', 'last_name' => 'D']);
+    app(EnrollmentService::class)->enroll($activity, $other);
+
+    expect(Charge::query()->count())->toBe(0);
 });

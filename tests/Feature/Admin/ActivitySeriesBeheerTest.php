@@ -5,6 +5,7 @@ use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\ActivitySeries;
 use App\Models\Person;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\ActivityCategorySeeder;
@@ -124,6 +125,26 @@ it('weigert een keuzeveld zonder minstens één optie', function () {
         ->set('newFieldLabel', 'Maaltijd')
         ->call('addPendingRegistrationField')
         ->assertHasErrors('newFieldOptions');
+});
+
+it('koppelt standaard- en annuleringskostenproducten en past ze toe op elk voorkomen', function () {
+    $this->actingAs($this->beheerder);
+    $standard = Product::create(['name' => 'Kampbijdrage', 'type' => 'activiteitsbijdrage']);
+    $cancellation = Product::create(['name' => 'Annuleringskosten', 'type' => 'activiteitsbijdrage']);
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('startCreateGroup')
+        ->set('categoryId', $this->category->id)
+        ->set('title', 'Kamp')
+        ->set('startsAt', now()->addDays(5)->format('Y-m-d\TH:i'))
+        ->set('standardCostProductId', $standard->id)
+        ->set('cancellationCostProductId', $cancellation->id)
+        ->call('createGroup')
+        ->assertHasNoErrors();
+
+    $activity = Activity::query()->where('title', 'Kamp')->firstOrFail();
+    expect($activity->standard_cost_product_id)->toBe($standard->id)
+        ->and($activity->cancellation_cost_product_id)->toBe($cancellation->id);
 });
 
 it('koppelt de aanmaker automatisch als beheerder, plus eventueel extra gekozen beheerders', function () {
