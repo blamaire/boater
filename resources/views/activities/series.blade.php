@@ -19,7 +19,7 @@
 
         @if ($series->description)
             <article class="prose max-w-none">
-                {!! nl2br(e($series->description)) !!}
+                {!! $series->description !!}
             </article>
         @endif
 

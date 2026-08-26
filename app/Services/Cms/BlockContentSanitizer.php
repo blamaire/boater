@@ -57,6 +57,15 @@ class BlockContentSanitizer
     }
 
     /**
+     * Saniteert los HTML (bv. de Trix-omschrijving van een activiteit) —
+     * zelfde regels als de CMS-tekstblokken, buiten de blok-content-array om.
+     */
+    public function sanitizeHtml(string $html): string
+    {
+        return $this->sanitizer->sanitize($html);
+    }
+
+    /**
      * @param  array<string, mixed>  $content
      * @return array<string, mixed>
      */

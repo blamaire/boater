@@ -17,6 +17,7 @@ use App\Models\Person;
 use App\Models\Product;
 use App\Services\Activities\ActivityManagerNotifier;
 use App\Services\Audit\AuditLogger;
+use App\Services\Cms\BlockContentSanitizer;
 use App\Services\Media\MediaUploadService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
@@ -284,7 +285,7 @@ class ActiviteitBeheer extends Component
         $this->status = $activity->status->value;
     }
 
-    public function saveActivity(AuditLogger $audit, ActivityManagerNotifier $notifier): void
+    public function saveActivity(AuditLogger $audit, ActivityManagerNotifier $notifier, BlockContentSanitizer $sanitizer): void
     {
         if ($this->editingActivityId === null) {
             return;
@@ -295,6 +296,7 @@ class ActiviteitBeheer extends Component
             'endsAt.after_or_equal' => 'De einddatum kan niet vóór de startdatum liggen.',
         ]);
         $this->resolveCostProducts();
+        $this->sanitizeDescription($sanitizer);
 
         $activity = Activity::query()->findOrFail($this->editingActivityId);
 
@@ -1085,6 +1087,16 @@ class ActiviteitBeheer extends Component
      * activityAttributes()/sharedGroupAttributes() puur blijven (geen
      * database-mutaties bij bv. deleteActivity()'s before-snapshot).
      */
+    /**
+     * Saniteert de Trix-omschrijving vóór opslaan — zelfde reden/plek als
+     * resolveCostProducts(): activityAttributes()/sharedGroupAttributes()
+     * lezen $this->description rechtstreeks, dus moet dit al gebeurd zijn.
+     */
+    private function sanitizeDescription(BlockContentSanitizer $sanitizer): void
+    {
+        $this->description = $sanitizer->sanitizeHtml($this->description);
+    }
+
     private function resolveCostProducts(): void
     {
         $this->standardCostProductId = $this->resolveCostProduct(
@@ -1157,7 +1169,7 @@ class ActiviteitBeheer extends Component
     /**
      * Nieuwe groep aanmaken met alle data uit de datumlijst.
      */
-    public function createGroup(AuditLogger $audit): void
+    public function createGroup(AuditLogger $audit, BlockContentSanitizer $sanitizer): void
     {
         $rules = $this->groupValidationRules();
         if ($this->creationMode === 'los') {
@@ -1185,6 +1197,7 @@ class ActiviteitBeheer extends Component
         }
 
         $this->resolveCostProducts();
+        $this->sanitizeDescription($sanitizer);
 
         DB::transaction(function () use ($audit): void {
             $series = ActivitySeries::query()->create($this->seriesAttributes() + [
@@ -1296,10 +1309,11 @@ class ActiviteitBeheer extends Component
      * Past de gedeelde velden toe op een bestaande groep, met de gekozen
      * reikwijdte (§17.4): de hele groep, of "dit en volgende" (splitst af).
      */
-    public function applyGroupEdit(AuditLogger $audit): void
+    public function applyGroupEdit(AuditLogger $audit, BlockContentSanitizer $sanitizer): void
     {
         $this->validate($this->groupValidationRules());
         $this->resolveCostProducts();
+        $this->sanitizeDescription($sanitizer);
         $series = ActivitySeries::query()->findOrFail($this->editingGroupId);
 
         if ($this->editScope === 'dit_en_volgende') {

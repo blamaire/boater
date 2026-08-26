@@ -54,7 +54,7 @@
 
         @if ($activity->description)
             <article class="prose max-w-none">
-                {!! nl2br(e($activity->description)) !!}
+                {!! $activity->description !!}
             </article>
         @endif
 

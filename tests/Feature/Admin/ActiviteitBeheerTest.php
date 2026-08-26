@@ -70,6 +70,25 @@ it('wijzigt een bestaande activiteit', function () {
         ->and($activity->capacity)->toBe(8);
 });
 
+it('saniteert de omschrijving bij het opslaan', function () {
+    $activity = Activity::create([
+        'activity_category_id' => $this->category->id,
+        'title' => 'Ochtendtoer', 'starts_at' => now()->addDays(2),
+        'visibility' => 'members', 'status' => 'gepubliceerd',
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(ActiviteitBeheer::class)
+        ->call('editActivity', $activity->id)
+        ->set('description', '<p>Neem <strong>zwemvest</strong> mee.</p><script>alert(1)</script>')
+        ->call('saveActivity')
+        ->assertHasNoErrors();
+
+    expect($activity->refresh()->description)
+        ->toBe('<p>Neem <strong>zwemvest</strong> mee.</p>');
+});
+
 it('koppelt een bestaande activiteit aan een activiteitenpagina', function () {
     $page = Page::create(['slug' => 'zomerkamp', 'title' => 'Zomerkamp', 'type' => 'content', 'template_id' => $this->template->id]);
     $event = ActivityPage::create(['page_id' => $page->id]);

@@ -46,7 +46,7 @@
                         </div>
                         <div class="sm:col-span-2">
                             <x-input-label value="Omschrijving" />
-                            <textarea wire:model="description" rows="3" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600"></textarea>
+                            @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'portal'])
                         </div>
                         <div>
                             <x-input-label value="Begint op" />

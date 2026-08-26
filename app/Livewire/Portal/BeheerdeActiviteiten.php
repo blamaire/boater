@@ -6,6 +6,7 @@ use App\Enums\ActivityStatus;
 use App\Models\Activity;
 use App\Services\Activities\ActivityManagerNotifier;
 use App\Services\Audit\AuditLogger;
+use App\Services\Cms\BlockContentSanitizer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
@@ -62,7 +63,7 @@ class BeheerdeActiviteiten extends Component
         $this->status = 'gepubliceerd';
     }
 
-    public function save(AuditLogger $audit, ActivityManagerNotifier $notifier): void
+    public function save(AuditLogger $audit, ActivityManagerNotifier $notifier, BlockContentSanitizer $sanitizer): void
     {
         $activity = $this->editingId !== null ? $this->managedActivity($this->editingId) : null;
         if ($activity === null) {
@@ -78,6 +79,8 @@ class BeheerdeActiviteiten extends Component
             'capacity' => ['nullable', 'integer', 'min:1'],
             'status' => ['required', 'in:concept,gepubliceerd,afgelast'],
         ]);
+
+        $this->description = $sanitizer->sanitizeHtml($this->description);
 
         $attributes = [
             'title' => $this->title,

@@ -60,7 +60,7 @@
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="g-description" value="Omschrijving" />
-                    <textarea id="g-description" wire:model="description" rows="3" class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600"></textarea>
+                    @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'g'])
                 </div>
                 <div>
                     <x-input-label for="g-location" value="Locatie (optioneel, standaard per voorkomen)" />
@@ -517,8 +517,7 @@
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="a-description" value="Omschrijving" />
-                    <textarea id="a-description" wire:model="description" rows="3"
-                        class="mt-1 w-full border-gray-300 rounded shadow-sm focus:border-rzvg-600 focus:ring-rzvg-600"></textarea>
+                    @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'a'])
                 </div>
                 <div>
                     <x-input-label for="a-location" value="Locatie (optioneel)" />
