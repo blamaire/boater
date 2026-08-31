@@ -15,7 +15,9 @@ return new class extends Migration
             $table->string('key')->unique();
             $table->string('name');
             $table->string('subject');
-            $table->text('body');
+            // Array van blocks (§24, App\Enums\MessageBlockType) — geen platte
+            // HTML-string. Zie App\Services\Communication\MessageBlockRenderer.
+            $table->json('body');
             $table->string('type');
             $table->timestamps();
         });

@@ -27,16 +27,16 @@ class MessageVariableRegistry
     private static function map(): array
     {
         return [
-            'password_reset' => ['actie_knop', 'minuten'],
-            'email_verification' => ['actie_knop'],
-            'account_invitation' => ['voornaam', 'achternaam', 'actie_knop', 'minuten'],
+            'password_reset' => ['reset_url', 'minuten'],
+            'email_verification' => ['verificatie_url'],
+            'account_invitation' => ['voornaam', 'achternaam', 'uitnodiging_url', 'minuten'],
             'membership_application_received' => ['voornaam', 'lidmaatschapsvorm'],
-            'damage_report_submitted' => ['object', 'melder', 'ernst', 'niet_bruikbaar_notice', 'actie_knop'],
-            'contact_request_submitted' => ['onderwerp', 'naam', 'voorkeur', 'telefoon_regel', 'email_regel', 'bericht', 'actie_knop'],
-            'activity_changed' => ['titel', 'datum', 'actie_knop'],
-            'activity_enrollment_changed' => ['onderwerp_actie', 'titel', 'persoon', 'actie', 'actie_knop'],
-            'enrollment_confirmed' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'actie_knop'],
-            'enrollment_waitlisted' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'actie_knop'],
+            'damage_report_submitted' => ['object', 'melder', 'ernst', 'niet_bruikbaar_notice', 'melding_url'],
+            'contact_request_submitted' => ['onderwerp', 'naam', 'voorkeur', 'telefoon_regel', 'email_regel', 'bericht', 'verzoek_url'],
+            'activity_changed' => ['titel', 'datum', 'activiteiten_url'],
+            'activity_enrollment_changed' => ['onderwerp_actie', 'titel', 'persoon', 'actie', 'activiteiten_url'],
+            'enrollment_confirmed' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url'],
+            'enrollment_waitlisted' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url'],
         ];
     }
 }

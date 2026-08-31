@@ -13,12 +13,15 @@ function createTemplate(string $type = 'transactioneel'): MessageTemplate
         'key' => 'test_template',
         'name' => 'Test',
         'subject' => 'Onderwerp voor {{voornaam}}',
-        'body' => '<p>Hallo {{voornaam}}, klik hier: {{actie_knop}}</p><script>alert(1)</script>',
+        'body' => [
+            ['type' => 'tekst', 'content' => ['html' => '<p>Hallo {{voornaam}}</p><script>alert(1)</script>']],
+            ['type' => 'knop', 'content' => ['label' => 'Klik hier', 'href' => '{{actie_url}}']],
+        ],
         'type' => $type,
     ]);
 }
 
-it('substitueert variabelen, saneert de body en verstuurt de mail', function () {
+it('substitueert variabelen per blok-veld, saneert de tekst-blokken en verstuurt de mail', function () {
     Mail::fake();
     createTemplate();
     $person = Person::create(['first_name' => 'Jan', 'last_name' => 'Test', 'email' => 'jan@example.test']);
@@ -26,10 +29,7 @@ it('substitueert variabelen, saneert de body en verstuurt de mail', function () 
     app(MessageDispatcher::class)->send(
         'test_template',
         'jan@example.test',
-        [
-            '{{voornaam}}' => 'Jan',
-            '{{actie_knop}}' => MessageDispatcher::actionLink('Klik hier', 'https://example.test/actie'),
-        ],
+        ['{{voornaam}}' => 'Jan', '{{actie_url}}' => 'https://example.test/actie'],
         recipient: $person,
     );
 
@@ -37,6 +37,7 @@ it('substitueert variabelen, saneert de body en verstuurt de mail', function () 
         return $mail->mailSubject === 'Onderwerp voor Jan'
             && str_contains($mail->bodyHtml, 'Hallo Jan')
             && str_contains($mail->bodyHtml, 'Klik hier')
+            && str_contains($mail->bodyHtml, 'https://example.test/actie')
             && ! str_contains($mail->bodyHtml, '<script>');
     });
 });
@@ -46,7 +47,7 @@ it('registreert een contactmoment in het communicatielogboek', function () {
     createTemplate();
     $person = Person::create(['first_name' => 'Jan', 'last_name' => 'Test', 'email' => 'jan@example.test']);
 
-    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_knop}}' => ''], recipient: $person);
+    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_url}}' => '#'], recipient: $person);
 
     $log = CommunicationLog::query()->firstOrFail();
     expect($log->person_id)->toBe($person->id)
@@ -60,16 +61,11 @@ it('logt het opgegeven e-mailadres als er geen ontvanger-persoon is', function (
     Mail::fake();
     createTemplate();
 
-    app(MessageDispatcher::class)->send('test_template', 'los@example.test', ['{{voornaam}}' => 'Los', '{{actie_knop}}' => '']);
+    app(MessageDispatcher::class)->send('test_template', 'los@example.test', ['{{voornaam}}' => 'Los', '{{actie_url}}' => '#']);
 
     $log = CommunicationLog::query()->firstOrFail();
     expect($log->person_id)->toBeNull()
         ->and($log->email)->toBe('los@example.test');
-});
-
-it('actionLink() levert geen eigen p-wrapper — sjablonen zetten {{actie_knop}} al zelf in een p', function () {
-    expect(MessageDispatcher::actionLink('Klik hier', 'https://example.test/actie'))
-        ->toBe('<strong><a href="https://example.test/actie">Klik hier</a></strong>');
 });
 
 it('slaat redactionele mail over voor een ontvanger zonder opt-in', function () {
@@ -77,7 +73,7 @@ it('slaat redactionele mail over voor een ontvanger zonder opt-in', function () 
     createTemplate('redactioneel');
     $person = Person::create(['first_name' => 'Jan', 'last_name' => 'Test', 'email' => 'jan@example.test']);
 
-    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_knop}}' => ''], recipient: $person);
+    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_url}}' => '#'], recipient: $person);
 
     Mail::assertNothingQueued();
     expect(CommunicationLog::query()->count())->toBe(0);

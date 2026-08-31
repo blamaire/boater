@@ -27,29 +27,85 @@ it('rendert de beheer-pagina voor een beheerder', function () {
     $this->actingAs($this->beheerder)->get('/beheer/berichtsjablonen')->assertOk()->assertSee('Berichtsjablonen');
 });
 
-it('maakt een nieuw sjabloon aan', function () {
+it('maakt een nieuw sjabloon aan met blokken', function () {
     $this->actingAs($this->beheerder);
 
     Livewire::test(MessageTemplateBeheer::class)
         ->set('key', 'welkomstmail')
         ->set('name', 'Welkomstmail')
         ->set('subject', 'Welkom!')
-        ->set('body', '<p>Hallo {{voornaam}}</p>')
+        ->call('addBlock', 'tekst')
+        ->set('blocks.0.content.html', '<p>Hallo {{voornaam}}</p>')
         ->set('type', 'transactioneel')
         ->call('save')
         ->assertHasNoErrors();
 
     $template = MessageTemplate::query()->where('key', 'welkomstmail')->firstOrFail();
     expect($template->name)->toBe('Welkomstmail')
-        ->and($template->subject)->toBe('Welkom!');
+        ->and($template->subject)->toBe('Welkom!')
+        ->and($template->body)->toBe([
+            ['type' => 'tekst', 'content' => ['html' => '<p>Hallo {{voornaam}}</p>']],
+        ]);
 });
 
-it('bewerkt onderwerp en inhoud van een bestaand sjabloon zonder de sleutel te wijzigen', function () {
+it('weigert opslaan zonder minstens één blok', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(MessageTemplateBeheer::class)
+        ->set('key', 'leeg')
+        ->set('name', 'Leeg')
+        ->set('subject', 'X')
+        ->set('type', 'transactioneel')
+        ->call('save')
+        ->assertHasErrors('blocks');
+
+    expect(MessageTemplate::query()->where('key', 'leeg')->exists())->toBeFalse();
+});
+
+it('weigert opslaan met een onvolledig knop-blok', function () {
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(MessageTemplateBeheer::class)
+        ->set('key', 'onvolledig')
+        ->set('name', 'Onvolledig')
+        ->set('subject', 'X')
+        ->call('addBlock', 'knop')
+        ->set('blocks.0.content.label', 'Klik hier')
+        // href blijft leeg
+        ->call('save')
+        ->assertHasErrors('blocks.0');
+
+    expect(MessageTemplate::query()->where('key', 'onvolledig')->exists())->toBeFalse();
+});
+
+it('verwijdert en herordent blokken', function () {
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(MessageTemplateBeheer::class)
+        ->call('addBlock', 'tekst')
+        ->set('blocks.0.content.html', '<p>Een</p>')
+        ->call('addBlock', 'scheiding')
+        ->call('addBlock', 'citaat')
+        ->set('blocks.2.content.text', 'Twee');
+
+    expect($component->get('blocks'))->toHaveCount(3);
+
+    $component->call('moveBlock', 2, 'up');
+    expect($component->get('blocks.1.type'))->toBe('citaat')
+        ->and($component->get('blocks.2.type'))->toBe('scheiding');
+
+    $component->call('removeBlock', 1);
+    expect($component->get('blocks'))->toHaveCount(2)
+        ->and($component->get('blocks.0.type'))->toBe('tekst')
+        ->and($component->get('blocks.1.type'))->toBe('scheiding');
+});
+
+it('bewerkt onderwerp en blokken van een bestaand sjabloon zonder de sleutel te wijzigen', function () {
     $template = MessageTemplate::create([
         'key' => 'bestaand',
         'name' => 'Bestaand',
         'subject' => 'Oud onderwerp',
-        'body' => '<p>Oud</p>',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>Oud</p>']]],
         'type' => 'transactioneel',
     ]);
 
@@ -59,7 +115,7 @@ it('bewerkt onderwerp en inhoud van een bestaand sjabloon zonder de sleutel te w
         ->call('edit', $template->id)
         ->set('key', 'andere-sleutel')
         ->set('subject', 'Nieuw onderwerp')
-        ->set('body', '<p>Nieuw</p>')
+        ->set('blocks.0.content.html', '<p>Nieuw</p>')
         ->call('save')
         ->assertHasErrors('key');
 
@@ -72,7 +128,7 @@ it('bepaalt de beschikbare variabelen systeemseitig uit de registry, niet uit ge
         'key' => 'enrollment_confirmed',
         'name' => 'Inschrijfbevestiging (bevestigd)',
         'subject' => 'X',
-        'body' => '<p>X</p>',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
         'type' => 'transactioneel',
     ]);
 
@@ -81,7 +137,7 @@ it('bepaalt de beschikbare variabelen systeemseitig uit de registry, niet uit ge
     $component = Livewire::test(MessageTemplateBeheer::class)
         ->call('edit', $template->id);
 
-    expect($component->get('availableVariables'))->toBe(['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'actie_knop']);
+    expect($component->get('availableVariables'))->toBe(['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url']);
 
     // Een sleutel zonder eigen trigger heeft geen bekende variabelen.
     $component->set('key', 'onbekende_sleutel_zonder_trigger');
@@ -93,7 +149,7 @@ it('weigert een dubbele sleutel bij aanmaken', function () {
         'key' => 'dubbel',
         'name' => 'Een',
         'subject' => 'X',
-        'body' => '<p>X</p>',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
         'type' => 'transactioneel',
     ]);
 
@@ -103,7 +159,8 @@ it('weigert een dubbele sleutel bij aanmaken', function () {
         ->set('key', 'dubbel')
         ->set('name', 'Twee')
         ->set('subject', 'Y')
-        ->set('body', '<p>Y</p>')
+        ->call('addBlock', 'tekst')
+        ->set('blocks.0.content.html', '<p>Y</p>')
         ->set('type', 'transactioneel')
         ->call('save')
         ->assertHasErrors('key');

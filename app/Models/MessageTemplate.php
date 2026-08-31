@@ -7,14 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Sjabloon voor transactionele of redactionele communicatie (§24.4). Code
- * verwijst naar een sjabloon via `key`; `MessageDispatcher` substitueert
- * `{{variabele}}`-tokens in `subject`/`body` en verstuurt via `TemplatedMail`.
+ * verwijst naar een sjabloon via `key`; `MessageBlockRenderer` substitueert
+ * `{{variabele}}`-tokens in elk block van `body` en rendert e-mail-veilige
+ * HTML; `MessageDispatcher` verstuurt die via `TemplatedMail`.
  *
  * @property int $id
  * @property string $key
  * @property string $name
  * @property string $subject
- * @property string $body
+ * @property array<int, array{type: string, content: array<string, mixed>}> $body
  * @property MessageType $type
  */
 class MessageTemplate extends Model
@@ -31,6 +32,7 @@ class MessageTemplate extends Model
     {
         return [
             'type' => MessageType::class,
+            'body' => 'array',
         ];
     }
 }

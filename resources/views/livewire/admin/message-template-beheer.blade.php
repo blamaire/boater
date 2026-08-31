@@ -1,8 +1,10 @@
 <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
     <p class="text-sm text-gray-500">
-        Berichtsjablonen (§24): onderwerp en inhoud van de e-mail die de app automatisch verstuurt. De sleutel
-        (<code>key</code>) ligt vast in de code en kan na aanmaken niet meer wijzigen; onderwerp en inhoud wel.
-        <code>@{{variabele}}</code>-tokens in het sjabloon worden bij verzending automatisch ingevuld.
+        Berichtsjablonen (§24): onderwerp en inhoud van de e-mail die de app automatisch verstuurt, opgebouwd uit
+        blokken (net als een CMS-pagina, maar zonder banden/kolommen — e-mail is van nature één kolom). De sleutel
+        (<code>key</code>) ligt vast in de code en kan na aanmaken niet meer wijzigen.
+        <code>@{{variabele}}</code>-tokens worden bij verzending automatisch ingevuld — typ <code>@{{</code> in een
+        veld om de beschikbare variabelen te zien.
     </p>
 
     @if ($statusMessage)
@@ -52,22 +54,19 @@
     </section>
 
     <x-modal name="message-template-form" maxWidth="4xl">
-        {{-- Variabele-inserter: leest de beschikbare namen live uit $wire (dus
-             altijd actueel, ook na het wisselen van sjabloon in dezelfde
-             modal). "Variabele invoegen" plakt het volledige token op de
-             cursorpositie; typ je zelf de dubbele-accolade-opener dan opent
-             hetzelfde menu automatisch en wordt alleen de rest aangevuld.
-             Voor de Trix-body wordt niet op de exacte cursorpositie
-             gepositioneerd (lastig betrouwbaar te bepalen in een
-             contenteditable) — het menu verschijnt vast onder het veld.
+        {{-- Variabele-inserter, gedelegeerd op de hele modal: typ {{ in eender
+             welk veld (onderwerp of een blok-veld) en het menu opent op dat
+             veld — geen aparte listener per (dynamisch toe-/afneembaar)
+             veld nodig. Elk doelveld heeft een uniek id; insert() onderscheidt
+             een Trix-editor (heeft .editor) van een gewone input.
              Let op: geen letterlijke dubbele-accolade-tekenreeksen in dit
              bestand — Blade scant de hele gecompileerde view erop, ook
-             binnen JS-strings in een attribuutwaarde (zie eerdere bugfix),
-             dus overal karaktergewijs opgebouwd via '{' + '{'. --}}
+             binnen JS-strings in een attribuutwaarde — dus overal
+             karaktergewijs opgebouwd via '{' + '{'. --}}
         <div class="p-6 space-y-4" x-data="{
             showMenu: false,
             viaTrigger: false,
-            menuFor: 'body',
+            menuFor: null,
             filter: '',
             lastKeys: '',
             openBrace: '{' + '{',
@@ -76,45 +75,37 @@
                 return ($wire.availableVariables || [])
                     .filter(v => v.toLowerCase().includes(this.filter.toLowerCase()));
             },
-            openMenu(target, viaTrigger) {
-                this.menuFor = target;
+            openMenu(fieldId, viaTrigger) {
+                this.menuFor = fieldId;
                 this.viaTrigger = viaTrigger;
                 this.filter = '';
                 this.showMenu = true;
             },
-            checkTrigger(event, target) {
+            checkTrigger(event) {
+                if (!event.target || !event.target.id) return;
                 this.lastKeys = (this.lastKeys + event.key).slice(-2);
                 if (this.lastKeys === this.openBrace) {
                     this.lastKeys = '';
-                    this.openMenu(target, true);
+                    this.openMenu(event.target.id, true);
                 }
             },
             insert(name) {
                 const value = this.viaTrigger ? (name + this.closeBrace) : (this.openBrace + name + this.closeBrace);
-                if (this.menuFor === 'subject') {
-                    const el = document.getElementById('mt-subject');
-                    if (el) {
+                const el = this.menuFor ? document.getElementById(this.menuFor) : null;
+                if (el) {
+                    if (el.editor) {
+                        el.editor.insertString(value);
+                    } else {
                         const pos = el.selectionStart ?? el.value.length;
                         el.value = el.value.slice(0, pos) + value + el.value.slice(pos);
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                         el.focus();
                         el.setSelectionRange(pos + value.length, pos + value.length);
                     }
-                } else {
-                    const editorEl = document.getElementById('mt-body-editor');
-                    if (editorEl && editorEl.editor) {
-                        editorEl.editor.insertString(value);
-                    }
                 }
                 this.showMenu = false;
             },
-            init() {
-                const editorEl = document.getElementById('mt-body-editor');
-                if (editorEl) {
-                    editorEl.addEventListener('keydown', (e) => this.checkTrigger(e, 'body'));
-                }
-            },
-        }">
+        }" x-on:keydown.capture="checkTrigger($event)">
             <h2 class="font-medium text-gray-900 text-lg">{{ $editingId ? 'Sjabloon bewerken' : 'Nieuw sjabloon' }}</h2>
 
             <div class="grid gap-4 sm:grid-cols-2">
@@ -140,18 +131,17 @@
                     @error('name') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
                 </label>
 
-                <div class="relative">
+                <div class="relative sm:col-span-2">
                     <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-600">Onderwerp</span>
-                        <button type="button" x-on:click="openMenu('subject', false)"
+                        <button type="button" x-on:click="openMenu('mt-subject', false)"
                             class="text-xs text-rzvg-600 hover:text-rzvg-800 hover:underline">+ Variabele</button>
                     </div>
                     <input type="text" wire:model="subject" id="mt-subject"
-                        x-on:keyup="checkTrigger($event, 'subject')" x-on:focus="menuFor = 'subject'"
                         class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
                     @error('subject') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
 
-                    <div x-show="showMenu && menuFor === 'subject'" x-on:click.outside="showMenu = false" x-cloak
+                    <div x-show="showMenu && menuFor === 'mt-subject'" x-on:click.outside="showMenu = false" x-cloak
                         class="absolute z-10 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg">
                         <input type="text" x-model="filter" placeholder="Zoeken..."
                             class="w-full border-0 border-b border-gray-200 text-sm px-3 py-2 focus:ring-0">
@@ -166,30 +156,110 @@
                         </ul>
                     </div>
                 </div>
+            </div>
 
-                <div class="sm:col-span-2 relative">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">Inhoud</span>
-                        <button type="button" x-on:click="openMenu('body', false)"
-                            class="text-xs text-rzvg-600 hover:text-rzvg-800 hover:underline">+ Variabele</button>
-                    </div>
-                    @include('livewire.admin.partials.trix-editor', ['prefix' => 'mt', 'property' => 'body'])
-                    @error('body') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+            {{-- Blokken --}}
+            <div class="space-y-3 pt-2 border-t border-gray-100">
+                <div class="flex items-center justify-between pt-3">
+                    <span class="text-sm font-medium text-gray-700">Inhoud (blokken)</span>
+                </div>
+                @error('blocks') <p class="text-red-600 text-xs">{{ $message }}</p> @enderror
 
-                    <div x-show="showMenu && menuFor === 'body'" x-on:click.outside="showMenu = false" x-cloak
-                        class="absolute z-10 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg">
-                        <input type="text" x-model="filter" placeholder="Zoeken..."
-                            class="w-full border-0 border-b border-gray-200 text-sm px-3 py-2 focus:ring-0">
-                        <ul class="max-h-48 overflow-y-auto py-1">
-                            <template x-for="name in variables" :key="name">
-                                <li>
-                                    <button type="button" x-on:click="insert(name)" x-text="name"
-                                        class="block w-full text-left px-3 py-1.5 text-sm font-mono text-gray-700 hover:bg-rzvg-50"></button>
-                                </li>
-                            </template>
-                            <li x-show="variables.length === 0" class="px-3 py-1.5 text-sm text-gray-400">Geen variabelen</li>
-                        </ul>
+                @foreach ($blocks as $index => $block)
+                    <div class="border border-gray-200 rounded-md p-3 bg-gray-50/60" wire:key="mt-block-{{ $index }}">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-medium text-gray-500 uppercase">
+                                {{ \App\Enums\MessageBlockType::from($block['type'])->label() }}
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" wire:click="moveBlock({{ $index }}, 'up')" @disabled($index === 0)
+                                    class="text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed" title="Omhoog">&uarr;</button>
+                                <button type="button" wire:click="moveBlock({{ $index }}, 'down')" @disabled($index === count($blocks) - 1)
+                                    class="text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed" title="Omlaag">&darr;</button>
+                                <button type="button" wire:click="removeBlock({{ $index }})"
+                                    class="text-red-400 hover:text-red-700" title="Verwijderen">&times;</button>
+                            </div>
+                        </div>
+                        @error("blocks.{$index}") <p class="text-red-600 text-xs mb-2">{{ $message }}</p> @enderror
+
+                        @switch ($block['type'])
+                            @case ('tekst')
+                                @include('livewire.admin.partials.trix-editor', ['prefix' => 'mt', 'property' => "blocks.{$index}.content.html"])
+                                @break
+
+                            @case ('kop')
+                                <div class="flex gap-2">
+                                    <select wire:model="blocks.{{ $index }}.content.level" class="border-gray-300 rounded shadow-sm text-sm w-24">
+                                        <option value="1">H1</option>
+                                        <option value="2">H2</option>
+                                        <option value="3">H3</option>
+                                    </select>
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.text" id="mt-blocks-{{ $index }}-content-text"
+                                        placeholder="Koptekst" class="flex-1 border-gray-300 rounded shadow-sm text-sm" />
+                                </div>
+                                @break
+
+                            @case ('knop')
+                                <div class="grid gap-2 sm:grid-cols-2">
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.label" id="mt-blocks-{{ $index }}-content-label"
+                                        placeholder="Knoptekst" class="border-gray-300 rounded shadow-sm text-sm" />
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.href" id="mt-blocks-{{ $index }}-content-href"
+                                        placeholder="URL (bv. @{{reset_url}})" class="border-gray-300 rounded shadow-sm text-sm font-mono" />
+                                </div>
+                                @break
+
+                            @case ('afbeelding')
+                                <div class="grid gap-2 sm:grid-cols-2">
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.url" id="mt-blocks-{{ $index }}-content-url"
+                                        placeholder="Afbeeldings-URL" class="border-gray-300 rounded shadow-sm text-sm font-mono" />
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.alt" id="mt-blocks-{{ $index }}-content-alt"
+                                        placeholder="Alt-tekst" class="border-gray-300 rounded shadow-sm text-sm" />
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1">Plak een volledige, permanente URL — de mediabibliotheek geeft tijdelijke links (1 uur geldig) en is hier nog niet gekoppeld.</p>
+                                @break
+
+                            @case ('scheiding')
+                                <p class="text-xs text-gray-400 italic">Geen instellingen — rendert een horizontale lijn.</p>
+                                @break
+
+                            @case ('citaat')
+                                <div class="space-y-2">
+                                    <textarea wire:model="blocks.{{ $index }}.content.text" id="mt-blocks-{{ $index }}-content-text" rows="2"
+                                        placeholder="Citaattekst" class="w-full border-gray-300 rounded shadow-sm text-sm"></textarea>
+                                    <input type="text" wire:model="blocks.{{ $index }}.content.source" id="mt-blocks-{{ $index }}-content-source"
+                                        placeholder="Bron (optioneel)" class="w-full border-gray-300 rounded shadow-sm text-sm" />
+                                </div>
+                                @break
+                        @endswitch
                     </div>
+                @endforeach
+
+                <div class="flex flex-wrap gap-2 pt-1">
+                    @foreach ($blockTypes as $blockType)
+                        <button type="button" wire:click="addBlock('{{ $blockType->value }}')"
+                            class="px-2.5 py-1 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50">
+                            + {{ $blockType->label() }}
+                        </button>
+                    @endforeach
+                </div>
+
+                {{-- Gedeeld dropdown-menu voor blok-velden — buiten de foreach zodat er
+                     maar één instantie is; positionering is daardoor niet exact bij
+                     het brontveld (lastig generiek te bepalen over een dynamische
+                     lijst), maar wel altijd zichtbaar onderaan de blokkensectie. --}}
+                <div x-show="showMenu && menuFor !== 'mt-subject' && menuFor !== null" x-on:click.outside="showMenu = false" x-cloak
+                    class="w-64 bg-white border border-gray-200 rounded-md shadow-lg">
+                    <input type="text" x-model="filter" placeholder="Zoeken..."
+                        class="w-full border-0 border-b border-gray-200 text-sm px-3 py-2 focus:ring-0">
+                    <ul class="max-h-48 overflow-y-auto py-1">
+                        <template x-for="name in variables" :key="name">
+                            <li>
+                                <button type="button" x-on:click="insert(name)" x-text="name"
+                                    class="block w-full text-left px-3 py-1.5 text-sm font-mono text-gray-700 hover:bg-rzvg-50"></button>
+                            </li>
+                        </template>
+                        <li x-show="variables.length === 0" class="px-3 py-1.5 text-sm text-gray-400">Geen variabelen</li>
+                    </ul>
                 </div>
             </div>
 
