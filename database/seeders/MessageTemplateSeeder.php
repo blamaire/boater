@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\MessageTemplate;
+use App\Services\Communication\MessageDispatcher;
 use App\Services\Communication\MessageVariableRegistry;
 use Illuminate\Database\Seeder;
 
@@ -17,6 +18,13 @@ use Illuminate\Database\Seeder;
  * worden (zie {@see MessageVariableRegistry}).
  * Een beheerder kan de tekst nadien vrij aanpassen op
  * `/beheer/berichtsjablonen`.
+ *
+ * Elke regel — ook een los `{{variabele}}`-token — staat bewust in een
+ * eigen `<p>`: Trix parseert een kale tekstregel tussen blokelementen
+ * inconsistent (div/br-soep) bij het laden van de sjabloontekst in de
+ * editor. `{{actie_knop}}` levert zelf géén `<p>` (zie
+ * {@see MessageDispatcher::actionLink()}) —
+ * dat zou na substitutie een ongeldige geneste `<p><p>...</p></p>` geven.
  */
 class MessageTemplateSeeder extends Seeder
 {
@@ -41,7 +49,7 @@ class MessageTemplateSeeder extends Seeder
                 'body' => <<<'HTML'
                     <p>Hallo!</p>
                     <p>Je ontvangt deze e-mail omdat we een verzoek hebben ontvangen om je wachtwoord opnieuw in te stellen.</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>Deze link verloopt over {{minuten}} minuten.</p>
                     <p>Heb je geen verzoek ingediend? Dan hoef je niets te doen.</p>
                     <p>Met vriendelijke groet, Roei- en Zeilvereniging Gouda</p>
@@ -55,7 +63,7 @@ class MessageTemplateSeeder extends Seeder
                 'body' => <<<'HTML'
                     <p>Hallo!</p>
                     <p>Klik op onderstaande knop om je e-mailadres te bevestigen.</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>Heb je geen account aangemaakt? Dan hoef je niets te doen.</p>
                     <p>Met vriendelijke groet, Roei- en Zeilvereniging Gouda</p>
                     HTML,
@@ -69,7 +77,7 @@ class MessageTemplateSeeder extends Seeder
                     <p>Hallo {{voornaam}}!</p>
                     <p>Er is voor jou een account aangemaakt op de website van Roei- en Zeilvereniging Gouda.</p>
                     <p>Klik op onderstaande knop om je eigen wachtwoord in te stellen. Daarna kun je direct inloggen.</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>Deze uitnodiging is {{minuten}} minuten geldig. Vraag de beheerder om een nieuwe link als je te laat bent.</p>
                     <p>Met vriendelijke groet, Roei- en Zeilvereniging Gouda</p>
                     HTML,
@@ -97,8 +105,8 @@ class MessageTemplateSeeder extends Seeder
                     <p>Hallo,</p>
                     <p>Er is een nieuwe schademelding binnengekomen op een object in jouw categorie.</p>
                     <p>Object: {{object}}<br>Melder: {{melder}}<br>Ernst: {{ernst}}</p>
-                    {{niet_bruikbaar_notice}}
-                    {{actie_knop}}
+                    <p>{{niet_bruikbaar_notice}}</p>
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],
@@ -113,7 +121,7 @@ class MessageTemplateSeeder extends Seeder
                     <p>Naam: {{naam}}<br>Voorkeur: {{voorkeur}}<br>{{telefoon_regel}}{{email_regel}}</p>
                     <p>Bericht:</p>
                     <p>{{bericht}}</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],
@@ -126,7 +134,7 @@ class MessageTemplateSeeder extends Seeder
                     <p>Hallo,</p>
                     <p>De activiteit "{{titel}}" is zojuist gewijzigd.</p>
                     <p>Datum: {{datum}}</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],
@@ -138,7 +146,7 @@ class MessageTemplateSeeder extends Seeder
                 'body' => <<<'HTML'
                     <p>Hallo,</p>
                     <p>{{persoon}} heeft zich zojuist {{actie}} "{{titel}}".</p>
-                    {{actie_knop}}
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],
@@ -151,8 +159,8 @@ class MessageTemplateSeeder extends Seeder
                     <p>Hallo {{voornaam}},</p>
                     <p>Je inschrijving voor "{{titel}}" is bevestigd.</p>
                     <p>Datum: {{datum}}</p>
-                    {{locatie_regel}}
-                    {{actie_knop}}
+                    <p>{{locatie_regel}}</p>
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],
@@ -165,8 +173,8 @@ class MessageTemplateSeeder extends Seeder
                     <p>Hallo {{voornaam}},</p>
                     <p>Je staat op de wachtlijst voor "{{titel}}". Zodra er een plek vrijkomt, hoor je van ons.</p>
                     <p>Datum: {{datum}}</p>
-                    {{locatie_regel}}
-                    {{actie_knop}}
+                    <p>{{locatie_regel}}</p>
+                    <p>{{actie_knop}}</p>
                     <p>— RZVG</p>
                     HTML,
             ],

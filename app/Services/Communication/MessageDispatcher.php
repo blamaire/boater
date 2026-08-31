@@ -64,10 +64,16 @@ class MessageDispatcher
      * link in een sjabloon-body — geen `style`-attribuut (de sanitizer staat
      * dat niet toe op `<a>`) en geen los kleurdesign, e-mailclients
      * ondersteunen dat toch onbetrouwbaar; vetgedrukte tekst volstaat.
+     *
+     * Bewust *geen* eigen `<p>`-wrapper: sjablonen zetten `{{actie_knop}}`
+     * altijd al zelf in een `<p>` (nodig omdat Trix een kaal, niet-in-een-
+     * blokelement-gewikkeld token anders inconsistent parseert bij het laden
+     * van de sjabloontekst) — een extra `<p>` hier zou ongeldige geneste
+     * `<p><p>...</p></p>`-HTML opleveren.
      */
     public static function actionLink(string $label, string $url): string
     {
-        return '<p><strong><a href="'.e($url).'">'.e($label).'</a></strong></p>';
+        return '<strong><a href="'.e($url).'">'.e($label).'</a></strong>';
     }
 
     /**

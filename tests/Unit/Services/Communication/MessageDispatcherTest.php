@@ -67,6 +67,11 @@ it('logt het opgegeven e-mailadres als er geen ontvanger-persoon is', function (
         ->and($log->email)->toBe('los@example.test');
 });
 
+it('actionLink() levert geen eigen p-wrapper — sjablonen zetten {{actie_knop}} al zelf in een p', function () {
+    expect(MessageDispatcher::actionLink('Klik hier', 'https://example.test/actie'))
+        ->toBe('<strong><a href="https://example.test/actie">Klik hier</a></strong>');
+});
+
 it('slaat redactionele mail over voor een ontvanger zonder opt-in', function () {
     Mail::fake();
     createTemplate('redactioneel');
