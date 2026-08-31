@@ -1,17 +1,27 @@
 @php($property ??= 'description')
-{{-- Bewust $wire.$watch() i.p.v. @entangle() + lokale Alpine $watch: dat
-     laatste bleek onbetrouwbaar buiten de directe x-model-vorm (leeg
-     gebleven Trix-veld na edit() in een CRUD-modal). $wire.$watch() is
-     Livewire's eigen, gedocumenteerde manier om op een servergestuurde
-     wijziging van een component-property te reageren, ongeacht de bron. --}}
+{{-- $wire.$watch() i.p.v. @entangle() + lokale Alpine $watch: dat laatste
+     bleek onbetrouwbaar buiten de directe x-model-vorm. $wire.$watch() is
+     Livewire's eigen manier om op een servergestuurde wijziging van een
+     component-property te reageren, ongeacht de bron.
+
+     setContent() gebeurt pas ná trix-initialize, niet synchroon in init():
+     het <trix-editor>-custom-element initialiseert zelf asynchroon, dus
+     this.$refs.editor.editor bestaat niet gegarandeerd meteen — een
+     synchrone .loadHTML()-aanroep in init() kon daardoor stil een
+     TypeError gooien die de rest van init() (dus ook de listener-
+     registratie) afbrak, zonder zichtbare foutmelding in de UI. --}}
 <div wire:ignore x-data="{
     syncing: false,
     setContent(html) {
         this.$refs.trixInput.value = html ?? '';
-        this.$refs.editor.editor.loadHTML(html ?? '');
+        if (this.$refs.editor.editor) {
+            this.$refs.editor.editor.loadHTML(html ?? '');
+        }
     },
     init() {
-        this.setContent($wire.{{ $property }});
+        this.$refs.editor.addEventListener('trix-initialize', () => {
+            this.setContent($wire.{{ $property }});
+        });
         this.$refs.editor.addEventListener('trix-change', () => {
             this.syncing = true;
             $wire.{{ $property }} = this.$refs.trixInput.value;
