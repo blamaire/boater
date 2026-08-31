@@ -192,6 +192,36 @@
                         </ul>
                     </li>
                 @endcanany
+                @canany(['message_templates.manage'])
+                    @php
+                        $communicatieActief = request()->routeIs('admin.message-templates.*');
+                    @endphp
+                    <li x-data="{ open: {{ $communicatieActief ? 'true' : 'false' }} }">
+                        <button type="button" @click="open = ! open"
+                            @class([
+                                'flex w-full items-center justify-between px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                'text-rzvg-700 font-medium' => $communicatieActief,
+                                'text-gray-700' => ! $communicatieActief,
+                            ])>
+                            <span>Communicatie</span>
+                            <svg width="16" height="16" class="h-4 w-4 shrink-0 transition-transform" :class="open && 'rotate-90'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <ul x-show="open" @unless($communicatieActief) style="display: none;" @endunless class="mt-1 ml-3 space-y-1 border-l border-gray-200 pl-3">
+                            @can('message_templates.manage')
+                                <li>
+                                    <a href="{{ route('admin.message-templates.index') }}"
+                                        @class([
+                                            'block px-3 py-2 rounded-md hover:bg-rzvg-50',
+                                            'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('admin.message-templates.*'),
+                                            'text-gray-700' => ! request()->routeIs('admin.message-templates.*'),
+                                        ])>Berichtsjablonen</a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endcanany
                 @canany(['contact_requests.manage', 'contact_topics.manage'])
                     @php
                         $contactActief = request()->routeIs('admin.contact-requests.*') || request()->routeIs('admin.contact-topics.*');

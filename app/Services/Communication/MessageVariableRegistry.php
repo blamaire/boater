@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Services\Communication;
+
+/**
+ * Welke `{{variabele}}`-namen elk sjabloon (via zijn `key`) accepteert —
+ * puur voor de "variabele invoegen"-UI in `/beheer/berichtsjablonen`.
+ * Systeembepaald (niet door de beheerder in te vullen): de lijst hoort bij
+ * de code van de bijbehorende trigger (§24) en moet in de pas blijven met
+ * wat die trigger daadwerkelijk aan `MessageDispatcher::send()` meegeeft.
+ * Een sleutel zonder eigen trigger (een nieuw, handmatig aangemaakt
+ * sjabloon) heeft simpelweg geen bekende variabelen.
+ */
+class MessageVariableRegistry
+{
+    /**
+     * @return array<int, string>
+     */
+    public static function for(string $templateKey): array
+    {
+        return self::map()[$templateKey] ?? [];
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private static function map(): array
+    {
+        return [
+            'password_reset' => ['actie_knop', 'minuten'],
+            'email_verification' => ['actie_knop'],
+            'account_invitation' => ['voornaam', 'achternaam', 'actie_knop', 'minuten'],
+            'membership_application_received' => ['voornaam', 'lidmaatschapsvorm'],
+            'damage_report_submitted' => ['object', 'melder', 'ernst', 'niet_bruikbaar_notice', 'actie_knop'],
+            'contact_request_submitted' => ['onderwerp', 'naam', 'voorkeur', 'telefoon_regel', 'email_regel', 'bericht', 'actie_knop'],
+            'activity_changed' => ['titel', 'datum', 'actie_knop'],
+            'activity_enrollment_changed' => ['onderwerp_actie', 'titel', 'persoon', 'actie', 'actie_knop'],
+            'enrollment_confirmed' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'actie_knop'],
+            'enrollment_waitlisted' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'actie_knop'],
+        ];
+    }
+}

@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             TemplateSeeder::class,
+            MessageTemplateSeeder::class,
             HomeSystemPageSeeder::class,
             // ApproverGroupSeeder móét vóór ReviewPolicySeeder draaien:
             // policies verwijzen naar deze groepen als assignee.

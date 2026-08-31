@@ -36,6 +36,7 @@ use App\Livewire\Admin\GebruikerBeheer;
 use App\Livewire\Admin\GoedkeuringsgroepBeheer;
 use App\Livewire\Admin\GrootboekBeheer;
 use App\Livewire\Admin\MenuBeheer;
+use App\Livewire\Admin\MessageTemplateBeheer;
 use App\Livewire\Admin\ObjectCategoryBeheer;
 use App\Livewire\Admin\PersonPermissionBeheer;
 use App\Livewire\Admin\ProductBeheer;
@@ -241,6 +242,10 @@ Route::middleware(['auth', 'verified', 'can:invoices.manage'])
 Route::middleware(['auth', 'verified', 'can:invoices.manage'])
     ->get('/beheer/facturen/{invoice}', FactuurDetail::class)
     ->name('admin.invoices.show');
+
+Route::middleware(['auth', 'verified', 'can:message_templates.manage'])
+    ->get('/beheer/berichtsjablonen', MessageTemplateBeheer::class)
+    ->name('admin.message-templates.index');
 
 Route::middleware(['auth', 'verified', 'can:menu.manage'])
     ->get('/beheer/menu', MenuBeheer::class)

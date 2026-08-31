@@ -46,7 +46,7 @@
                         </div>
                         <div class="sm:col-span-2">
                             <x-input-label value="Omschrijving" />
-                            @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'portal'])
+                            @include('livewire.admin.partials.trix-editor', ['prefix' => 'portal'])
                         </div>
                         <div>
                             <x-input-label value="Begint op" />

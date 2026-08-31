@@ -60,7 +60,7 @@
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="g-description" value="Omschrijving" />
-                    @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'g'])
+                    @include('livewire.admin.partials.trix-editor', ['prefix' => 'g'])
                 </div>
                 <div>
                     <x-input-label for="g-location" value="Locatie (optioneel, standaard per voorkomen)" />
@@ -517,7 +517,7 @@
                 </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="a-description" value="Omschrijving" />
-                    @include('livewire.admin.partials.activity-description-editor', ['prefix' => 'a'])
+                    @include('livewire.admin.partials.trix-editor', ['prefix' => 'a'])
                 </div>
                 <div>
                     <x-input-label for="a-location" value="Locatie (optioneel)" />

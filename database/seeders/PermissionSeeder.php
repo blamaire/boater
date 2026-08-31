@@ -67,6 +67,7 @@ class PermissionSeeder extends Seeder
             'feedback' => ['manage'],
             'contact_topics' => ['manage'],
             'contact_requests' => ['manage'],
+            'message_templates' => ['manage'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -137,6 +138,7 @@ class PermissionSeeder extends Seeder
             'feedback' => 'Terugkoppeling',
             'contact_topics' => 'Contact-onderwerpen',
             'contact_requests' => 'Contactverzoeken',
+            'message_templates' => 'Berichtsjablonen',
             default => ucfirst($module),
         };
 

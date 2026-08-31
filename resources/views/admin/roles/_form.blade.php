@@ -12,6 +12,7 @@
         'invoices' => 'Facturen',
         'ledger' => 'Grootboek',
         'mailings' => 'Mailings',
+        'message_templates' => 'Berichtsjablonen',
         'documents' => 'Documenten',
         'imports' => 'Imports',
         'volunteer_tasks' => 'Vrijwilligerstaken',
