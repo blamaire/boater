@@ -100,10 +100,12 @@
                         <col>
                         <col class="w-8">
                         <col class="w-8">
+                        <col class="w-8">
                     </colgroup>
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Testmail</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bewerken</th>
                             <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Verwijderen</th>
                         </tr>
@@ -112,6 +114,10 @@
                         @forelse ($templatesInFolder as $template)
                             <tr wire:key="message-template-{{ $template->id }}" @class(['bg-rzvg-50' => $editingId === $template->id])>
                                 <td class="px-4 py-2 text-gray-900">{{ $template->name }}</td>
+                                <x-action-cell
+                                    :icon="$this->templateHasSample($template->key) ? 'paper-airplane' : null"
+                                    click="openTestMail({{ $template->id }})"
+                                    title="Testmail versturen" variant="default" />
                                 <x-action-cell click="edit({{ $template->id }})" icon="pencil" title="Bewerken" variant="primary" />
                                 <x-action-cell
                                     :icon="$template->type->value === 'transactioneel' ? null : 'trash'"
@@ -120,7 +126,7 @@
                                     title="Verwijderen" variant="danger" />
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">Nog geen sjablonen in deze map.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Nog geen sjablonen in deze map.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -329,6 +335,43 @@
                     class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
                     {{ $editingId ? 'Opslaan' : 'Aanmaken' }}
                 </button>
+            </div>
+        </div>
+    </x-modal>
+
+    <x-modal name="message-template-testmail" maxWidth="lg">
+        <div class="p-6 space-y-4">
+            <h2 class="font-medium text-gray-900 text-lg">Testmail versturen</h2>
+            <p class="text-sm text-gray-500">
+                Ingevuld met de variabelen van een bestaand voorbeeld-record, zodat je ziet hoe de e-mail er in de
+                praktijk uitziet.
+            </p>
+
+            <div>
+                <span class="text-sm text-gray-600">Variabelen uit het voorbeeld-record</span>
+                <div class="mt-1 border border-gray-200 rounded-md divide-y divide-gray-100 text-sm max-h-48 overflow-y-auto">
+                    @forelse ($testMailVariables as $token => $value)
+                        <div class="flex px-3 py-1.5 gap-3">
+                            <span class="font-mono text-gray-500 shrink-0">{{ $token }}</span>
+                            <span class="text-gray-900 truncate">{{ $value }}</span>
+                        </div>
+                    @empty
+                        <div class="px-3 py-1.5 text-gray-400 italic">Geen variabelen.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <label class="block text-sm">
+                <span class="text-gray-600">Versturen naar</span>
+                <input type="email" wire:model="testMailTo" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
+                @error('testMailTo') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
+            </label>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" x-data="" x-on:click="$dispatch('close')"
+                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm">Annuleren</button>
+                <button type="button" wire:click="sendTestMail"
+                    class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">Testmail versturen</button>
             </div>
         </div>
     </x-modal>

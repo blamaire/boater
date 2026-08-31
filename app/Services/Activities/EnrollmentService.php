@@ -15,6 +15,7 @@ use App\Models\Person;
 use App\Models\Product;
 use App\Services\Audit\AuditLogger;
 use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageVariableBuilders;
 use App\Services\Finance\BillingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -130,14 +131,13 @@ class EnrollmentService
         if ($person->email !== null && $person->email !== '') {
             $templateKey = $enrollment->status === EnrollmentStatus::Waitlist ? 'enrollment_waitlisted' : 'enrollment_confirmed';
 
-            $this->dispatcher->send($templateKey, $person->email, [
-                '{{voornaam}}' => $person->first_name,
-                '{{achternaam}}' => $person->last_name,
-                '{{titel}}' => $activity->title,
-                '{{datum}}' => $activity->starts_at->translatedFormat('l j F Y H:i'),
-                '{{locatie_regel}}' => $activity->location !== null ? 'Locatie: '.$activity->location : '',
-                '{{activiteit_url}}' => route('activiteit.show', $activity),
-            ], recipient: $person, related: $activity);
+            $this->dispatcher->send(
+                $templateKey,
+                $person->email,
+                MessageVariableBuilders::enrollmentConfirmedOrWaitlisted($enrollment),
+                recipient: $person,
+                related: $activity,
+            );
         }
 
         return $enrollment;

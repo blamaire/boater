@@ -7,6 +7,8 @@ use App\Enums\MessageType;
 use App\Models\MessageTemplate;
 use App\Models\MessageTemplateFolder;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageSampleRegistry;
 use App\Services\Communication\MessageVariableRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
@@ -59,6 +61,18 @@ class MessageTemplateBeheer extends Component
     public array $availableVariables = [];
 
     public ?string $statusMessage = null;
+
+    public ?int $testMailTemplateId = null;
+
+    public string $testMailTo = '';
+
+    /**
+     * Opgebouwd uit een bestaand voorbeeld-record via `MessageSampleRegistry`
+     * — puur ter weergave in de testmail-modal, niet bewerkbaar.
+     *
+     * @var array<string, string>
+     */
+    public array $testMailVariables = [];
 
     public function openFolder(?int $id = null): void
     {
@@ -208,6 +222,56 @@ class MessageTemplateBeheer extends Component
         $audit->log('message_template.deleted', $template, before: ['key' => $template->key, 'name' => $template->name]);
         $template->delete();
         $this->statusMessage = "Sjabloon [{$template->name}] verwijderd.";
+    }
+
+    /**
+     * Bepaalt of de testmail-actie voor deze sjabloon-sleutel getoond wordt
+     * (§24, Fase B2) — alleen sleutels met een reëel voorbeeld-record.
+     */
+    public function templateHasSample(string $key): bool
+    {
+        return app(MessageSampleRegistry::class)->supports($key);
+    }
+
+    public function openTestMail(int $id, MessageSampleRegistry $registry): void
+    {
+        $template = MessageTemplate::query()->findOrFail($id);
+        if (! $registry->supports($template->key)) {
+            return;
+        }
+
+        $variables = $registry->sampleVariables($template->key);
+        if ($variables === null) {
+            $this->statusMessage = "Geen bestaand voorbeeld-record gevonden om [{$template->name}] mee te vullen.";
+
+            return;
+        }
+
+        $admin = auth()->user();
+
+        $this->testMailTemplateId = $template->id;
+        $this->testMailVariables = $variables;
+        $this->testMailTo = $admin !== null ? $admin->email : '';
+        $this->resetErrorBag('testMailTo');
+
+        $this->dispatch('open-modal', 'message-template-testmail');
+    }
+
+    public function sendTestMail(MessageDispatcher $dispatcher): void
+    {
+        if ($this->testMailTemplateId === null) {
+            return;
+        }
+
+        $data = $this->validate(['testMailTo' => ['required', 'email']]);
+
+        $template = MessageTemplate::query()->findOrFail($this->testMailTemplateId);
+        $dispatcher->send($template->key, $data['testMailTo'], $this->testMailVariables);
+
+        $this->statusMessage = "Testmail voor [{$template->name}] verstuurd naar {$data['testMailTo']}.";
+        $this->testMailTemplateId = null;
+        $this->testMailVariables = [];
+        $this->dispatch('close-modal', 'message-template-testmail');
     }
 
     public function save(AuditLogger $audit): void

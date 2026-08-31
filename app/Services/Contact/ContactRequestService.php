@@ -8,6 +8,7 @@ use App\Models\ContactTopic;
 use App\Models\Person;
 use App\Services\Audit\AuditLogger;
 use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageVariableBuilders;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -52,15 +53,13 @@ class ContactRequestService
 
             $responsible = $topic->responsible;
             if (filled($responsible->email)) {
-                $this->dispatcher->send('contact_request_submitted', $responsible->email, [
-                    '{{onderwerp}}' => $topic->name,
-                    '{{naam}}' => $name,
-                    '{{voorkeur}}' => $request->contactMethodLabel(),
-                    '{{telefoon_regel}}' => $phone ? 'Telefoon: '.$phone.'<br>' : '',
-                    '{{email_regel}}' => $email ? 'E-mail: '.$email.'<br>' : '',
-                    '{{bericht}}' => $message,
-                    '{{verzoek_url}}' => url('/beheer/contactverzoeken/'.$request->id),
-                ], recipient: $responsible, related: $request);
+                $this->dispatcher->send(
+                    'contact_request_submitted',
+                    $responsible->email,
+                    MessageVariableBuilders::contactRequestSubmitted($request),
+                    recipient: $responsible,
+                    related: $request,
+                );
             }
 
             return $request;

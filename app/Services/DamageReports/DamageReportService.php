@@ -12,6 +12,7 @@ use App\Models\ReservableObject;
 use App\Models\Reservation;
 use App\Services\Audit\AuditLogger;
 use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageVariableBuilders;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -81,23 +82,13 @@ class DamageReportService
                 'photo_count' => $photos->count(),
             ]);
 
-            $reporterLabel = trim($reporter->first_name.' '.$reporter->last_name);
-            $meldingUrl = url('/beheer/schademeldingen/'.$report->id);
-            $notice = $reporterMarkedUnusable
-                ? 'De melder heeft "niet bruikbaar" aangevinkt. Het object staat nu op "buiten gebruik" en is onreserveerbaar totdat een behandelaar dat terugdraait.'
-                : '';
+            $variables = MessageVariableBuilders::damageReportSubmitted($report);
 
             foreach ($this->resolveRecipients($object) as $recipient) {
                 if ($recipient->email === null || $recipient->email === '') {
                     continue;
                 }
-                $this->dispatcher->send('damage_report_submitted', $recipient->email, [
-                    '{{object}}' => $object->name,
-                    '{{melder}}' => $reporterLabel !== '' ? $reporterLabel : 'onbekend',
-                    '{{ernst}}' => $severity->label(),
-                    '{{niet_bruikbaar_notice}}' => $notice,
-                    '{{melding_url}}' => $meldingUrl,
-                ], recipient: $recipient, related: $report);
+                $this->dispatcher->send('damage_report_submitted', $recipient->email, $variables, recipient: $recipient, related: $report);
             }
 
             return $report;

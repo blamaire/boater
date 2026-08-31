@@ -5,6 +5,7 @@ namespace App\Services\Activities;
 use App\Models\Activity;
 use App\Models\Person;
 use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageVariableBuilders;
 
 /**
  * Stuurt mailnotificaties naar de gedelegeerde beheerders van een activiteit
@@ -18,24 +19,12 @@ class ActivityManagerNotifier
 
     public function notifyChanged(Activity $activity): void
     {
-        $this->send($activity, 'activity_changed', [
-            '{{titel}}' => $activity->title,
-            '{{datum}}' => $activity->starts_at->translatedFormat('l j F Y H:i'),
-            '{{activiteiten_url}}' => url('/beheer/activiteiten'),
-        ]);
+        $this->send($activity, 'activity_changed', MessageVariableBuilders::activityChanged($activity));
     }
 
     public function notifyEnrollment(Activity $activity, Person $person, bool $enrolled): void
     {
-        $personLabel = trim($person->first_name.' '.$person->last_name);
-
-        $this->send($activity, 'activity_enrollment_changed', [
-            '{{onderwerp_actie}}' => $enrolled ? 'Nieuwe inschrijving' : 'Nieuwe afmelding',
-            '{{persoon}}' => $personLabel,
-            '{{actie}}' => $enrolled ? 'ingeschreven op' : 'afgemeld voor',
-            '{{titel}}' => $activity->title,
-            '{{activiteiten_url}}' => url('/beheer/activiteiten'),
-        ]);
+        $this->send($activity, 'activity_enrollment_changed', MessageVariableBuilders::activityEnrollmentChanged($activity, $person, $enrolled));
     }
 
     /**

@@ -1,14 +1,23 @@
 <?php
 
+use App\Enums\DamageReportStatus;
+use App\Enums\DamageSeverity;
+use App\Enums\ReservableObjectStatus;
 use App\Livewire\Admin\MessageTemplateBeheer;
+use App\Mail\TemplatedMail;
+use App\Models\DamageReport;
 use App\Models\MessageTemplate;
 use App\Models\MessageTemplateFolder;
+use App\Models\ObjectCategory;
 use App\Models\Person;
+use App\Models\ReservableObject;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\MessageTemplateFolderSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -320,4 +329,92 @@ it('bepaalt de beschikbare variabelen systeemzijdig uit de registry op basis van
     $component = Livewire::test(MessageTemplateBeheer::class)->call('edit', $template->id);
 
     expect($component->get('availableVariables'))->toBe(['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url']);
+});
+
+it('kent geen testmail-ondersteuning toe aan een sleutel zonder voorbeeld-model', function () {
+    $this->actingAs($this->beheerder);
+
+    /** @var MessageTemplateBeheer $instance */
+    $instance = Livewire::test(MessageTemplateBeheer::class)->instance();
+
+    expect($instance->templateHasSample('password_reset'))->toBeFalse()
+        ->and($instance->templateHasSample('damage_report_submitted'))->toBeTrue();
+});
+
+it('meldt het ontbreken van een voorbeeld-record i.p.v. de testmail-modal te openen', function () {
+    $template = MessageTemplate::create([
+        'key' => 'damage_report_submitted', 'name' => 'Schademelding', 'subject' => 'X',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
+        'type' => 'transactioneel', 'message_template_folder_id' => $this->systeemberichten->id,
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(MessageTemplateBeheer::class)
+        ->call('openTestMail', $template->id)
+        ->assertNotDispatched('open-modal')
+        ->assertSee('Geen bestaand voorbeeld-record gevonden');
+});
+
+it('vult de testmail-variabelen uit een bestaand voorbeeld-record en verstuurt de testmail', function () {
+    Mail::fake();
+
+    $category = ObjectCategory::create(['name' => 'Boten', 'slug' => 'boten', 'requires_boat_right' => false, 'sort_order' => 10]);
+    $object = ReservableObject::create(['object_category_id' => $category->id, 'name' => 'Skiff #1', 'status' => ReservableObjectStatus::Available]);
+    $reporter = Person::create(['first_name' => 'Mel', 'last_name' => 'Der']);
+    DamageReport::create([
+        'reservable_object_id' => $object->id,
+        'reported_by_person_id' => $reporter->id,
+        'description' => 'Gat in de romp.',
+        'severity' => DamageSeverity::High,
+        'reporter_marked_unusable' => false,
+        'status' => DamageReportStatus::Reported,
+        'reported_at' => Carbon::now(),
+    ]);
+
+    $template = MessageTemplate::create([
+        'key' => 'damage_report_submitted', 'name' => 'Schademelding', 'subject' => 'Melding op {{object}}',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>{{melder}}</p>']]],
+        'type' => 'transactioneel', 'message_template_folder_id' => $this->systeemberichten->id,
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(MessageTemplateBeheer::class)
+        ->call('openTestMail', $template->id)
+        ->assertDispatched('open-modal')
+        ->assertSet('testMailTo', $this->beheerder->email);
+
+    expect($component->get('testMailVariables'))->toHaveKey('{{object}}', 'Skiff #1');
+
+    $component->set('testMailTo', 'test@example.test')
+        ->call('sendTestMail')
+        ->assertHasNoErrors();
+
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('test@example.test')
+        && str_contains($mail->mailSubject, 'Skiff #1'));
+});
+
+it('weigert een ongeldig e-mailadres bij het versturen van een testmail', function () {
+    $category = ObjectCategory::create(['name' => 'Boten', 'slug' => 'boten', 'requires_boat_right' => false, 'sort_order' => 10]);
+    $object = ReservableObject::create(['object_category_id' => $category->id, 'name' => 'Skiff #1', 'status' => ReservableObjectStatus::Available]);
+    $reporter = Person::create(['first_name' => 'Mel', 'last_name' => 'Der']);
+    DamageReport::create([
+        'reservable_object_id' => $object->id, 'reported_by_person_id' => $reporter->id,
+        'description' => 'X', 'severity' => DamageSeverity::Low, 'reporter_marked_unusable' => false,
+        'status' => DamageReportStatus::Reported, 'reported_at' => Carbon::now(),
+    ]);
+    $template = MessageTemplate::create([
+        'key' => 'damage_report_submitted', 'name' => 'Schademelding', 'subject' => 'X',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
+        'type' => 'transactioneel', 'message_template_folder_id' => $this->systeemberichten->id,
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    Livewire::test(MessageTemplateBeheer::class)
+        ->call('openTestMail', $template->id)
+        ->set('testMailTo', 'geen-emailadres')
+        ->call('sendTestMail')
+        ->assertHasErrors('testMailTo');
 });
