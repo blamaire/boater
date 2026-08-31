@@ -22,6 +22,9 @@ class ActiviteitInschrijven extends Component
 
     public ?int $selectedPersonId = null;
 
+    /** @var array<int, mixed> */
+    public array $fieldAnswers = [];
+
     public ?string $statusMessage = null;
 
     public function mount(int $activityId): void
@@ -51,7 +54,7 @@ class ActiviteitInschrijven extends Component
         }
 
         try {
-            $service->enroll($activity, $target, $user->person);
+            $service->enroll($activity, $target, $user->person, fieldAnswers: $this->fieldAnswers);
         } catch (RuntimeException $e) {
             $this->statusMessage = $e->getMessage();
 
@@ -98,7 +101,7 @@ class ActiviteitInschrijven extends Component
 
     public function render(): View
     {
-        $activity = Activity::query()->with('enrollments')->findOrFail($this->activityId);
+        $activity = Activity::query()->with(['enrollments', 'registrationFields.options'])->findOrFail($this->activityId);
         $user = auth()->user();
         $ownPerson = $user?->person;
 

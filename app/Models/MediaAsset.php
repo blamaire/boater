@@ -38,6 +38,12 @@ class MediaAsset extends Model
      */
     public const CONTEXT_DAMAGE_REPORT = 'damage_report';
 
+    /**
+     * Context 'activity' verbergt een asset uit de mediabibliotheek —
+     * bijlagen bij een activiteit horen daar niet thuis.
+     */
+    public const CONTEXT_ACTIVITY = 'activity';
+
     protected $fillable = [
         'uuid',
         'disk',

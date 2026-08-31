@@ -138,6 +138,35 @@ class FacturatieBeheer extends Component
             : 'Geen openstaande posten om te factureren.';
     }
 
+    /**
+     * Bundelt de openstaande posten van élke betaler met nog niet
+     * gefactureerde Charges tot een eigen factuur — één losse factuur per
+     * betaler, net als invoiceDebtor(), maar dan voor iedereen tegelijk.
+     */
+    public function invoiceAllDebtors(BillingService $billing): void
+    {
+        $debtorIds = Charge::query()
+            ->open()
+            ->whereNull('invoice_id')
+            ->distinct()
+            ->pluck('debtor_person_id');
+
+        $created = 0;
+        $total = 0.0;
+
+        foreach (Person::query()->whereIn('id', $debtorIds)->get() as $debtor) {
+            $invoice = $billing->invoiceOpenCharges($debtor);
+            if ($invoice !== null) {
+                $created++;
+                $total += (float) $invoice->total;
+            }
+        }
+
+        $this->statusMessage = $created > 0
+            ? "{$created} factuur/facturen aangemaakt (€ ".number_format($total, 2, ',', '.').' totaal).'
+            : 'Geen openstaande posten om te factureren.';
+    }
+
     public function render(): View
     {
         $openCharges = Charge::query()

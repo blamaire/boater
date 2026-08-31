@@ -31,6 +31,9 @@
                 $hasSpot = $activity->hasFreeSpot();
                 $labelBtn = $hasSpot ? 'Inschrijven' : 'Op wachtlijst zetten';
             @endphp
+
+            @include('livewire.public.partials.registration-fields', ['fields' => $activity->registrationFields])
+
             <button type="button" wire:click="enroll"
                 class="text-sm px-4 py-2 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
                 {{ $labelBtn }}
