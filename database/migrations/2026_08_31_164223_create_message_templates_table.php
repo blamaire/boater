@@ -19,6 +19,10 @@ return new class extends Migration
             // HTML-string. Zie App\Services\Communication\MessageBlockRenderer.
             $table->json('body');
             $table->string('type');
+            // Afgeleid van de root van de gekozen map bij het aanmaken via de
+            // beheer-UI (Systeemberichten → transactioneel, Mailings →
+            // redactioneel) — zie App\Livewire\Admin\MessageTemplateBeheer.
+            $table->foreignId('message_template_folder_id')->constrained('message_template_folders');
             $table->timestamps();
         });
     }

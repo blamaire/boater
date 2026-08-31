@@ -15,6 +15,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             TemplateSeeder::class,
+            // MessageTemplateSeeder roept zelf eerst MessageTemplateFolderSeeder
+            // aan (§24.4) — niet nogmaals los aanroepen.
             MessageTemplateSeeder::class,
             HomeSystemPageSeeder::class,
             // ApproverGroupSeeder móét vóór ReviewPolicySeeder draaien:

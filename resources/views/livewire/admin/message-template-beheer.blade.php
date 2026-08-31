@@ -1,8 +1,8 @@
 <div class="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
     <p class="text-sm text-gray-500">
-        Berichtsjablonen (§24): onderwerp en inhoud van de e-mail die de app automatisch verstuurt, opgebouwd uit
-        blokken (net als een CMS-pagina, maar zonder banden/kolommen — e-mail is van nature één kolom). De sleutel
-        (<code>key</code>) ligt vast in de code en kan na aanmaken niet meer wijzigen.
+        Berichtsjablonen (§24), georganiseerd in mappen: "Systeemberichten" bevat de vaste, code-gestuurde e-mail van
+        de app (niet aan te maken of te verwijderen); onder "Mailings" beheer je vrij je eigen sjablonen. Inhoud wordt
+        opgebouwd uit blokken (net als een CMS-pagina, maar zonder banden/kolommen — e-mail is van nature één kolom).
         <code>@{{variabele}}</code>-tokens worden bij verzending automatisch ingevuld — typ <code>@{{</code> in een
         veld om de beschikbare variabelen te zien.
     </p>
@@ -13,45 +13,120 @@
         </div>
     @endif
 
-    <div class="flex justify-end">
-        <button type="button" x-data="" wire:click="resetForm" x-on:click="$dispatch('open-modal', 'message-template-form')"
-            class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
-            + Nieuw sjabloon
-        </button>
-    </div>
+    <nav class="text-sm text-gray-500 flex items-center gap-1.5 flex-wrap">
+        <button type="button" wire:click="openFolder" class="hover:text-rzvg-600 hover:underline">Berichtsjablonen</button>
+        @foreach ($breadcrumbs as $crumb)
+            <span>&rsaquo;</span>
+            @if ($loop->last)
+                <span class="text-gray-900 font-medium">{{ $crumb->name }}</span>
+            @else
+                <button type="button" wire:click="openFolder({{ $crumb->id }})" class="hover:text-rzvg-600 hover:underline">{{ $crumb->name }}</button>
+            @endif
+        @endforeach
+    </nav>
 
-    <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
-                <colgroup>
-                    <col class="w-56">
-                    <col>
-                    <col class="w-36">
-                    <col class="w-8">
-                </colgroup>
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sleutel</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
-                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Acties</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    @forelse ($templates as $template)
-                        <tr wire:key="message-template-{{ $template->id }}" @class(['bg-rzvg-50' => $editingId === $template->id])>
-                            <td class="px-4 py-2 font-mono text-xs text-gray-700">{{ $template->key }}</td>
-                            <td class="px-4 py-2 text-gray-900">{{ $template->name }}</td>
-                            <td class="px-4 py-2 text-xs text-gray-500">{{ $template->type->label() }}</td>
-                            <x-action-cell click="edit({{ $template->id }})" icon="pencil" title="Bewerken" variant="primary" />
-                        </tr>
-                    @empty
-                        <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">Nog geen sjablonen.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            @foreach ($subFolders as $folder)
+                <div class="relative group border border-gray-200 rounded-lg p-3 bg-white hover:border-rzvg-300 hover:shadow-sm" wire:key="mt-folder-{{ $folder->id }}">
+                    @if ($editingFolderId === $folder->id)
+                        <div class="flex items-center gap-1.5">
+                            <input type="text" wire:model="editingFolderName" wire:keydown.enter="renameFolder" autofocus
+                                class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                            <button type="button" wire:click="renameFolder" class="text-green-600 hover:text-green-800 shrink-0" title="Opslaan">
+                                <x-action-icon name="check" />
+                            </button>
+                            <button type="button" wire:click="cancelRenameFolder" class="text-gray-400 hover:text-gray-700 shrink-0" title="Annuleren">
+                                <x-action-icon name="xmark" />
+                            </button>
+                        </div>
+                        @error('editingFolderName') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                    @else
+                        <button type="button" wire:click="openFolder({{ $folder->id }})" class="flex items-center gap-2 text-left w-full pr-8">
+                            <span class="text-xl shrink-0">📁</span>
+                            <span class="text-sm font-medium text-gray-900 truncate">{{ $folder->name }}</span>
+                        </button>
+                        @if ($folder->is_system)
+                            <span class="absolute top-2 right-2 text-[10px] uppercase tracking-wide text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">systeem</span>
+                        @else
+                            <div class="absolute top-2 right-2 hidden group-hover:flex items-center gap-1.5">
+                                <button type="button" wire:click="startRenameFolder({{ $folder->id }})" class="text-gray-400 hover:text-gray-700" title="Hernoemen">
+                                    <x-action-icon name="pencil" />
+                                </button>
+                                <button type="button" wire:click="deleteFolder({{ $folder->id }})"
+                                    onclick="return confirm('Map [{{ $folder->name }}] verwijderen?');"
+                                    class="text-red-400 hover:text-red-700" title="Verwijderen">
+                                    <x-action-icon name="trash" />
+                                </button>
+                            </div>
+                        @endif
+                    @endif
+                </div>
+            @endforeach
+
+            @if ($currentFolder !== null)
+                <div class="border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50/60">
+                    <div class="flex items-center gap-1.5">
+                        <input type="text" wire:model="newFolderName" wire:keydown.enter="addFolder" placeholder="+ Nieuwe map..."
+                            class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                        <button type="button" wire:click="addFolder" class="text-rzvg-600 hover:text-rzvg-800 shrink-0" title="Map toevoegen">
+                            <x-action-icon name="plus" />
+                        </button>
+                    </div>
+                    @error('newFolderName') <p class="text-red-600 text-xs mt-1">{{ $message }}</p> @enderror
+                </div>
+            @endif
         </div>
+
+        @if ($subFolders->isEmpty() && $currentFolder === null)
+            <p class="text-sm text-gray-500">Geen mappen.</p>
+        @endif
     </section>
+
+    @if ($currentFolder !== null)
+        @if ($canCreateHere)
+            <div class="flex justify-end">
+                <button type="button" x-data="" wire:click="resetForm" x-on:click="$dispatch('open-modal', 'message-template-form')"
+                    class="px-4 py-2 bg-rzvg-500 text-white rounded-md hover:bg-rzvg-600 text-sm">
+                    + Nieuw sjabloon
+                </button>
+            </div>
+        @endif
+
+        <section class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-fixed divide-y divide-gray-200 text-sm">
+                    <colgroup>
+                        <col>
+                        <col class="w-8">
+                        <col class="w-8">
+                    </colgroup>
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Naam</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Bewerken</th>
+                            <th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">Verwijderen</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @forelse ($templatesInFolder as $template)
+                            <tr wire:key="message-template-{{ $template->id }}" @class(['bg-rzvg-50' => $editingId === $template->id])>
+                                <td class="px-4 py-2 text-gray-900">{{ $template->name }}</td>
+                                <x-action-cell click="edit({{ $template->id }})" icon="pencil" title="Bewerken" variant="primary" />
+                                <x-action-cell
+                                    :icon="$template->type->value === 'transactioneel' ? null : 'trash'"
+                                    click="deleteTemplate({{ $template->id }})"
+                                    confirm="Sjabloon [{{ $template->name }}] verwijderen?"
+                                    title="Verwijderen" variant="danger" />
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">Nog geen sjablonen in deze map.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
 
     <x-modal name="message-template-form" maxWidth="4xl">
         {{-- Variabele-inserter, gedelegeerd op de hele modal: typ {{ in eender
@@ -109,24 +184,8 @@
             <h2 class="font-medium text-gray-900 text-lg">{{ $editingId ? 'Sjabloon bewerken' : 'Nieuw sjabloon' }}</h2>
 
             <div class="grid gap-4 sm:grid-cols-2">
-                <label class="block text-sm">
-                    <span class="text-gray-600">Sleutel</span>
-                    <input type="text" wire:model="key" @disabled($editingId) placeholder="bv. enrollment_confirmed"
-                        class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm font-mono disabled:bg-gray-100 disabled:text-gray-500" />
-                    @error('key') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-                </label>
-
-                <label class="block text-sm">
-                    <span class="text-gray-600">Type</span>
-                    <select wire:model="type" @disabled($editingId) class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm disabled:bg-gray-100">
-                        <option value="transactioneel">Transactioneel</option>
-                        <option value="redactioneel">Redactioneel</option>
-                    </select>
-                    @error('type') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
-                </label>
-
                 <label class="block text-sm sm:col-span-2">
-                    <span class="text-gray-600">Naam <span class="text-gray-400">(intern, voor in dit overzicht)</span></span>
+                    <span class="text-gray-600">Titel</span>
                     <input type="text" wire:model="name" class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
                     @error('name') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
                 </label>

@@ -3,12 +3,20 @@
 use App\Mail\TemplatedMail;
 use App\Models\CommunicationLog;
 use App\Models\MessageTemplate;
+use App\Models\MessageTemplateFolder;
 use App\Models\Person;
 use App\Services\Communication\MessageDispatcher;
+use Database\Seeders\MessageTemplateFolderSeeder;
 use Illuminate\Support\Facades\Mail;
+
+beforeEach(function () {
+    $this->seed(MessageTemplateFolderSeeder::class);
+});
 
 function createTemplate(string $type = 'transactioneel'): MessageTemplate
 {
+    $folder = MessageTemplateFolder::query()->where('name', $type === 'redactioneel' ? 'Mailings' : 'Systeemberichten')->firstOrFail();
+
     return MessageTemplate::create([
         'key' => 'test_template',
         'name' => 'Test',
@@ -18,6 +26,7 @@ function createTemplate(string $type = 'transactioneel'): MessageTemplate
             ['type' => 'knop', 'content' => ['label' => 'Klik hier', 'href' => '{{actie_url}}']],
         ],
         'type' => $type,
+        'message_template_folder_id' => $folder->id,
     ]);
 }
 

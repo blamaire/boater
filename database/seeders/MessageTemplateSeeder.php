@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\MessageTemplate;
+use App\Models\MessageTemplateFolder;
 use App\Services\Communication\MessageVariableRegistry;
 use Illuminate\Database\Seeder;
 
@@ -27,7 +28,15 @@ class MessageTemplateSeeder extends Seeder
 {
     public function run(): void
     {
+        $this->call(MessageTemplateFolderSeeder::class);
+
+        $systeemberichten = MessageTemplateFolder::query()
+            ->where('name', 'Systeemberichten')
+            ->whereNull('parent_id')
+            ->firstOrFail();
+
         foreach ($this->templates() as $template) {
+            $template['message_template_folder_id'] = $systeemberichten->id;
             MessageTemplate::updateOrCreate(['key' => $template['key']], $template);
         }
     }
