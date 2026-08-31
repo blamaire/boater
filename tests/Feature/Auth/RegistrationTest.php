@@ -1,5 +1,11 @@
 <?php
 
+use Database\Seeders\MessageTemplateSeeder;
+
+beforeEach(function () {
+    $this->seed(MessageTemplateSeeder::class);
+});
+
 test('registration screen can be rendered', function () {
     $response = $this->get('/register');
 

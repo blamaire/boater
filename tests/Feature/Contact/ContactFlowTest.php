@@ -1,13 +1,14 @@
 <?php
 
 use App\Livewire\Public\Contact;
+use App\Mail\TemplatedMail;
 use App\Models\ContactRequest;
 use App\Models\ContactTopic;
 use App\Models\Person;
-use App\Notifications\ContactRequestSubmitted;
+use Database\Seeders\MessageTemplateSeeder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Livewire\Livewire;
 
@@ -20,6 +21,7 @@ function contactFlowTopic(): ContactTopic
 
 beforeEach(function () {
     RateLimiter::clear('contact-formulier:127.0.0.1');
+    $this->seed(MessageTemplateSeeder::class);
 });
 
 it('toont het contactformulier met de geseede onderwerpen op /contact', function () {
@@ -46,7 +48,7 @@ it('toont het telefoon-/e-mailveld pas nadat de bijbehorende contactwijze is aan
 });
 
 it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke', function () {
-    Notification::fake();
+    Mail::fake();
     $topic = contactFlowTopic();
 
     Livewire::test(Contact::class)
@@ -66,9 +68,7 @@ it('dient een geldig verzoek in met alleen e-mail en mailt de verantwoordelijke'
         ->and($request->contact_by_phone)->toBeFalse()
         ->and($request->status->value)->toBe('nieuw');
 
-    Notification::assertSentOnDemand(ContactRequestSubmitted::class, function ($notification, $channels, $notifiable) {
-        return ($notifiable->routes['mail'] ?? null) === 'verantwoordelijke@example.test';
-    });
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('verantwoordelijke@example.test'));
 });
 
 it('slaat beide contactvoorkeuren op als zowel bellen als mailen zijn aangevinkt', function () {
@@ -118,7 +118,7 @@ it('weigert "bel me terug" zonder telefoonnummer', function () {
 });
 
 it('negeert een indiening stil als het honeypot-veld is ingevuld', function () {
-    Notification::fake();
+    Mail::fake();
     $topic = contactFlowTopic();
 
     Livewire::test(Contact::class)
@@ -133,7 +133,7 @@ it('negeert een indiening stil als het honeypot-veld is ingevuld', function () {
         ->assertSet('submitted', true);
 
     expect(ContactRequest::count())->toBe(0);
-    Notification::assertNothingSent();
+    Mail::assertNothingQueued();
 });
 
 it('blokkeert na te veel verzoeken vanaf hetzelfde IP', function () {

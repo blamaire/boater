@@ -13,13 +13,12 @@ use App\Models\Enrollment;
 use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
 use App\Models\Product;
-use App\Notifications\EnrollmentConfirmed;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
 use App\Services\Finance\BillingService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 /**
@@ -38,6 +37,7 @@ class EnrollmentService
         private readonly AuditLogger $audit,
         private readonly ActivityManagerNotifier $notifier,
         private readonly BillingService $billing,
+        private readonly MessageDispatcher $dispatcher,
     ) {}
 
     /**
@@ -128,7 +128,16 @@ class EnrollmentService
         $this->notifier->notifyEnrollment($activity, $person, true);
 
         if ($person->email !== null && $person->email !== '') {
-            Notification::route('mail', $person->email)->notify(new EnrollmentConfirmed($activity, $enrollment->status));
+            $templateKey = $enrollment->status === EnrollmentStatus::Waitlist ? 'enrollment_waitlisted' : 'enrollment_confirmed';
+
+            $this->dispatcher->send($templateKey, $person->email, [
+                '{{voornaam}}' => $person->first_name,
+                '{{achternaam}}' => $person->last_name,
+                '{{titel}}' => $activity->title,
+                '{{datum}}' => $activity->starts_at->translatedFormat('l j F Y H:i'),
+                '{{locatie_regel}}' => $activity->location !== null ? 'Locatie: '.$activity->location : '',
+                '{{activiteit_url}}' => route('activiteit.show', $activity),
+            ], recipient: $person, related: $activity);
         }
 
         return $enrollment;

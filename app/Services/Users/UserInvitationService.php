@@ -10,8 +10,8 @@ use App\Models\PersonRelation;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\User;
-use App\Notifications\AccountInvitation;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
 use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +28,10 @@ use RuntimeException;
  */
 class UserInvitationService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly MessageDispatcher $dispatcher,
+    ) {}
 
     /**
      * @param  array{first_name: string, last_name_prefix: ?string, last_name: string, email: string, phone: ?string, date_of_birth: ?string}  $personData
@@ -130,6 +133,16 @@ class UserInvitationService
         /** @var PasswordBroker $broker */
         $broker = Password::broker();
         $token = $broker->createToken($user);
-        $user->notify(new AccountInvitation($token));
+        $url = url(route('password.reset', ['token' => $token, 'email' => $user->email], false));
+        $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+        $person = $user->person;
+
+        $this->dispatcher->send('account_invitation', $user->email, [
+            '{{voornaam}}' => $person !== null ? $person->first_name : '',
+            '{{achternaam}}' => $person !== null ? $person->last_name : '',
+            '{{uitnodiging_url}}' => $url,
+            '{{minuten}}' => (string) $minutes,
+        ], recipient: $person);
     }
 }

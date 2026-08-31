@@ -6,10 +6,9 @@ use App\Enums\ContactRequestStatus;
 use App\Models\ContactRequest;
 use App\Models\ContactTopic;
 use App\Models\Person;
-use App\Notifications\ContactRequestSubmitted;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Publiek contactformulier ("bel/mail me terug"). Loopt bewust niet via de
@@ -19,7 +18,10 @@ use Illuminate\Support\Facades\Notification;
  */
 class ContactRequestService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly MessageDispatcher $dispatcher,
+    ) {}
 
     public function submit(
         ContactTopic $topic,
@@ -50,8 +52,15 @@ class ContactRequestService
 
             $responsible = $topic->responsible;
             if (filled($responsible->email)) {
-                Notification::route('mail', $responsible->email)
-                    ->notify(new ContactRequestSubmitted($request));
+                $this->dispatcher->send('contact_request_submitted', $responsible->email, [
+                    '{{onderwerp}}' => $topic->name,
+                    '{{naam}}' => $name,
+                    '{{voorkeur}}' => $request->contactMethodLabel(),
+                    '{{telefoon_regel}}' => $phone ? 'Telefoon: '.$phone.'<br>' : '',
+                    '{{email_regel}}' => $email ? 'E-mail: '.$email.'<br>' : '',
+                    '{{bericht}}' => $message,
+                    '{{verzoek_url}}' => url('/beheer/contactverzoeken/'.$request->id),
+                ], recipient: $responsible, related: $request);
             }
 
             return $request;

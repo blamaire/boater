@@ -4,6 +4,7 @@ use App\Enums\ChangeType;
 use App\Enums\MembershipStatus;
 use App\Enums\ProposalStatus;
 use App\Livewire\Public\LidWorden;
+use App\Mail\TemplatedMail;
 use App\Models\Guardianship;
 use App\Models\Household;
 use App\Models\Membership;
@@ -12,14 +13,14 @@ use App\Models\Person;
 use App\Models\Proposal;
 use App\Models\Role;
 use App\Models\User;
-use App\Notifications\MembershipApplicationReceived;
 use App\Services\Proposals\Handlers\MembershipApplicationHandler;
 use App\Services\Proposals\ProposalEngine;
 use Database\Seeders\MembershipTypeSeeder;
+use Database\Seeders\MessageTemplateSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReviewPolicySeeder;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Livewire\Livewire;
 
@@ -28,6 +29,7 @@ beforeEach(function () {
     $this->seed(RoleSeeder::class);
     $this->seed(MembershipTypeSeeder::class);
     $this->seed(ReviewPolicySeeder::class);
+    $this->seed(MessageTemplateSeeder::class);
 });
 
 it('rendert het lid-worden formulier op /lid-worden', function () {
@@ -38,7 +40,7 @@ it('rendert het lid-worden formulier op /lid-worden', function () {
 });
 
 it('kan een aanvraag indienen als volwassene die een A-lid kiest', function () {
-    Notification::fake();
+    Mail::fake();
 
     Livewire::test(LidWorden::class)
         ->set('first_name', 'John')
@@ -65,10 +67,10 @@ it('kan een aanvraag indienen als volwassene die een A-lid kiest', function () {
         ->and($proposal->payload['person']['first_name'])->toBe('John')
         ->and($proposal->payload['is_minor'])->toBeFalse();
 
-    Notification::assertSentOnDemand(MembershipApplicationReceived::class, function ($notification, $channels, $notifiable) {
-        return in_array('john@example.com', (array) $notifiable->routes['mail'], true)
-            && $notification->firstName === 'John'
-            && $notification->membershipTypeName === 'A-lid';
+    Mail::assertQueued(TemplatedMail::class, function (TemplatedMail $mail) {
+        return $mail->hasTo('john@example.com')
+            && str_contains($mail->bodyHtml, 'John')
+            && str_contains($mail->bodyHtml, 'A-lid');
     });
 });
 

@@ -2,6 +2,7 @@
 
 use App\Enums\MembershipStatus;
 use App\Livewire\Admin\GebruikerBeheer;
+use App\Mail\TemplatedMail;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\Permission;
@@ -9,17 +10,18 @@ use App\Models\Person;
 use App\Models\PersonRelation;
 use App\Models\Role;
 use App\Models\User;
-use App\Notifications\AccountInvitation;
 use Database\Seeders\MembershipTypeSeeder;
+use Database\Seeders\MessageTemplateSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(MembershipTypeSeeder::class);
     $this->seed(RoleSeeder::class);
+    $this->seed(MessageTemplateSeeder::class);
 
     $this->beheerder = User::factory()->create(['email_verified_at' => now()]);
     $beheerderPerson = Person::create(['first_name' => 'B', 'last_name' => 'Heer', 'account_id' => $this->beheerder->id]);
@@ -36,7 +38,7 @@ it('rendert de gebruikersbeheer-pagina voor een beheerder', function () {
 });
 
 it('maakt een nieuwe gebruiker (User + Person + Membership + rol) aan en stuurt uitnodiging', function () {
-    Notification::fake();
+    Mail::fake();
 
     $typeA = MembershipType::query()->where('key', 'a')->firstOrFail();
     $rolBeheerder = Role::query()->where('name', 'Beheerder')->firstOrFail();
@@ -59,11 +61,11 @@ it('maakt een nieuwe gebruiker (User + Person + Membership + rol) aan en stuurt 
         ->and($user->person->memberships()->first()->type->key)->toBe('a')
         ->and($user->person->roles()->pluck('name'))->toContain('Beheerder');
 
-    Notification::assertSentTo($user, AccountInvitation::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->mailSubject === 'Welkom bij RZVG — kies je wachtwoord');
 });
 
 it('maakt gebruiker aan zonder mail als de checkbox uit staat', function () {
-    Notification::fake();
+    Mail::fake();
     $typeA = MembershipType::query()->where('key', 'a')->firstOrFail();
 
     $this->actingAs($this->beheerder);
@@ -77,8 +79,8 @@ it('maakt gebruiker aan zonder mail als de checkbox uit staat', function () {
         ->call('save')
         ->assertHasNoErrors();
 
-    $user = User::query()->where('email', 'bram@example.com')->firstOrFail();
-    Notification::assertNothingSentTo($user);
+    User::query()->where('email', 'bram@example.com')->firstOrFail();
+    Mail::assertNothingQueued();
 });
 
 it('eist een gekoppeld jeugdlid bij type ouder_verzorger', function () {
@@ -96,7 +98,7 @@ it('eist een gekoppeld jeugdlid bij type ouder_verzorger', function () {
 });
 
 it('koppelt een ouder aan een jeugdlid via person_relations', function () {
-    Notification::fake();
+    Mail::fake();
 
     $typeJeugd = MembershipType::query()->where('key', 'jeugd')->firstOrFail();
     $typeOuder = MembershipType::query()->where('key', 'ouder_verzorger')->firstOrFail();
@@ -157,7 +159,7 @@ it('deactiveert en heractiveert een account', function () {
 });
 
 it('verstuurt een nieuwe uitnodiging bij "opnieuw sturen"', function () {
-    Notification::fake();
+    Mail::fake();
     $user = User::factory()->create(['email' => 'opnieuw@example.com']);
     Person::create(['first_name' => 'H', 'last_name' => 'Erha', 'account_id' => $user->id]);
 
@@ -165,7 +167,7 @@ it('verstuurt een nieuwe uitnodiging bij "opnieuw sturen"', function () {
 
     Livewire::test(GebruikerBeheer::class)->call('resendInvitation', $user->id);
 
-    Notification::assertSentTo($user, AccountInvitation::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->mailSubject === 'Welkom bij RZVG — kies je wachtwoord');
 });
 
 it('zorgt dat de Beheerder-rol automatisch de nieuwe users.manage-permissie heeft', function () {

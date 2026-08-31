@@ -4,10 +4,7 @@ namespace App\Services\Activities;
 
 use App\Models\Activity;
 use App\Models\Person;
-use App\Notifications\ActivityChanged;
-use App\Notifications\ActivityEnrollmentChanged;
-use Illuminate\Notifications\Notification as NotificationClass;
-use Illuminate\Support\Facades\Notification;
+use App\Services\Communication\MessageDispatcher;
 
 /**
  * Stuurt mailnotificaties naar de gedelegeerde beheerders van een activiteit
@@ -17,17 +14,34 @@ use Illuminate\Support\Facades\Notification;
  */
 class ActivityManagerNotifier
 {
+    public function __construct(private readonly MessageDispatcher $dispatcher) {}
+
     public function notifyChanged(Activity $activity): void
     {
-        $this->send($activity, new ActivityChanged($activity));
+        $this->send($activity, 'activity_changed', [
+            '{{titel}}' => $activity->title,
+            '{{datum}}' => $activity->starts_at->translatedFormat('l j F Y H:i'),
+            '{{activiteiten_url}}' => url('/beheer/activiteiten'),
+        ]);
     }
 
     public function notifyEnrollment(Activity $activity, Person $person, bool $enrolled): void
     {
-        $this->send($activity, new ActivityEnrollmentChanged($activity, $person, $enrolled));
+        $personLabel = trim($person->first_name.' '.$person->last_name);
+
+        $this->send($activity, 'activity_enrollment_changed', [
+            '{{onderwerp_actie}}' => $enrolled ? 'Nieuwe inschrijving' : 'Nieuwe afmelding',
+            '{{persoon}}' => $personLabel,
+            '{{actie}}' => $enrolled ? 'ingeschreven op' : 'afgemeld voor',
+            '{{titel}}' => $activity->title,
+            '{{activiteiten_url}}' => url('/beheer/activiteiten'),
+        ]);
     }
 
-    private function send(Activity $activity, NotificationClass $notification): void
+    /**
+     * @param  array<string, string>  $variables
+     */
+    private function send(Activity $activity, string $templateKey, array $variables): void
     {
         $recipients = $activity->managers()->wherePivot('notify', true)->get();
 
@@ -39,7 +53,7 @@ class ActivityManagerNotifier
             if ($manager->email === null || $manager->email === '') {
                 continue;
             }
-            Notification::route('mail', $manager->email)->notify($notification);
+            $this->dispatcher->send($templateKey, $manager->email, $variables, recipient: $manager, related: $activity);
         }
     }
 }

@@ -4,6 +4,7 @@ use App\Enums\DamageReportStatus;
 use App\Enums\DamageSeverity;
 use App\Enums\ReservableObjectStatus;
 use App\Enums\ReservationStatus;
+use App\Mail\TemplatedMail;
 use App\Models\AuditEntry;
 use App\Models\CategoryResponsible;
 use App\Models\DamageReport;
@@ -11,11 +12,12 @@ use App\Models\ObjectCategory;
 use App\Models\Person;
 use App\Models\ReservableObject;
 use App\Models\Reservation;
-use App\Notifications\DamageReportSubmitted;
 use App\Services\DamageReports\DamageReportService;
-use Illuminate\Support\Facades\Notification;
+use Database\Seeders\MessageTemplateSeeder;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
+    $this->seed(MessageTemplateSeeder::class);
     $this->parent = ObjectCategory::create([
         'name' => 'Boten',
         'slug' => 'boten',
@@ -42,7 +44,7 @@ function makeReservableObject(int $categoryId, ReservableObjectStatus $status = 
 }
 
 it('maakt een melding aan met status gemeld en logt de tijdstempel', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     $report = app(DamageReportService::class)->submit(
@@ -60,7 +62,7 @@ it('maakt een melding aan met status gemeld en logt de tijdstempel', function ()
 });
 
 it('zet het object direct op buiten gebruik wanneer melder niet-bruikbaar aankruist (§22.4)', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     app(DamageReportService::class)->submit(
@@ -76,7 +78,7 @@ it('zet het object direct op buiten gebruik wanneer melder niet-bruikbaar aankru
 });
 
 it('laat het object beschikbaar wanneer melder niet-bruikbaar niet aankruist', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     app(DamageReportService::class)->submit(
@@ -92,7 +94,7 @@ it('laat het object beschikbaar wanneer melder niet-bruikbaar niet aankruist', f
 });
 
 it('kan een buiten-gebruik-object weer op beschikbaar zetten via restoreObject', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     $report = app(DamageReportService::class)->submit(
@@ -110,7 +112,7 @@ it('kan een buiten-gebruik-object weer op beschikbaar zetten via restoreObject',
 });
 
 it('doorloopt de status-workflow gemeld → in behandeling → opgelost', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
     $service = app(DamageReportService::class);
 
@@ -136,7 +138,7 @@ it('doorloopt de status-workflow gemeld → in behandeling → opgelost', functi
 });
 
 it('mailt de verantwoordelijke van de eigen categorie', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
     $direct = Person::create(['first_name' => 'Cat', 'last_name' => 'Chief', 'email' => 'cat@example.test']);
     CategoryResponsible::create(['object_category_id' => $this->child->id, 'person_id' => $direct->id]);
@@ -150,14 +152,11 @@ it('mailt de verantwoordelijke van de eigen categorie', function () {
         photos: collect(),
     );
 
-    Notification::assertSentOnDemand(DamageReportSubmitted::class, function ($notification, $channels, $notifiable) use ($direct) {
-        return in_array('mail', $channels, true)
-            && ($notifiable->routes['mail'] ?? null) === $direct->email;
-    });
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo($direct->email));
 });
 
 it('erft de verantwoordelijke van de parent-categorie als de eigen categorie er geen heeft (§22.4)', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
     $parentChief = Person::create(['first_name' => 'Par', 'last_name' => 'Ent', 'email' => 'parent@example.test']);
     CategoryResponsible::create(['object_category_id' => $this->parent->id, 'person_id' => $parentChief->id]);
@@ -171,13 +170,11 @@ it('erft de verantwoordelijke van de parent-categorie als de eigen categorie er 
         photos: collect(),
     );
 
-    Notification::assertSentOnDemand(DamageReportSubmitted::class, function ($notification, $channels, $notifiable) use ($parentChief) {
-        return ($notifiable->routes['mail'] ?? null) === $parentChief->email;
-    });
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo($parentChief->email));
 });
 
 it('stuurt geen mail als geen enkele categorie in de keten een verantwoordelijke heeft', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     app(DamageReportService::class)->submit(
@@ -189,11 +186,11 @@ it('stuurt geen mail als geen enkele categorie in de keten een verantwoordelijke
         photos: collect(),
     );
 
-    Notification::assertNothingSent();
+    Mail::assertNothingQueued();
 });
 
 it('logt "damage_report.submitted" in het auditlogboek', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     $report = app(DamageReportService::class)->submit(
@@ -210,7 +207,7 @@ it('logt "damage_report.submitted" in het auditlogboek', function () {
 });
 
 it('heeft de melding gekoppeld aan een reservering als die wordt meegegeven', function () {
-    Notification::fake();
+    Mail::fake();
     $object = makeReservableObject($this->child->id);
 
     $reservation = Reservation::create([

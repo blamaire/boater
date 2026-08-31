@@ -1,13 +1,18 @@
 <?php
 
 use App\Enums\ContactRequestStatus;
+use App\Mail\TemplatedMail;
 use App\Models\AuditEntry;
 use App\Models\ContactTopic;
 use App\Models\Person;
 use App\Models\User;
-use App\Notifications\ContactRequestSubmitted;
 use App\Services\Contact\ContactRequestService;
-use Illuminate\Support\Facades\Notification;
+use Database\Seeders\MessageTemplateSeeder;
+use Illuminate\Support\Facades\Mail;
+
+beforeEach(function () {
+    $this->seed(MessageTemplateSeeder::class);
+});
 
 function contactTopicWithResponsible(?string $responsibleEmail = 'verantwoordelijke@example.test'): ContactTopic
 {
@@ -21,7 +26,7 @@ function contactTopicWithResponsible(?string $responsibleEmail = 'verantwoordeli
 }
 
 it('maakt een contactverzoek aan en mailt de verantwoordelijke van het onderwerp', function () {
-    Notification::fake();
+    Mail::fake();
     $topic = contactTopicWithResponsible('chief@example.test');
 
     $request = app(ContactRequestService::class)->submit(
@@ -38,14 +43,11 @@ it('maakt een contactverzoek aan en mailt de verantwoordelijke van het onderwerp
     expect($request->contact_topic_id)->toBe($topic->id)
         ->and($request->status)->toBe(ContactRequestStatus::Nieuw);
 
-    Notification::assertSentOnDemand(ContactRequestSubmitted::class, function ($notification, $channels, $notifiable) {
-        return in_array('mail', $channels, true)
-            && ($notifiable->routes['mail'] ?? null) === 'chief@example.test';
-    });
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => str_contains($mail->mailSubject, 'Algemeen') && $mail->hasTo('chief@example.test'));
 });
 
 it('maakt het verzoek wél aan als de verantwoordelijke geen e-mailadres heeft, maar stuurt geen mail', function () {
-    Notification::fake();
+    Mail::fake();
     $topic = contactTopicWithResponsible(null);
 
     $request = app(ContactRequestService::class)->submit(
@@ -60,10 +62,11 @@ it('maakt het verzoek wél aan als de verantwoordelijke geen e-mailadres heeft, 
     );
 
     expect($request->exists)->toBeTrue();
-    Notification::assertNothingSent();
+    Mail::assertNothingQueued();
 });
 
 it('wijzigt de status en legt het vast in het auditlogboek', function () {
+    Mail::fake();
     $topic = contactTopicWithResponsible();
     $request = app(ContactRequestService::class)->submit(
         topic: $topic,

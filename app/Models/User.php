@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-use App\Notifications\QueuedResetPassword;
-use App\Notifications\QueuedVerifyEmail;
+use App\Services\Communication\MessageDispatcher;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 
 /**
  * @property int $id
@@ -74,21 +74,38 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Verstuur de e-mailverificatie-notificatie via de queue,
-     * zodat de HTTP-request niet blokkeert op de SMTP-call.
+     * Verstuur de e-mailverificatie-notificatie via de queue (§24,
+     * `MessageDispatcher`), zodat de HTTP-request niet blokkeert op de
+     * SMTP-call. URL-opbouw 1-op-1 overgenomen van Laravel's eigen
+     * `VerifyEmail::verificationUrl()`.
      */
     public function sendEmailVerificationNotification(): void
     {
-        $this->notify(new QueuedVerifyEmail);
+        $url = URL::temporarySignedRoute(
+            'verification.verify',
+            Carbon::now()->addMinutes((int) config('auth.verification.expire', 60)),
+            ['id' => $this->getKey(), 'hash' => sha1($this->getEmailForVerification())],
+        );
+
+        app(MessageDispatcher::class)->send('email_verification', $this->email, [
+            '{{verificatie_url}}' => $url,
+        ], recipient: $this->person);
     }
 
     /**
-     * Verstuur de wachtwoord-reset-notificatie via de queue.
+     * Verstuur de wachtwoord-reset-notificatie via de queue (§24,
+     * `MessageDispatcher`).
      *
      * @param  string  $token
      */
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new QueuedResetPassword($token));
+        $url = url(route('password.reset', ['token' => $token, 'email' => $this->getEmailForPasswordReset()], false));
+        $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+
+        app(MessageDispatcher::class)->send('password_reset', $this->email, [
+            '{{reset_url}}' => $url,
+            '{{minuten}}' => (string) $minutes,
+        ], recipient: $this->person);
     }
 }

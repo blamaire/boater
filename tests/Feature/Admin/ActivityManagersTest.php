@@ -1,25 +1,26 @@
 <?php
 
 use App\Livewire\Admin\ActiviteitBeheer;
+use App\Mail\TemplatedMail;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\ApproverGroup;
 use App\Models\Person;
 use App\Models\Role;
 use App\Models\User;
-use App\Notifications\ActivityChanged;
-use App\Notifications\ActivityEnrollmentChanged;
 use App\Services\Activities\EnrollmentService;
 use Database\Seeders\ActivityCategorySeeder;
+use Database\Seeders\MessageTemplateSeeder;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 
 beforeEach(function () {
     $this->seed(PermissionSeeder::class);
     $this->seed(RoleSeeder::class);
     $this->seed(ActivityCategorySeeder::class);
+    $this->seed(MessageTemplateSeeder::class);
     $this->category = ActivityCategory::query()->where('slug', 'roeien')->firstOrFail();
 
     $this->beheerder = User::factory()->create(['email_verified_at' => now()]);
@@ -90,7 +91,7 @@ it('voegt een goedkeuringsgroep toe als beheerder en kan die weer verwijderen', 
 });
 
 it('mailt leden van een gekoppelde beheerdersgroep bij een wijziging', function () {
-    Notification::fake();
+    Mail::fake();
 
     $activity = Activity::create([
         'activity_category_id' => $this->category->id,
@@ -109,11 +110,11 @@ it('mailt leden van een gekoppelde beheerdersgroep bij een wijziging', function 
         ->set('location', 'Nieuwe steiger')
         ->call('saveActivity');
 
-    Notification::assertSentOnDemand(ActivityChanged::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('bestuur-lid@example.test'));
 });
 
 it('mailt een beheerder met notify=true bij een wijziging van de activiteit', function () {
-    Notification::fake();
+    Mail::fake();
 
     $activity = Activity::create([
         'activity_category_id' => $this->category->id,
@@ -130,11 +131,11 @@ it('mailt een beheerder met notify=true bij een wijziging van de activiteit', fu
         ->set('location', 'Nieuwe steiger')
         ->call('saveActivity');
 
-    Notification::assertSentOnDemand(ActivityChanged::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('manager@example.test'));
 });
 
 it('mailt geen beheerder met notify=false', function () {
-    Notification::fake();
+    Mail::fake();
 
     $activity = Activity::create([
         'activity_category_id' => $this->category->id,
@@ -149,11 +150,11 @@ it('mailt geen beheerder met notify=false', function () {
 
     app(EnrollmentService::class)->enroll($activity, $lidPerson);
 
-    Notification::assertSentOnDemandTimes(ActivityEnrollmentChanged::class, 0);
+    Mail::assertNotQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('manager@example.test'));
 });
 
 it('mailt een beheerder bij een nieuwe inschrijving', function () {
-    Notification::fake();
+    Mail::fake();
 
     $activity = Activity::create([
         'activity_category_id' => $this->category->id,
@@ -168,5 +169,5 @@ it('mailt een beheerder bij een nieuwe inschrijving', function () {
 
     app(EnrollmentService::class)->enroll($activity, $lidPerson);
 
-    Notification::assertSentOnDemand(ActivityEnrollmentChanged::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('manager@example.test'));
 });

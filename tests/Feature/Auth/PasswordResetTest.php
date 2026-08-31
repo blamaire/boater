@@ -1,8 +1,13 @@
 <?php
 
+use App\Mail\TemplatedMail;
 use App\Models\User;
-use App\Notifications\QueuedResetPassword as ResetPassword;
-use Illuminate\Support\Facades\Notification;
+use Database\Seeders\MessageTemplateSeeder;
+use Illuminate\Support\Facades\Mail;
+
+beforeEach(function () {
+    $this->seed(MessageTemplateSeeder::class);
+});
 
 test('reset password link screen can be rendered', function () {
     $response = $this->get('/forgot-password');
@@ -11,24 +16,31 @@ test('reset password link screen can be rendered', function () {
 });
 
 test('reset password link can be requested', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
     $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->mailSubject === 'Wachtwoord opnieuw instellen');
 });
 
+function extractResetTokenFromMail(TemplatedMail $mail): string
+{
+    preg_match('#/reset-password/([^"&?]+)#', $mail->bodyHtml, $matches);
+
+    return $matches[1] ?? '';
+}
+
 test('reset password screen can be rendered', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
     $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-        $response = $this->get('/reset-password/'.$notification->token);
+    Mail::assertQueued(TemplatedMail::class, function (TemplatedMail $mail) {
+        $response = $this->get('/reset-password/'.extractResetTokenFromMail($mail));
 
         $response->assertStatus(200);
 
@@ -37,15 +49,15 @@ test('reset password screen can be rendered', function () {
 });
 
 test('password can be reset with valid token', function () {
-    Notification::fake();
+    Mail::fake();
 
     $user = User::factory()->create();
 
     $this->post('/forgot-password', ['email' => $user->email]);
 
-    Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+    Mail::assertQueued(TemplatedMail::class, function (TemplatedMail $mail) use ($user) {
         $response = $this->post('/reset-password', [
-            'token' => $notification->token,
+            'token' => extractResetTokenFromMail($mail),
             'email' => $user->email,
             'password' => 'password',
             'password_confirmation' => 'password',

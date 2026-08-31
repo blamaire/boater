@@ -3,6 +3,7 @@
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityVisibility;
 use App\Enums\EnrollmentStatus;
+use App\Mail\TemplatedMail;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
 use App\Models\Charge;
@@ -11,16 +12,17 @@ use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
 use App\Models\Product;
 use App\Models\ProductPrice;
-use App\Notifications\EnrollmentConfirmed;
 use App\Services\Activities\EnrollmentService;
 use Database\Seeders\DagboekSeeder;
 use Database\Seeders\LedgerAccountSeeder;
-use Illuminate\Support\Facades\Notification;
+use Database\Seeders\MessageTemplateSeeder;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     $this->category = ActivityCategory::create(['name' => 'Roeien', 'slug' => 'roeien', 'sort_order' => 10]);
     $this->seed(LedgerAccountSeeder::class);
     $this->seed(DagboekSeeder::class);
+    $this->seed(MessageTemplateSeeder::class);
 });
 
 function newActivity(int $categoryId, ?int $capacity = null, ActivityStatus $status = ActivityStatus::Published): Activity
@@ -148,14 +150,14 @@ it('weigert annuleren na de uiterste annuleringsdatum', function () {
 });
 
 it('mailt de ingeschrevene zelf een bevestiging', function () {
-    Notification::fake();
+    Mail::fake();
 
     $activity = newActivity($this->category->id, capacity: 5);
     $person = Person::create(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@example.test']);
 
     app(EnrollmentService::class)->enroll($activity, $person);
 
-    Notification::assertSentOnDemand(EnrollmentConfirmed::class);
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('a@example.test'));
 });
 
 it('weigert inschrijving zonder antwoord op een verplicht inschrijfveld', function () {

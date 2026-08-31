@@ -4,7 +4,7 @@ namespace App\Livewire\Public;
 
 use App\Enums\ChangeType;
 use App\Models\MembershipType;
-use App\Notifications\MembershipApplicationReceived;
+use App\Services\Communication\MessageDispatcher;
 use App\Services\Membership\BagAddressLookup;
 use App\Services\Membership\MembershipEligibility;
 use App\Services\Membership\MembershipTypeEligibility;
@@ -13,7 +13,6 @@ use App\Services\Proposals\ProposalEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Notification;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -139,7 +138,7 @@ class LidWorden extends Component
         return $this->eligibility()->firstWhere(fn (MembershipTypeEligibility $e) => $e->type->key === $this->membership_type_key);
     }
 
-    public function submit(ProposalEngine $engine): void
+    public function submit(ProposalEngine $engine, MessageDispatcher $dispatcher): void
     {
         $this->validate([
             'first_name' => 'required|string|max:100',
@@ -235,11 +234,10 @@ class LidWorden extends Component
 
         $membershipTypeName = MembershipType::query()->where('key', $this->membership_type_key)->value('name') ?? 'onbekend';
 
-        Notification::route('mail', $this->email)
-            ->notify(new MembershipApplicationReceived(
-                firstName: $this->first_name,
-                membershipTypeName: (string) $membershipTypeName,
-            ));
+        $dispatcher->send('membership_application_received', $this->email, [
+            '{{voornaam}}' => $this->first_name,
+            '{{lidmaatschapsvorm}}' => (string) $membershipTypeName,
+        ]);
 
         $this->submitted = true;
     }

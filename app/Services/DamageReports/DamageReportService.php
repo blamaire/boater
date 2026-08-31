@@ -10,12 +10,11 @@ use App\Models\MediaAsset;
 use App\Models\Person;
 use App\Models\ReservableObject;
 use App\Models\Reservation;
-use App\Notifications\DamageReportSubmitted;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 /**
  * Schade melden — §22. Loopt bewust niet via de goedkeuringsmotor;
@@ -31,7 +30,10 @@ use Illuminate\Support\Facades\Notification;
  */
 class DamageReportService
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly MessageDispatcher $dispatcher,
+    ) {}
 
     /**
      * @param  Collection<int, MediaAsset>  $photos
@@ -79,12 +81,23 @@ class DamageReportService
                 'photo_count' => $photos->count(),
             ]);
 
+            $reporterLabel = trim($reporter->first_name.' '.$reporter->last_name);
+            $meldingUrl = url('/beheer/schademeldingen/'.$report->id);
+            $notice = $reporterMarkedUnusable
+                ? 'De melder heeft "niet bruikbaar" aangevinkt. Het object staat nu op "buiten gebruik" en is onreserveerbaar totdat een behandelaar dat terugdraait.'
+                : '';
+
             foreach ($this->resolveRecipients($object) as $recipient) {
                 if ($recipient->email === null || $recipient->email === '') {
                     continue;
                 }
-                Notification::route('mail', $recipient->email)
-                    ->notify(new DamageReportSubmitted($report));
+                $this->dispatcher->send('damage_report_submitted', $recipient->email, [
+                    '{{object}}' => $object->name,
+                    '{{melder}}' => $reporterLabel !== '' ? $reporterLabel : 'onbekend',
+                    '{{ernst}}' => $severity->label(),
+                    '{{niet_bruikbaar_notice}}' => $notice,
+                    '{{melding_url}}' => $meldingUrl,
+                ], recipient: $recipient, related: $report);
             }
 
             return $report;
