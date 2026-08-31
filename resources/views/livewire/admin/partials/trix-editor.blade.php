@@ -1,26 +1,25 @@
 @php($property ??= 'description')
+{{-- Bewust $wire.$watch() i.p.v. @entangle() + lokale Alpine $watch: dat
+     laatste bleek onbetrouwbaar buiten de directe x-model-vorm (leeg
+     gebleven Trix-veld na edit() in een CRUD-modal). $wire.$watch() is
+     Livewire's eigen, gedocumenteerde manier om op een servergestuurde
+     wijziging van een component-property te reageren, ongeacht de bron. --}}
 <div wire:ignore x-data="{
-    value: @entangle($property),
     syncing: false,
     setContent(html) {
         this.$refs.trixInput.value = html ?? '';
         this.$refs.editor.editor.loadHTML(html ?? '');
     },
     init() {
-        this.setContent(this.value);
+        this.setContent($wire.{{ $property }});
         this.$refs.editor.addEventListener('trix-change', () => {
             this.syncing = true;
-            this.value = this.$refs.trixInput.value;
+            $wire.{{ $property }} = this.$refs.trixInput.value;
             this.$nextTick(() => { this.syncing = false; });
         });
-        // Nodig zodra dezelfde editor-DOM voor meerdere records hergebruikt
-        // wordt (bv. een CRUD-modal die na edit() opnieuw opent voor een
-        // ánder record) — zonder deze watcher blijft de zichtbare inhoud na
-        // de eerste keer laden hangen op de oude waarde. De `syncing`-vlag
-        // voorkomt dat elke eigen toetsaanslag de cursor laat springen.
-        this.$watch('value', (newValue) => {
+        $wire.$watch('{{ $property }}', (value) => {
             if (this.syncing) return;
-            this.setContent(newValue);
+            this.setContent(value);
         });
     },
 }">
