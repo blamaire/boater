@@ -418,3 +418,47 @@ it('weigert een ongeldig e-mailadres bij het versturen van een testmail', functi
         ->call('sendTestMail')
         ->assertHasErrors('testMailTo');
 });
+
+it('biedt de basisset variabelen aan bij een nieuw sjabloon onder Mailings', function () {
+    $sub = MessageTemplateFolder::create(['name' => 'Nieuwsbrief', 'parent_id' => $this->mailings->id]);
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(MessageTemplateBeheer::class)
+        ->call('openFolder', $sub->id)
+        ->call('resetForm');
+
+    expect($component->get('availableVariables'))->toBe(['voornaam', 'achternaam', 'titel', 'datum']);
+});
+
+it('vult de basisset aan bij het bewerken van een bestaand Mailings-sjabloon, zonder duplicaten', function () {
+    $sub = MessageTemplateFolder::create(['name' => 'Nieuwsbrief', 'parent_id' => $this->mailings->id]);
+    $template = MessageTemplate::create([
+        'key' => 'nieuwsbrief_x', 'name' => 'Editie X', 'subject' => 'X',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
+        'type' => 'redactioneel', 'message_template_folder_id' => $sub->id,
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(MessageTemplateBeheer::class)
+        ->call('openFolder', $sub->id)
+        ->call('edit', $template->id);
+
+    expect($component->get('availableVariables'))->toBe(['voornaam', 'achternaam', 'titel', 'datum']);
+});
+
+it('biedt geen basisset variabelen aan voor een Systeemberichten-sjabloon', function () {
+    $template = MessageTemplate::create([
+        'key' => 'password_reset', 'name' => 'Wachtwoord', 'subject' => 'X',
+        'body' => [['type' => 'tekst', 'content' => ['html' => '<p>X</p>']]],
+        'type' => 'transactioneel', 'message_template_folder_id' => $this->systeemberichten->id,
+    ]);
+
+    $this->actingAs($this->beheerder);
+
+    $component = Livewire::test(MessageTemplateBeheer::class)
+        ->call('openFolder', $this->systeemberichten->id)
+        ->call('edit', $template->id);
+
+    expect($component->get('availableVariables'))->toBe(['reset_url', 'minuten']);
+});

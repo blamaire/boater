@@ -22,6 +22,23 @@ class MessageVariableRegistry
     }
 
     /**
+     * Altijd beschikbaar voor zelf aangemaakte Mailings-sjablonen (§24.4) —
+     * die hebben geen vaste trigger-contract zoals Systeemberichten, dus
+     * hier wél een vrij te gebruiken basisset: gegevens van de geadresseerde
+     * en, waar relevant, van een gekoppelde activiteit. **Nooit** toevoegen
+     * aan Systeemberichten-sjablonen (zie `MessageTemplateBeheer`) — daar
+     * moet de lijst exact overeenkomen met wat de bijbehorende trigger
+     * meegeeft, anders belandt er een nooit-ingevulde `{{token}}` in echte
+     * transactionele mail.
+     *
+     * @return array<int, string>
+     */
+    public static function baseline(): array
+    {
+        return ['voornaam', 'achternaam', 'titel', 'datum'];
+    }
+
+    /**
      * @return array<string, array<int, string>>
      */
     private static function map(): array

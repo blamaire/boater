@@ -175,7 +175,7 @@ class MessageTemplateBeheer extends Component
         $this->name = $template->name;
         $this->subject = $template->subject;
         $this->blocks = $template->body;
-        $this->availableVariables = MessageVariableRegistry::for($template->key);
+        $this->refreshAvailableVariables($template->key);
 
         $this->dispatch('open-modal', 'message-template-form');
     }
@@ -183,7 +183,23 @@ class MessageTemplateBeheer extends Component
     public function resetForm(): void
     {
         $this->reset(['editingId', 'name', 'subject', 'blocks']);
-        $this->availableVariables = [];
+        $this->refreshAvailableVariables(null);
+    }
+
+    /**
+     * Sjabloon-specifieke variabelen (systeembepaald, `MessageVariableRegistry::for()`)
+     * aangevuld met de altijd-beschikbare basisset (`::baseline()`) — maar
+     * die basisset alleen voor Mailings-sjablonen, nooit voor Systeemberichten
+     * (zie de doc-comment op `baseline()` voor de reden).
+     */
+    private function refreshAvailableVariables(?string $key): void
+    {
+        $specific = $key !== null ? MessageVariableRegistry::for($key) : [];
+
+        $folder = $this->currentFolderId !== null ? MessageTemplateFolder::query()->find($this->currentFolderId) : null;
+        $baseline = $folder !== null && $folder->root()->name === 'Mailings' ? MessageVariableRegistry::baseline() : [];
+
+        $this->availableVariables = array_values(array_unique([...$specific, ...$baseline]));
     }
 
     public function addBlock(string $type): void

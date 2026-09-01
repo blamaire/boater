@@ -3,8 +3,10 @@
         Berichtsjablonen (§24), georganiseerd in mappen: "Systeemberichten" bevat de vaste, code-gestuurde e-mail van
         de app (niet aan te maken of te verwijderen); onder "Mailings" beheer je vrij je eigen sjablonen. Inhoud wordt
         opgebouwd uit blokken (net als een CMS-pagina, maar zonder banden/kolommen — e-mail is van nature één kolom).
-        <code>@{{variabele}}</code>-tokens worden bij verzending automatisch ingevuld — typ <code>@{{</code> in een
-        veld om de beschikbare variabelen te zien.
+        <code>@{{variabele}}</code>-tokens worden bij verzending automatisch ingevuld — klik op <code>{ }</code> naast
+        een veld (of typ <code>@{{</code> erin) om de beschikbare variabelen te zien. Sjablonen onder Mailings hebben
+        altijd voornaam/achternaam van de geadresseerde en, waar relevant, titel/datum van een activiteit ter
+        beschikking.
     </p>
 
     @if ($statusMessage)
@@ -197,13 +199,12 @@
                 </label>
 
                 <div class="relative sm:col-span-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">Onderwerp</span>
-                        <button type="button" x-on:click="openMenu('mt-subject', false)"
-                            class="text-xs text-rzvg-600 hover:text-rzvg-800 hover:underline">+ Variabele</button>
+                    <span class="text-sm text-gray-600">Onderwerp</span>
+                    <div class="mt-1 flex items-center gap-1.5">
+                        <input type="text" wire:model="subject" id="mt-subject"
+                            class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                        <x-message-variable-button field="mt-subject" />
                     </div>
-                    <input type="text" wire:model="subject" id="mt-subject"
-                        class="mt-1 block w-full border-gray-300 rounded shadow-sm text-sm" />
                     @error('subject') <span class="text-red-600 text-xs">{{ $message }}</span> @enderror
 
                     <div x-show="showMenu && menuFor === 'mt-subject'" x-on:click.outside="showMenu = false" x-cloak
@@ -237,6 +238,9 @@
                                 {{ \App\Enums\MessageBlockType::from($block['type'])->label() }}
                             </span>
                             <div class="flex items-center gap-2">
+                                @if ($block['type'] === 'tekst')
+                                    <x-message-variable-button field="mt-blocks-{{ $index }}-content-html-editor" />
+                                @endif
                                 <button type="button" wire:click="moveBlock({{ $index }}, 'up')" @disabled($index === 0)
                                     class="text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed" title="Omhoog">&uarr;</button>
                                 <button type="button" wire:click="moveBlock({{ $index }}, 'down')" @disabled($index === count($blocks) - 1)
@@ -253,32 +257,45 @@
                                 @break
 
                             @case ('kop')
-                                <div class="flex gap-2">
+                                <div class="flex gap-2 items-center">
                                     <select wire:model="blocks.{{ $index }}.content.level" class="border-gray-300 rounded shadow-sm text-sm w-24">
                                         <option value="1">H1</option>
                                         <option value="2">H2</option>
                                         <option value="3">H3</option>
                                     </select>
                                     <input type="text" wire:model="blocks.{{ $index }}.content.text" id="mt-blocks-{{ $index }}-content-text"
-                                        placeholder="Koptekst" class="flex-1 border-gray-300 rounded shadow-sm text-sm" />
+                                        placeholder="Koptekst" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                                    <x-message-variable-button field="mt-blocks-{{ $index }}-content-text" />
                                 </div>
                                 @break
 
                             @case ('knop')
                                 <div class="grid gap-2 sm:grid-cols-2">
-                                    <input type="text" wire:model="blocks.{{ $index }}.content.label" id="mt-blocks-{{ $index }}-content-label"
-                                        placeholder="Knoptekst" class="border-gray-300 rounded shadow-sm text-sm" />
-                                    <input type="text" wire:model="blocks.{{ $index }}.content.href" id="mt-blocks-{{ $index }}-content-href"
-                                        placeholder="URL (bv. @{{reset_url}})" class="border-gray-300 rounded shadow-sm text-sm font-mono" />
+                                    <div class="flex gap-1.5 items-center">
+                                        <input type="text" wire:model="blocks.{{ $index }}.content.label" id="mt-blocks-{{ $index }}-content-label"
+                                            placeholder="Knoptekst" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-label" />
+                                    </div>
+                                    <div class="flex gap-1.5 items-center">
+                                        <input type="text" wire:model="blocks.{{ $index }}.content.href" id="mt-blocks-{{ $index }}-content-href"
+                                            placeholder="URL (bv. @{{reset_url}})" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm font-mono" />
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-href" />
+                                    </div>
                                 </div>
                                 @break
 
                             @case ('afbeelding')
                                 <div class="grid gap-2 sm:grid-cols-2">
-                                    <input type="text" wire:model="blocks.{{ $index }}.content.url" id="mt-blocks-{{ $index }}-content-url"
-                                        placeholder="Afbeeldings-URL" class="border-gray-300 rounded shadow-sm text-sm font-mono" />
-                                    <input type="text" wire:model="blocks.{{ $index }}.content.alt" id="mt-blocks-{{ $index }}-content-alt"
-                                        placeholder="Alt-tekst" class="border-gray-300 rounded shadow-sm text-sm" />
+                                    <div class="flex gap-1.5 items-center">
+                                        <input type="text" wire:model="blocks.{{ $index }}.content.url" id="mt-blocks-{{ $index }}-content-url"
+                                            placeholder="Afbeeldings-URL" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm font-mono" />
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-url" />
+                                    </div>
+                                    <div class="flex gap-1.5 items-center">
+                                        <input type="text" wire:model="blocks.{{ $index }}.content.alt" id="mt-blocks-{{ $index }}-content-alt"
+                                            placeholder="Alt-tekst" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-alt" />
+                                    </div>
                                 </div>
                                 <p class="text-xs text-gray-400 mt-1">Plak een volledige, permanente URL — de mediabibliotheek geeft tijdelijke links (1 uur geldig) en is hier nog niet gekoppeld.</p>
                                 @break
@@ -289,10 +306,16 @@
 
                             @case ('citaat')
                                 <div class="space-y-2">
-                                    <textarea wire:model="blocks.{{ $index }}.content.text" id="mt-blocks-{{ $index }}-content-text" rows="2"
-                                        placeholder="Citaattekst" class="w-full border-gray-300 rounded shadow-sm text-sm"></textarea>
-                                    <input type="text" wire:model="blocks.{{ $index }}.content.source" id="mt-blocks-{{ $index }}-content-source"
-                                        placeholder="Bron (optioneel)" class="w-full border-gray-300 rounded shadow-sm text-sm" />
+                                    <div class="flex gap-1.5 items-start">
+                                        <textarea wire:model="blocks.{{ $index }}.content.text" id="mt-blocks-{{ $index }}-content-text" rows="2"
+                                            placeholder="Citaattekst" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm"></textarea>
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-text" />
+                                    </div>
+                                    <div class="flex gap-1.5 items-center">
+                                        <input type="text" wire:model="blocks.{{ $index }}.content.source" id="mt-blocks-{{ $index }}-content-source"
+                                            placeholder="Bron (optioneel)" class="flex-1 min-w-0 border-gray-300 rounded shadow-sm text-sm" />
+                                        <x-message-variable-button field="mt-blocks-{{ $index }}-content-source" />
+                                    </div>
                                 </div>
                                 @break
                         @endswitch
