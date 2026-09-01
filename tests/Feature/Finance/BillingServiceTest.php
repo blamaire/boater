@@ -2,6 +2,7 @@
 
 use App\Enums\ChargeStatus;
 use App\Enums\InvoiceStatus;
+use App\Mail\TemplatedMail;
 use App\Models\BtwCode;
 use App\Models\Charge;
 use App\Models\Dagboek;
@@ -14,6 +15,8 @@ use App\Services\Finance\LedgerService;
 use Database\Seeders\BtwCodeSeeder;
 use Database\Seeders\DagboekSeeder;
 use Database\Seeders\LedgerAccountSeeder;
+use Database\Seeders\MessageTemplateSeeder;
+use Illuminate\Support\Facades\Mail;
 
 beforeEach(function () {
     $this->seed(LedgerAccountSeeder::class);
@@ -94,6 +97,31 @@ it('bundelt openstaande posten van een betaler tot één factuur', function () {
     // Posten zijn nu gefactureerd en gekoppeld.
     expect(Charge::query()->where('status', ChargeStatus::Gefactureerd->value)->count())->toBe(2)
         ->and(Charge::query()->whereNull('invoice_id')->count())->toBe(0);
+});
+
+it('mailt de betaler met factuurgegevens na het aanmaken van een factuur', function () {
+    $this->seed(MessageTemplateSeeder::class);
+    Mail::fake();
+
+    $debtor = Person::create(['first_name' => 'Piet', 'last_name' => 'Betaler', 'email' => 'piet@example.test']);
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie']);
+    $this->billing->createCharge($product, $debtor, '100.00', 'Post A');
+
+    $invoice = $this->billing->invoiceOpenCharges($debtor);
+
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('piet@example.test')
+        && str_contains($mail->mailSubject, (string) $invoice->number));
+});
+
+it('mailt niet als de betaler geen e-mailadres heeft', function () {
+    Mail::fake();
+
+    $product = Product::create(['name' => 'Contributie', 'type' => 'contributie']);
+    $this->billing->createCharge($product, $this->debtor, '100.00', 'Post A');
+
+    $this->billing->invoiceOpenCharges($this->debtor);
+
+    Mail::assertNothingQueued();
 });
 
 it('factureert alleen de posten van de betreffende betaler', function () {

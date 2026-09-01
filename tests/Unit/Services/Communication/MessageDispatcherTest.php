@@ -2,6 +2,7 @@
 
 use App\Mail\TemplatedMail;
 use App\Models\CommunicationLog;
+use App\Models\CommunicationPreference;
 use App\Models\MessageTemplate;
 use App\Models\MessageTemplateFolder;
 use App\Models\Person;
@@ -86,4 +87,29 @@ it('slaat redactionele mail over voor een ontvanger zonder opt-in', function () 
 
     Mail::assertNothingQueued();
     expect(CommunicationLog::query()->count())->toBe(0);
+});
+
+it('verstuurt redactionele mail met een ondertekende afmeldlink voor een opted-in ontvanger', function () {
+    Mail::fake();
+    createTemplate('redactioneel');
+    $person = Person::create(['first_name' => 'Jan', 'last_name' => 'Test', 'email' => 'jan@example.test']);
+    CommunicationPreference::create(['person_id' => $person->id, 'category' => 'nieuwsbrief', 'opted_in' => true]);
+
+    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_url}}' => '#'], recipient: $person);
+
+    Mail::assertQueued(TemplatedMail::class, function (TemplatedMail $mail) use ($person) {
+        return $mail->unsubscribeUrl !== null
+            && str_contains($mail->unsubscribeUrl, "/communicatievoorkeuren/afmelden/{$person->id}/nieuwsbrief")
+            && str_contains($mail->unsubscribeUrl, 'signature=');
+    });
+});
+
+it('voegt geen afmeldlink toe aan transactionele mail', function () {
+    Mail::fake();
+    createTemplate('transactioneel');
+    $person = Person::create(['first_name' => 'Jan', 'last_name' => 'Test', 'email' => 'jan@example.test']);
+
+    app(MessageDispatcher::class)->send('test_template', 'jan@example.test', ['{{voornaam}}' => 'Jan', '{{actie_url}}' => '#'], recipient: $person);
+
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->unsubscribeUrl === null);
 });

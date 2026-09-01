@@ -7,10 +7,12 @@ use App\Enums\CommunicationDirection;
 use App\Enums\MessageType;
 use App\Mail\TemplatedMail;
 use App\Models\CommunicationLog;
+use App\Models\CommunicationPreference;
 use App\Models\MessageTemplate;
 use App\Models\Person;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 /**
  * De enige plek die daadwerkelijk een sjabloon-gebaseerde e-mail verstuurt
@@ -21,6 +23,13 @@ use Illuminate\Support\Facades\Mail;
  */
 class MessageDispatcher
 {
+    /**
+     * Enkele redactionele categorie in v1 — zodra er meer categorieën komen,
+     * moet `send()` een categorie-parameter krijgen i.p.v. deze hardcoded te
+     * gebruiken voor zowel de opt-in-check als de afmeldlink.
+     */
+    private const string NEWSLETTER_CATEGORY = 'nieuwsbrief';
+
     public function __construct(private readonly MessageBlockRenderer $blockRenderer) {}
 
     /**
@@ -43,7 +52,11 @@ class MessageDispatcher
         $subject = strtr($template->subject, $variables);
         $body = $this->blockRenderer->render($template->body, $variables);
 
-        Mail::to($toEmail)->queue(new TemplatedMail($subject, $body));
+        $unsubscribeUrl = $template->type === MessageType::Redactioneel && $recipient !== null
+            ? URL::signedRoute('communication-preferences.unsubscribe', ['person' => $recipient->id, 'category' => self::NEWSLETTER_CATEGORY])
+            : null;
+
+        Mail::to($toEmail)->queue(new TemplatedMail($subject, $body, $unsubscribeUrl));
 
         CommunicationLog::query()->create([
             'person_id' => $recipient?->id,
@@ -58,12 +71,12 @@ class MessageDispatcher
         ]);
     }
 
-    /**
-     * Enkele redactionele categorie in v1 ('nieuwsbrief') — zodra er meer
-     * categorieën komen, moet deze check een categorie-parameter krijgen.
-     */
     private function isOptedIn(Person $recipient): bool
     {
-        return false;
+        return CommunicationPreference::query()
+            ->where('person_id', $recipient->id)
+            ->where('category', self::NEWSLETTER_CATEGORY)
+            ->where('opted_in', true)
+            ->exists();
     }
 }

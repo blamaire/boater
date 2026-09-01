@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\Admin\PagePushController;
 use App\Http\Controllers\Admin\ProposalController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\CommunicationPreferenceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\Portal\ProposalDiffController;
@@ -49,7 +50,9 @@ use App\Livewire\Admin\WordpressImportBeheer;
 use App\Livewire\Admin\WordpressImportDetail;
 use App\Livewire\Admin\WordpressImportMediaOverzicht;
 use App\Livewire\Portal\BeheerdeActiviteiten;
+use App\Livewire\Portal\CommunicatieVoorkeuren;
 use App\Livewire\Portal\LidmaatschapsaanvraagBewerken;
+use App\Livewire\Portal\Meldingen;
 use App\Livewire\Portal\MijnLidmaatschap;
 use App\Livewire\Portal\Reserveren;
 use App\Livewire\Portal\ReserveringBewerken;
@@ -69,6 +72,8 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::get('/lidmaatschap', MijnLidmaatschap::class)->name('mijn-lidmaatschap');
         Route::get('/beheerde-activiteiten', BeheerdeActiviteiten::class)->name('beheerde-activiteiten');
+        Route::get('/communicatievoorkeuren', CommunicatieVoorkeuren::class)->name('communicatievoorkeuren');
+        Route::get('/meldingen', Meldingen::class)->name('meldingen');
         Route::get('/wijzigingsvoorstellen', Wijzigingsvoorstellen::class)->name('wijzigingsvoorstellen');
         Route::get('/wijzigingsvoorstellen/{proposal}/diff', [ProposalDiffController::class, 'show'])->name('wijzigingsvoorstellen.diff');
         Route::get('/wijzigingsvoorstellen/{proposal}/aanvraag-aanpassen', LidmaatschapsaanvraagBewerken::class)->name('wijzigingsvoorstellen.membership-application.edit');
@@ -287,6 +292,10 @@ Route::middleware(['auth', 'verified', 'can:queue.manage'])
 Route::get('/media/{asset}/download', MediaDownloadController::class)
     ->middleware('signed')
     ->name('media.download');
+
+Route::get('/communicatievoorkeuren/afmelden/{person}/{category}', [CommunicationPreferenceController::class, 'unsubscribe'])
+    ->middleware('signed')
+    ->name('communication-preferences.unsubscribe');
 
 require __DIR__.'/auth.php';
 

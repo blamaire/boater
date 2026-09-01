@@ -6,11 +6,12 @@ use App\Models\Activity;
 use App\Models\ContactRequest;
 use App\Models\DamageReport;
 use App\Models\Enrollment;
+use App\Models\Invoice;
 use App\Models\Person;
 
 /**
  * Bouwt de `{{variabele}}`-array voor een sjabloon-sleutel op uit een
- * concreet record. Bewust hier gecentraliseerd (§24, Fase B2) i.p.v. inline
+ * concreet record. Bewust hier gecentraliseerd (§24, Fase B2/C) i.p.v. inline
  * in elke trigger: `MessageTemplateBeheer`'s testmail-preview (via
  * `MessageSampleRegistry`) roept exact dezelfde methode aan als de echte
  * trigger, zodat een testmail nooit uit de pas kan lopen met wat er
@@ -92,6 +93,16 @@ class MessageVariableBuilders
             '{{datum}}' => $activity->starts_at->translatedFormat('l j F Y H:i'),
             '{{locatie_regel}}' => $activity->location !== null ? 'Locatie: '.$activity->location : '',
             '{{activiteit_url}}' => route('activiteit.show', $activity),
+        ];
+    }
+
+    /** @return array<string, string> */
+    public static function invoiceCreated(Invoice $invoice): array
+    {
+        return [
+            '{{factuurnummer}}' => (string) $invoice->number,
+            '{{bedrag}}' => '€ '.number_format((float) $invoice->total, 2, ',', '.'),
+            '{{vervaldatum}}' => $invoice->due_at?->translatedFormat('j F Y') ?? '',
         ];
     }
 }

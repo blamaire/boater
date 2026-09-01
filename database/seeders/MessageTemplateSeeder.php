@@ -155,6 +155,27 @@ class MessageTemplateSeeder extends Seeder
                     ['type' => 'tekst', 'content' => ['html' => '<p>— RZVG</p>']],
                 ],
             ],
+            [
+                'key' => 'enrollment_waitlist_promoted',
+                'name' => 'Plek vrijgekomen (wachtlijst-promotie)',
+                'type' => 'transactioneel',
+                'subject' => 'Er is een plek vrijgekomen: {{titel}}',
+                'body' => [
+                    ['type' => 'tekst', 'content' => ['html' => '<p>Hallo {{voornaam}},</p><p>Goed nieuws! Er is een plek vrijgekomen voor "{{titel}}" en jij bent als eerste op de wachtlijst aan de beurt. Je inschrijving is nu bevestigd.</p><p>Datum: {{datum}}</p><p>{{locatie_regel}}</p>']],
+                    ['type' => 'knop', 'content' => ['label' => 'Bekijk de activiteit', 'href' => '{{activiteit_url}}']],
+                    ['type' => 'tekst', 'content' => ['html' => '<p>— RZVG</p>']],
+                ],
+            ],
+            [
+                'key' => 'invoice_created',
+                'name' => 'Factuur aangemaakt',
+                'type' => 'transactioneel',
+                'subject' => 'Factuur {{factuurnummer}} van RZVG',
+                'body' => [
+                    ['type' => 'tekst', 'content' => ['html' => '<p>Hallo,</p><p>Er is een nieuwe factuur voor je aangemaakt.</p><p>Factuurnummer: {{factuurnummer}}<br>Bedrag: {{bedrag}}<br>Vervaldatum: {{vervaldatum}}</p>']],
+                    ['type' => 'tekst', 'content' => ['html' => '<p>Met vriendelijke groet, Roei- en Zeilvereniging Gouda</p>']],
+                ],
+            ],
         ];
     }
 }

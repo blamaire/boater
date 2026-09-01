@@ -9,6 +9,7 @@ use App\Models\ActivityCategory;
 use App\Models\Charge;
 use App\Models\Enrollment;
 use App\Models\EnrollmentFieldValue;
+use App\Models\InAppNotification;
 use App\Models\Person;
 use App\Models\Product;
 use App\Models\ProductPrice;
@@ -73,6 +74,25 @@ it('promoveert de eerste wachtende bij een afmelding', function () {
 
     $eB->refresh();
     expect($eB->status)->toBe(EnrollmentStatus::Enrolled);
+});
+
+it('mailt en meldt de gepromoveerde persoon bij wachtlijst-promotie', function () {
+    Mail::fake();
+
+    $activity = newActivity($this->category->id, capacity: 1);
+
+    $a = Person::create(['first_name' => 'A', 'last_name' => 'B', 'email' => 'a@example.test']);
+    $b = Person::create(['first_name' => 'B', 'last_name' => 'C', 'email' => 'b@example.test']);
+
+    $eA = app(EnrollmentService::class)->enroll($activity, $a);
+    app(EnrollmentService::class)->enroll($activity, $b);
+
+    app(EnrollmentService::class)->cancel($eA);
+
+    Mail::assertQueued(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('b@example.test')
+        && str_contains($mail->mailSubject, 'plek vrijgekomen'));
+
+    expect(InAppNotification::query()->where('person_id', $b->id)->where('type', 'enrollment_waitlist_promoted')->exists())->toBeTrue();
 });
 
 it('promoveert niemand bij onbeperkte capaciteit', function () {

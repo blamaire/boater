@@ -13,6 +13,8 @@ use App\Models\LedgerAccount;
 use App\Models\Person;
 use App\Models\Product;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\MessageDispatcher;
+use App\Services\Communication\MessageVariableBuilders;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +40,7 @@ class BillingService
     public function __construct(
         private readonly LedgerService $ledger,
         private readonly AuditLogger $audit,
+        private readonly MessageDispatcher $dispatcher,
     ) {}
 
     public function createCharge(
@@ -125,6 +128,16 @@ class BillingService
                 'charge_ids' => $charges->pluck('id')->all(),
                 'total' => $invoice->total,
             ]);
+
+            if ($debtor->email !== null && $debtor->email !== '') {
+                $this->dispatcher->send(
+                    'invoice_created',
+                    $debtor->email,
+                    MessageVariableBuilders::invoiceCreated($invoice),
+                    recipient: $debtor,
+                    related: $invoice,
+                );
+            }
 
             return $invoice;
         });

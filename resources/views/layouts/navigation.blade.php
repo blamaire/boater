@@ -5,6 +5,8 @@
         $item(route('dashboard'), 'Dashboard', request()->routeIs('dashboard')),
         $item(route('portal.mijn-lidmaatschap'), 'Mijn lidmaatschap', request()->routeIs('portal.mijn-lidmaatschap')),
         $item(route('portal.beheerde-activiteiten'), 'Beheerde activiteiten', request()->routeIs('portal.beheerde-activiteiten')),
+        $item(route('portal.communicatievoorkeuren'), 'Communicatievoorkeuren', request()->routeIs('portal.communicatievoorkeuren')),
+        $item(route('portal.meldingen'), 'Meldingen', request()->routeIs('portal.meldingen')),
         auth()->user()?->can('reservations.create')
             ? $item(route('portal.reserveren'), 'Reserveren', request()->routeIs('portal.reserveren'))
             : $item(null, 'Reserveren', false, true),

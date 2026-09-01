@@ -37,6 +37,8 @@ class MessageVariableRegistry
             'activity_enrollment_changed' => ['onderwerp_actie', 'titel', 'persoon', 'actie', 'activiteiten_url'],
             'enrollment_confirmed' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url'],
             'enrollment_waitlisted' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url'],
+            'enrollment_waitlist_promoted' => ['voornaam', 'achternaam', 'titel', 'datum', 'locatie_regel', 'activiteit_url'],
+            'invoice_created' => ['factuurnummer', 'bedrag', 'vervaldatum'],
         ];
     }
 }

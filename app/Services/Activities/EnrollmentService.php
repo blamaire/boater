@@ -14,6 +14,7 @@ use App\Models\EnrollmentFieldValue;
 use App\Models\Person;
 use App\Models\Product;
 use App\Services\Audit\AuditLogger;
+use App\Services\Communication\InAppNotifier;
 use App\Services\Communication\MessageDispatcher;
 use App\Services\Communication\MessageVariableBuilders;
 use App\Services\Finance\BillingService;
@@ -39,6 +40,7 @@ class EnrollmentService
         private readonly ActivityManagerNotifier $notifier,
         private readonly BillingService $billing,
         private readonly MessageDispatcher $dispatcher,
+        private readonly InAppNotifier $inAppNotifier,
     ) {}
 
     /**
@@ -266,6 +268,24 @@ class EnrollmentService
                 'enrollment_id' => $next->id,
                 'person_id' => $next->person_id,
             ]);
+
+            $person = $next->person;
+            if ($person->email !== null && $person->email !== '') {
+                $this->dispatcher->send(
+                    'enrollment_waitlist_promoted',
+                    $person->email,
+                    MessageVariableBuilders::enrollmentConfirmedOrWaitlisted($next),
+                    recipient: $person,
+                    related: $activity,
+                );
+            }
+            $this->inAppNotifier->notify(
+                $person,
+                'enrollment_waitlist_promoted',
+                "Er is een plek vrijgekomen voor \"{$activity->title}\"",
+                route('activiteit.show', $activity),
+            );
+
             $promoted++;
         }
 

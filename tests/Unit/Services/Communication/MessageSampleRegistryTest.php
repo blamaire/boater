@@ -7,6 +7,7 @@ use App\Enums\DamageReportStatus;
 use App\Enums\DamageSeverity;
 use App\Enums\EnrollmentLevel;
 use App\Enums\EnrollmentStatus;
+use App\Enums\InvoiceStatus;
 use App\Enums\ReservableObjectStatus;
 use App\Models\Activity;
 use App\Models\ActivityCategory;
@@ -14,6 +15,7 @@ use App\Models\ContactRequest;
 use App\Models\ContactTopic;
 use App\Models\DamageReport;
 use App\Models\Enrollment;
+use App\Models\Invoice;
 use App\Models\ObjectCategory;
 use App\Models\Person;
 use App\Models\ReservableObject;
@@ -29,6 +31,8 @@ it('ondersteunt alleen sleutels met een reëel voorbeeld-model', function () {
         ->and($registry->supports('activity_enrollment_changed'))->toBeTrue()
         ->and($registry->supports('enrollment_confirmed'))->toBeTrue()
         ->and($registry->supports('enrollment_waitlisted'))->toBeTrue()
+        ->and($registry->supports('enrollment_waitlist_promoted'))->toBeTrue()
+        ->and($registry->supports('invoice_created'))->toBeTrue()
         ->and($registry->supports('password_reset'))->toBeFalse()
         ->and($registry->supports('email_verification'))->toBeFalse()
         ->and($registry->supports('account_invitation'))->toBeFalse()
@@ -43,7 +47,9 @@ it('geeft null als een ondersteunde sleutel nog geen enkel record heeft', functi
         ->and($registry->sampleVariables('activity_changed'))->toBeNull()
         ->and($registry->sampleVariables('activity_enrollment_changed'))->toBeNull()
         ->and($registry->sampleVariables('enrollment_confirmed'))->toBeNull()
-        ->and($registry->sampleVariables('enrollment_waitlisted'))->toBeNull();
+        ->and($registry->sampleVariables('enrollment_waitlisted'))->toBeNull()
+        ->and($registry->sampleVariables('enrollment_waitlist_promoted'))->toBeNull()
+        ->and($registry->sampleVariables('invoice_created'))->toBeNull();
 });
 
 it('geeft null voor een niet-ondersteunde sleutel, ook als er wel data bestaat', function () {
@@ -161,5 +167,24 @@ it('bouwt voorbeeld-variabelen op uit een bevestigde resp. wachtlijst-inschrijvi
     $registry = app(MessageSampleRegistry::class);
 
     expect($registry->sampleVariables('enrollment_confirmed')['{{voornaam}}'])->toBe('Kim')
-        ->and($registry->sampleVariables('enrollment_waitlisted')['{{voornaam}}'])->toBe('Wim');
+        ->and($registry->sampleVariables('enrollment_waitlisted')['{{voornaam}}'])->toBe('Wim')
+        ->and($registry->sampleVariables('enrollment_waitlist_promoted')['{{voornaam}}'])->toBe('Kim');
+});
+
+it('bouwt voorbeeld-variabelen op uit een bestaande factuur', function () {
+    $debtor = Person::create(['first_name' => 'Piet', 'last_name' => 'Betaler']);
+    Invoice::create([
+        'number' => '2026-0001',
+        'debtor_person_id' => $debtor->id,
+        'status' => InvoiceStatus::Verzonden,
+        'issued_at' => Carbon::now(),
+        'due_at' => Carbon::parse('2026-10-01'),
+        'total' => '125.50',
+    ]);
+
+    $variables = app(MessageSampleRegistry::class)->sampleVariables('invoice_created');
+
+    expect($variables)->not->toBeNull()
+        ->and($variables['{{factuurnummer}}'])->toBe('2026-0001')
+        ->and($variables['{{bedrag}}'])->toBe('€ 125,50');
 });

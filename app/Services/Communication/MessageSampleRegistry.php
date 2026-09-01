@@ -7,10 +7,11 @@ use App\Models\Activity;
 use App\Models\ContactRequest;
 use App\Models\DamageReport;
 use App\Models\Enrollment;
+use App\Models\Invoice;
 
 /**
  * Per sjabloon-sleutel: is er een bestaand record dat als representatief
- * voorbeeld kan dienen voor een testmail (§24, Fase B2)? Alleen sleutels met
+ * voorbeeld kan dienen voor een testmail (§24, Fase B2/C)? Alleen sleutels met
  * een reëel, doorzoekbaar model — de overige (`password_reset`,
  * `email_verification`, `account_invitation`, `membership_application_received`)
  * draaien om een eenmalig token/formulier-invoer zonder zinvol na te slaan
@@ -26,6 +27,8 @@ class MessageSampleRegistry
         'activity_enrollment_changed',
         'enrollment_confirmed',
         'enrollment_waitlisted',
+        'enrollment_waitlist_promoted',
+        'invoice_created',
     ];
 
     public function supports(string $templateKey): bool
@@ -48,6 +51,8 @@ class MessageSampleRegistry
             'activity_enrollment_changed' => $this->fromLatestEnrollmentAsActivityChange(),
             'enrollment_confirmed' => $this->fromLatestEnrollment(EnrollmentStatus::Enrolled),
             'enrollment_waitlisted' => $this->fromLatestEnrollment(EnrollmentStatus::Waitlist),
+            'enrollment_waitlist_promoted' => $this->fromLatestEnrollment(EnrollmentStatus::Enrolled),
+            'invoice_created' => $this->fromLatestInvoice(),
             default => null,
         };
     }
@@ -92,5 +97,13 @@ class MessageSampleRegistry
         $enrollment = Enrollment::query()->where('status', $status->value)->latest('id')->first();
 
         return $enrollment !== null ? MessageVariableBuilders::enrollmentConfirmedOrWaitlisted($enrollment) : null;
+    }
+
+    /** @return array<string, string>|null */
+    private function fromLatestInvoice(): ?array
+    {
+        $invoice = Invoice::query()->latest('id')->first();
+
+        return $invoice !== null ? MessageVariableBuilders::invoiceCreated($invoice) : null;
     }
 }
