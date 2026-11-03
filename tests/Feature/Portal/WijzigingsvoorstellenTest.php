@@ -17,7 +17,6 @@ use App\Services\Proposals\Handlers\PageVersionProposalHandler;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
 use App\Services\Proposals\ProposalEngine;
 use App\Services\Proposals\ProposalHandlerRegistry;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 use Tests\Support\FakeProposalHandler;
@@ -112,10 +111,10 @@ it('trekt een eigen open voorstel in maar niet dat van een ander', function () {
     // MijnLidmaatschap::withdrawProposal()) — een voorstel van iemand
     // anders bestaat simpelweg niet binnen de eigen where-scope, dus dat
     // resulteert in een 404 i.p.v. een stille no-op.
-    expect(fn () => Livewire::actingAs($user)
+    Livewire::actingAs($user)
         ->test(Wijzigingsvoorstellen::class)
         ->call('withdraw', $othersProposal->id)
-    )->toThrow(ModelNotFoundException::class);
+        ->assertNotFound();
 
     expect($othersProposal->refresh()->status)->toBe(ProposalStatus::InReview);
 

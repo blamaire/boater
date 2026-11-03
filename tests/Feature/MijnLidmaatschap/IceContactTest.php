@@ -8,7 +8,6 @@ use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\ReviewPolicySeeder;
 use Database\Seeders\RoleSeeder;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Livewire\Livewire;
 
 beforeEach(function () {
@@ -98,8 +97,9 @@ it('weigert het bewerken van een ICE-contact van iemand anders', function () {
     ]);
 
     // openIceForm zoekt via person_id => id van huidig lid; ander lid → not found.
-    expect(fn () => Livewire::test(MijnLidmaatschap::class)->call('openIceForm', $contactVanAnder->id))
-        ->toThrow(ModelNotFoundException::class);
+    Livewire::test(MijnLidmaatschap::class)
+        ->call('openIceForm', $contactVanAnder->id)
+        ->assertNotFound();
 
     // Contact bestaat nog steeds; niks van iemand anders is aangeraakt.
     expect(IceContact::query()->find($contactVanAnder->id))->not->toBeNull();
