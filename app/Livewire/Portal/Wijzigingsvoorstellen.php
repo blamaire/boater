@@ -270,13 +270,8 @@ class Wijzigingsvoorstellen extends Component
         $mine = $this->myProposals()->map(fn (Proposal $p) => ['proposal' => $p, 'step' => null]);
         $decidable = $this->decidableSteps()->map(fn (ReviewStep $s) => ['proposal' => $s->proposal, 'step' => $s]);
 
-        // Larastan geeft hieronder een vals-positieve invariantiefout op
-        // Collection<int, array-shape> — reproduceerbaar met elk array-shape
-        // TValue, los van onze eigen types, zie
-        // https://phpstan.org/blog/whats-up-with-template-covariant
-        // @phpstan-ignore return.type
         return $mine->concat($decidable)
-            // @phpstan-ignore return.type, argument.type
+            // @phpstan-ignore argument.type
             ->when($this->hideApplied, fn ($rows) => $rows->reject(
                 fn (array $row) => $row['step'] === null && $row['proposal']->status === ProposalStatus::Applied
             ))

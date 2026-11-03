@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Webapplicatie voor de Roei- en Zeilvereniging "Gouda" (RZVG). Laravel 12 / PHP 8.4 / MySQL 8. Nederlandstalig (`APP_LOCALE=nl`); UI-strings, doc-comments, exceptions en commit-berichten zijn allemaal Nederlands.
+Webapplicatie voor de Roei- en Zeilvereniging "Gouda" (RZVG). Laravel 13 / PHP 8.4 / MySQL 8. Nederlandstalig (`APP_LOCALE=nl`); UI-strings, doc-comments, exceptions en commit-berichten zijn allemaal Nederlands.
 
 Het volledige ontwerp staat in [`docs/Ontwerpdocument-RZVG-concept.md`](docs/Ontwerpdocument-RZVG-concept.md) (38 hoofdstukken). Code-comments verwijzen vaak naar paragraafnummers (bijv. `§20.4`, `§26.4`) — dat is dat document. Raadpleeg het bij twijfel over bedoeling of scope.
 
