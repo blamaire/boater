@@ -3,4 +3,4 @@
 <option value="donker">Donker</option>
 <option value="wit">Wit (op rode of donkere band)</option>
 <option value="wit_omlijnd">Wit omkaderd (op rode of donkere band)</option>
-<option value="contact">"Bel/mail mij terug"-knop (vast, naar contactformulier)</option>
+<option value="contact">"Bel/mail mij terug" (vaste tekst, naar contactformulier)</option>
