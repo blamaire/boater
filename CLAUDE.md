@@ -29,6 +29,23 @@ Alles via `docker compose exec app …`:
 
 Tests draaien op een **in-memory SQLite** (`phpunit.xml`), dus PHPStan en Pest werken zonder dat de MySQL-container draait — alleen migraties tegen echte data hebben `db` nodig.
 
+## Parallelle features — extra Docker-stacks
+
+De standaardstack draait de branch die in deze map is uitgecheckt (`localhost:8000`). Wil je aan meerdere features tegelijk werken én ze elk in de browser zien, start dan per feature een extra stack (PowerShell, op de host):
+
+| Doel | Commando |
+| --- | --- |
+| Stack + worktree starten (branch `feature/<naam>` vanaf `origin/main`) | `scripts/feature-stack.ps1 start <naam>` |
+| Bestaande branch gebruiken | `scripts/feature-stack.ps1 start <naam> -Branch <branch>` |
+| Overzicht van stacks, URL's en status | `scripts/feature-stack.ps1 list` |
+| Stoppen (alles blijft bewaard) | `scripts/feature-stack.ps1 stop <naam>` |
+| Opruimen (containers, volumes, worktree; branch blijft) | `scripts/feature-stack.ps1 remove <naam>` |
+
+- Een stack staat in `..\boater-<naam>` en krijgt slot *n* (1–9): web `800n`, Vite `5173+n`, MySQL `3307+n`, Mailpit `8025+n`. Eigen database en volumes; `composer install` en `composer db-reset` draait het script zelf.
+- **Binnen die map werkt `docker compose exec app …` gewoon** — projectnaam en poorten staan in de `.env` van de worktree. Draai commando's voor die feature dus altijd vanuit die map, nooit vanuit de hoofdrepo.
+- `remove` weigert bij niet-gecommitte wijzigingen (`-Force` gooit ze weg); kopieer/commit eerst.
+- Aansturen vanuit één Claude-sessie: start per feature een stack, geef een agent (bv. `boater-implementer`) de opdracht met het absolute pad van `..\boater-<naam>` als werkmap, en laat de gebruiker op `localhost:800n` meekijken.
+
 ## Architectuur — high-level
 
 Er zijn drie samenwerkende kerndiensten die alle domeinacties dragen:
