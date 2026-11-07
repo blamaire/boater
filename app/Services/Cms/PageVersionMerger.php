@@ -73,6 +73,7 @@ class PageVersionMerger
                     'origin_band_id' => $originBandId,
                     'zone' => $chosen->band->zone,
                     'layout' => $chosen->band->layout,
+                    'background' => $chosen->band->background,
                     'sort_order' => $chosen->band->sort_order,
                 ]);
             }

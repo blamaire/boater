@@ -100,10 +100,26 @@
         <div>
             <x-input-label for="block-style" value="Stijl" />
             <select id="block-style" wire:model="editingContent.style" class="mt-1 block w-full border-gray-300 rounded-md">
-                <option value="primary">Primair (rood)</option>
-                <option value="secondary">Secundair (omkaderd)</option>
+                @include('cms.blocks.partials.button-style-options')
             </select>
         </div>
+        <fieldset class="border-t border-gray-200 pt-3 space-y-3">
+            <legend class="text-sm font-medium text-gray-700">Tweede knop ernaast (optioneel)</legend>
+            <div>
+                <x-input-label for="block-label2" value="Label" />
+                <x-text-input id="block-label2" wire:model="editingContent.label2" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="block-href2" value="Doel-URL" />
+                <x-text-input id="block-href2" wire:model="editingContent.href2" class="block mt-1 w-full" />
+            </div>
+            <div>
+                <x-input-label for="block-style2" value="Stijl" />
+                <select id="block-style2" wire:model="editingContent.style2" class="mt-1 block w-full border-gray-300 rounded-md">
+                    @include('cms.blocks.partials.button-style-options')
+                </select>
+            </div>
+        </fieldset>
         @break
 
     @case('kaart')
@@ -126,13 +142,23 @@
             <x-input-label for="block-href" value="Link-URL (optioneel)" />
             <x-text-input id="block-href" wire:model="editingContent.href" class="block mt-1 w-full" />
         </div>
+        <div>
+            <x-input-label for="block-link-label" value="Linktekst (optioneel, standaard &quot;Lees meer&quot;)" />
+            <x-text-input id="block-link-label" wire:model="editingContent.link_label" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="block-variant" value="Weergave" />
+            <select id="block-variant" wire:model="editingContent.variant" class="mt-1 block w-full border-gray-300 rounded-md">
+                <option value="foto">Met foto (afbeelding boven)</option>
+                <option value="compact">Compacte tegel (icoon links)</option>
+            </select>
+        </div>
+        @include('cms.blocks.partials.icon-select', ['id' => 'block-card-icon', 'allowEmpty' => true])
+        <p class="text-xs text-gray-500">Het icoon wordt alleen getoond bij de compacte tegel.</p>
         @break
 
     @case('icoon_tekst')
-        <div>
-            <x-input-label for="block-icon" value="Icoon (emoji of teken)" />
-            <x-text-input id="block-icon" wire:model="editingContent.icon" class="block mt-1 w-full font-mono" />
-        </div>
+        @include('cms.blocks.partials.icon-select', ['id' => 'block-icon'])
         <div>
             <x-input-label for="block-title" value="Titel" />
             <x-text-input id="block-title" wire:model="editingContent.title" class="block mt-1 w-full" />
@@ -167,9 +193,29 @@
             <textarea id="block-text" wire:model="editingContent.text" rows="3" class="block mt-1 w-full border-gray-300 rounded-md"></textarea>
         </div>
         <div>
-            <x-input-label for="block-source" value="Bron (optioneel)" />
+            <x-input-label for="block-source" value="Bron / naam (optioneel)" />
             <x-text-input id="block-source" wire:model="editingContent.source" class="block mt-1 w-full" />
         </div>
+        <div>
+            <x-input-label for="block-quote-style" value="Weergave" />
+            <select id="block-quote-style" wire:model.live="editingContent.style" class="mt-1 block w-full border-gray-300 rounded-md">
+                <option value="standaard">Standaard (citaat met streep)</option>
+                <option value="verhaal">Ledenverhaal (kaart met foto)</option>
+            </select>
+        </div>
+        @if (($editingContent['style'] ?? 'standaard') === 'verhaal')
+            <div>
+                <x-input-label for="block-role" value="Rol (bv. &quot;roeit sinds 2019&quot;)" />
+                <x-text-input id="block-role" wire:model="editingContent.role" class="block mt-1 w-full" />
+            </div>
+            <div class="space-y-1">
+                <x-input-label value="Foto (optioneel)" />
+                <div class="flex items-center gap-2">
+                    <x-text-input wire:model="editingContent.photo_url" type="url" placeholder="URL of kies uit bibliotheek" class="block w-full" />
+                    <button type="button" wire:click="$dispatch('open-media-library', { contextId: 'quote-photo' })" class="px-2 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 whitespace-nowrap">Uit bibliotheek</button>
+                </div>
+            </div>
+        @endif
         @break
 
     @case('video_embed')
@@ -219,6 +265,10 @@
             @else
                 <p class="text-xs text-gray-500">Nog geen foto gekozen.</p>
             @endif
+        </div>
+        <div>
+            <x-input-label for="hero-kicker" value="Regel boven de titel (optioneel)" />
+            <x-text-input id="hero-kicker" wire:model="editingContent.kicker" class="block mt-1 w-full" />
         </div>
         <div>
             <x-input-label for="hero-title" value="Titel" />
@@ -292,6 +342,36 @@
                 <option value="left">Links</option>
                 <option value="right">Rechts</option>
             </select>
+        </div>
+        @break
+
+    @case('stap')
+        <div>
+            <x-input-label for="step-number" value="Nummer" />
+            <x-text-input id="step-number" wire:model="editingContent.number" class="block mt-1 w-24" />
+        </div>
+        <div>
+            <x-input-label for="step-title" value="Titel" />
+            <x-text-input id="step-title" wire:model="editingContent.title" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="step-body" value="Tekst" />
+            <textarea id="step-body" wire:model="editingContent.body" rows="3" class="block mt-1 w-full border-gray-300 rounded-md"></textarea>
+        </div>
+        @break
+
+    @case('prijs')
+        <div>
+            <x-input-label for="price-label" value="Label (bv. &quot;Volwassene&quot;)" />
+            <x-text-input id="price-label" wire:model="editingContent.label" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="price-amount" value="Bedrag (bv. &quot;€390&quot;)" />
+            <x-text-input id="price-amount" wire:model="editingContent.amount" class="block mt-1 w-full" />
+        </div>
+        <div>
+            <x-input-label for="price-body" value="Toelichting (optioneel)" />
+            <textarea id="price-body" wire:model="editingContent.body" rows="2" class="block mt-1 w-full border-gray-300 rounded-md"></textarea>
         </div>
         @break
 

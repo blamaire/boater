@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BandBackground;
 use App\Enums\BandLayout;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $origin_band_id
  * @property string $zone
  * @property BandLayout $layout
+ * @property BandBackground $background
  * @property int $sort_order
  * @property-read PageVersion $pageVersion
  * @property-read Band|null $originBand
@@ -21,11 +23,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Band extends Model
 {
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'background' => 'wit',
+    ];
+
     protected $fillable = [
         'page_version_id',
         'origin_band_id',
         'zone',
         'layout',
+        'background',
         'sort_order',
     ];
 
@@ -33,6 +41,7 @@ class Band extends Model
     {
         return [
             'layout' => BandLayout::class,
+            'background' => BandBackground::class,
             'sort_order' => 'integer',
         ];
     }

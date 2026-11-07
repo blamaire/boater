@@ -58,7 +58,7 @@
                          het beheerde NavItem-menu (/beheer/menu) — incl. submenu's — ook
                          in de portal verschijnt, i.p.v. een losse platte lijst van
                          root-Beperkt-pagina's. --}}
-                    @include('public._nav')
+                    @include('public._nav', ['variant' => 'balk'])
 
                     <main class="flex-1 min-w-0">
                         {{ $slot }}

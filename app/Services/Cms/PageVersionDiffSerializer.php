@@ -69,6 +69,7 @@ class PageVersionDiffSerializer
      *     bands: list<array{
      *         zone: string,
      *         layout: int,
+     *         background: string,
      *         sort_order: int,
      *         blocks: list<array{origin_block_id: ?int, column_index: int, sort_order: int, type: string, content: array<string, mixed>|null}>
      *     }>
@@ -90,6 +91,7 @@ class PageVersionDiffSerializer
             'bands' => $bands->map(fn ($band): array => [
                 'zone' => (string) $band->zone,
                 'layout' => (int) $band->layout->value,
+                'background' => $band->background->value,
                 'sort_order' => (int) $band->sort_order,
                 'blocks' => $band->blocks
                     ->sortBy([['column_index', 'asc'], ['sort_order', 'asc']])
