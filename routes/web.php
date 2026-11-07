@@ -16,6 +16,7 @@ use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\Portal\ProposalDiffController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SitemapController;
 use App\Livewire\Admin\ActiviteitBeheer;
 use App\Livewire\Admin\ActivityCategoryBeheer;
@@ -290,6 +291,8 @@ Route::get('/lid-worden', LidWorden::class)->name('lid-worden');
 Route::get('/contact', Contact::class)->name('contact');
 Route::get('/activiteit/{activity}', [ActivityController::class, 'show'])->name('activiteit.show');
 Route::get('/activiteitenreeks/{series}', [ActivitySeriesController::class, 'show'])->name('activiteitenreeks.show');
+Route::get('/zoeken', [SearchController::class, 'index'])->name('zoeken');
+Route::get('/zoeken/suggesties', [SearchController::class, 'suggestions'])->middleware('throttle:60,1')->name('zoeken.suggesties');
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/pagina/{path}', PublicPageController::class)
     ->where('path', '.*')

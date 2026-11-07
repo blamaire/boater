@@ -13,6 +13,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use RuntimeException;
 
@@ -56,6 +57,7 @@ class GebruikerBeheer extends Component
 
     public ?string $statusMessage = null;
 
+    #[Url(as: 'zoek')]
     public string $search = '';
 
     public function toggleForm(): void
