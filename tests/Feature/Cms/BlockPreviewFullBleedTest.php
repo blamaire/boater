@@ -14,7 +14,7 @@ use Livewire\Livewire;
 
 /**
  * Full-bleed hero/video/feature-secties vullen op de publieke pagina bewust
- * edge-to-edge de breedte van <main> (h-screen i.p.v. de kleinere
+ * edge-to-edge de breedte van <main> (min-h-[560px] i.p.v. de kleinere
  * niet-full-bleed hoogte) — dat kan alleen in een 1-koloms-band zonder de
  * gecentreerde max-w-6xl-leesbreedte eromheen (zie public/page.blade.php).
  * Diezelfde partial (cms.blocks.preview) wordt ook gebruikt in de
@@ -76,12 +76,12 @@ function articleHtml(string $html): string
     return substr($html, $start, $end - $start);
 }
 
-it('rendert een hero-blok full-bleed (h-screen, geen max-w-wrapper om de band) op de publieke pagina', function () {
+it('rendert een hero-blok full-bleed (min-h-[560px], geen max-w-wrapper om de band) op de publieke pagina', function () {
     [$page] = makeHeroPage();
 
     $article = articleHtml($this->get($page->publicUrl())->assertOk()->getContent());
 
-    expect($article)->toContain('h-screen')
+    expect($article)->toContain('min-h-[560px]')
         ->not->toContain('max-w-6xl');
 });
 
@@ -93,8 +93,8 @@ it('rendert een hero-blok niet full-bleed in de paginabewerker', function () {
         ->test(PageEditor::class, ['versionId' => $version->id])
         ->html();
 
-    expect($html)->not->toContain('h-screen')
-        ->toContain('h-64');
+    expect($html)->not->toContain('min-h-[560px]')
+        ->toContain('min-h-64');
 });
 
 it('behandelt een hero-blok in een 2-koloms-band ook als full-bleed', function () {
@@ -102,7 +102,7 @@ it('behandelt een hero-blok in een 2-koloms-band ook als full-bleed', function (
 
     $article = articleHtml($this->get($page->publicUrl())->assertOk()->getContent());
 
-    expect($article)->toContain('h-screen')
+    expect($article)->toContain('min-h-[560px]')
         ->not->toContain('max-w-6xl');
 });
 
@@ -145,7 +145,7 @@ it('geeft een tekstblok in dezelfde full-bleed-band zijn eigen leesbreedte-wrapp
 
     // De band zelf is onbegrensd (het hero-blok), maar het tekstblok erin
     // krijgt alsnog een eigen max-w-6xl-wrapper voor de leesbaarheid.
-    expect($article)->toContain('h-screen')
+    expect($article)->toContain('min-h-[560px]')
         ->toContain('max-w-6xl')
         ->toContain('Bijschrift');
 });

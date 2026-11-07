@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Enums\BandBackground;
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
 use App\Enums\PageVisibility;
@@ -106,6 +107,13 @@ class PageEditor extends Component
     {
         $this->guardEditable();
         $this->band($bandId)->update(['layout' => BandLayout::from($layout)]);
+        unset($this->version);
+    }
+
+    public function setBandBackground(int $bandId, string $background): void
+    {
+        $this->guardEditable();
+        $this->band($bandId)->update(['background' => BandBackground::from($background)]);
         unset($this->version);
     }
 
@@ -263,6 +271,10 @@ class PageEditor extends Component
                 'media_asset_id' => $assetId,
                 'label' => $this->editingContent['label'] ?? $originalName,
             ]),
+            'quote-photo' => $this->editingContent = array_merge($this->editingContent, [
+                'photo_url' => $url,
+                'photo_media_asset_id' => $assetId,
+            ]),
             'hero-image', 'video-asset', 'feature-image' => $this->editingContent = array_merge($this->editingContent, [
                 'media_asset_id' => $assetId,
             ]),
@@ -358,6 +370,7 @@ class PageEditor extends Component
             'bands' => $version->bands->sortBy('sort_order')->values()->map(fn (Band $band) => [
                 'zone' => $band->zone,
                 'layout' => $band->layout->value,
+                'background' => $band->background->value,
                 'sort_order' => $band->sort_order,
                 'blocks' => $band->blocks->sortBy('sort_order')->values()->map(fn (Block $block) => [
                     'type' => $block->type->value,
@@ -402,6 +415,7 @@ class PageEditor extends Component
                 $band = $version->bands()->create([
                     'zone' => (string) ($bandData['zone'] ?? 'hoofd'),
                     'layout' => BandLayout::from((int) ($bandData['layout'] ?? 1)),
+                    'background' => BandBackground::tryFrom((string) ($bandData['background'] ?? '')) ?? BandBackground::White,
                     'sort_order' => (int) ($bandData['sort_order'] ?? 0),
                 ]);
 

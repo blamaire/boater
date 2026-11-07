@@ -2,6 +2,7 @@
 
 namespace App\Services\Cms;
 
+use App\Enums\BandBackground;
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
 use App\Enums\PageType;
@@ -129,6 +130,7 @@ class PageImportService
                 'origin_band_id' => null,
                 'zone' => (string) ($bandData['zone'] ?? ''),
                 'layout' => BandLayout::from((string) $bandData['layout']),
+                'background' => BandBackground::tryFrom((string) ($bandData['background'] ?? '')) ?? BandBackground::White,
                 'sort_order' => (int) ($bandData['sort_order'] ?? 0),
             ]);
 

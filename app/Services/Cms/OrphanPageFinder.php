@@ -91,7 +91,8 @@ class OrphanPageFinder
 
                 array_push($hrefs, ...match ($block->type) {
                     BlockType::Text => $this->hrefsFromHtml((string) ($content['html'] ?? '')),
-                    BlockType::Button, BlockType::Card => [(string) ($content['href'] ?? '')],
+                    BlockType::Button => [(string) ($content['href'] ?? ''), (string) ($content['href2'] ?? '')],
+                    BlockType::Card => [(string) ($content['href'] ?? '')],
                     BlockType::Hero => [(string) ($content['cta_href'] ?? ''), (string) ($content['cta2_href'] ?? '')],
                     BlockType::FeatureSection => [(string) ($content['cta_href'] ?? '')],
                     default => [],

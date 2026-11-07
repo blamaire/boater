@@ -94,6 +94,7 @@ class PageVersion extends Model
         $bands = $this->bands()->with('blocks')->get()->map(fn (Band $band) => [
             'zone' => $band->zone,
             'layout' => $band->layout->value,
+            'background' => $band->background->value,
             'sort_order' => $band->sort_order,
             'blocks' => $band->blocks->map(fn (Block $block) => [
                 'column_index' => $block->column_index,

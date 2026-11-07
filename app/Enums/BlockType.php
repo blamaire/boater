@@ -20,6 +20,8 @@ enum BlockType: string
     case Video = 'video';
     case FeatureSection = 'feature_sectie';
     case Agenda = 'agenda';
+    case Step = 'stap';
+    case Price = 'prijs';
 
     public function label(): string
     {
@@ -40,6 +42,8 @@ enum BlockType: string
             self::Video => 'Video (uit bibliotheek)',
             self::FeatureSection => 'Feature-sectie (foto + tekst + CTA)',
             self::Agenda => 'Agenda (activiteitenlijst)',
+            self::Step => 'Stap (genummerd)',
+            self::Price => 'Prijs (bedrag met toelichting)',
         };
     }
 
@@ -52,17 +56,22 @@ enum BlockType: string
             self::Text => ['html' => ''],
             self::Heading => ['level' => 2, 'text' => ''],
             self::Image => ['url' => '', 'alt' => '', 'caption' => null],
-            self::Button => ['label' => '', 'href' => '', 'style' => 'primary'],
-            self::Card => ['title' => '', 'body' => '', 'image_url' => null, 'href' => null],
+            // Optionele tweede knop ernaast (label2/href2/style2), zodat twee
+            // knoppen naast elkaar kunnen staan in plaats van onder elkaar.
+            self::Button => ['label' => '', 'href' => '', 'style' => 'primary', 'label2' => '', 'href2' => '', 'style2' => 'secondary'],
+            // variant: 'foto' (afbeelding boven) of 'compact' (icoon links, zandkleurige tegel).
+            self::Card => ['title' => '', 'body' => '', 'image_url' => null, 'href' => null, 'link_label' => '', 'variant' => 'foto', 'icon' => null],
             self::IconText => ['icon' => 'star', 'title' => '', 'body' => ''],
             self::Gallery => ['images' => []],
             self::Accordion => ['items' => []],
-            self::Quote => ['text' => '', 'source' => null],
+            // style: 'standaard' of 'verhaal' (ledenverhaal: kaart met foto, naam en rol).
+            self::Quote => ['text' => '', 'source' => null, 'style' => 'standaard', 'role' => null, 'photo_url' => null, 'photo_media_asset_id' => null],
             self::VideoEmbed => ['provider' => 'youtube', 'embed_url' => ''],
             self::FileDownload => ['url' => '', 'label' => '', 'size' => null],
             self::Divider => ['style' => 'line'],
             self::Hero => [
                 'media_asset_id' => null,
+                'kicker' => '',
                 'title' => '',
                 'subtitle' => '',
                 'cta_label' => '',
@@ -92,6 +101,8 @@ enum BlockType: string
                 // Sta filter-controls in de browser toe (zoek/categorie/hide-history-toggle).
                 'allow_user_filter' => true,
             ],
+            self::Step => ['number' => '1', 'title' => '', 'body' => ''],
+            self::Price => ['label' => '', 'amount' => '', 'body' => ''],
         };
     }
 }
