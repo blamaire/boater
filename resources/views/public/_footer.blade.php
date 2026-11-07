@@ -1,4 +1,4 @@
-{{-- Footer van de publieke site (homepage-ontwerp, bordeaux = donker-900).
+{{-- Footer van de publieke site: wit, in lijn met de beheerpagina's.
      Contactgegevens en juridische pagina's komen uit SiteSettings
      (PublicFooterComposer), de sportlinks uit het hoofdmenu (PublicNavComposer). --}}
 @php
@@ -10,13 +10,13 @@
             'href' => ($isNav ? $item->url() : $item->publicUrl()) ?: '#',
         ];
     });
-    $footerLink = 'text-white/80 hover:text-white';
+    $footerLink = 'text-gray-700 hover:text-rzvg-600';
 @endphp
-<footer class="bg-donker-900 text-white/80 mt-auto">
+<footer class="bg-white border-t border-sand-200 text-gray-700 mt-auto">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-[0.95rem]">
         {{-- Contactblok --}}
         <div class="flex flex-col gap-2">
-            <p class="font-display text-2xl text-white">RZVG</p>
+            <p class="font-display text-2xl text-rzvg-600">RZVG</p>
             <p>{{ $siteSettings->contact_name ?? 'Roei- en Zeilvereniging Gouda' }}</p>
             @if ($siteSettings->contact_address)
                 <p class="whitespace-pre-line">{{ $siteSettings->contact_address }}</p>
@@ -58,7 +58,7 @@
         {{-- Hoofdmenu --}}
         @if ($footerNav->isNotEmpty())
             <nav aria-label="Ontdek" class="flex flex-col gap-2">
-                <p class="font-semibold text-white">Ontdek</p>
+                <p class="font-semibold text-gray-900">Ontdek</p>
                 @foreach ($footerNav as $item)
                     <a href="{{ $item['href'] }}" class="{{ $footerLink }}">{{ $item['label'] }}</a>
                 @endforeach
@@ -67,7 +67,7 @@
 
         {{-- Vereniging --}}
         <nav aria-label="Vereniging" class="flex flex-col gap-2">
-            <p class="font-semibold text-white">Vereniging</p>
+            <p class="font-semibold text-gray-900">Vereniging</p>
             <a href="{{ route('contact') }}" class="{{ $footerLink }}">Contact</a>
             @if ($siteSettings->privacyPage)
                 <a href="{{ $siteSettings->privacyPage->publicUrl() }}" class="{{ $footerLink }}">Privacy</a>
@@ -79,7 +79,7 @@
 
         {{-- Leden --}}
         <nav aria-label="Leden" class="flex flex-col gap-2">
-            <p class="font-semibold text-white">Leden</p>
+            <p class="font-semibold text-gray-900">Leden</p>
             @auth
                 <a href="{{ route('dashboard') }}" class="{{ $footerLink }}">Ledenpagina</a>
             @else
@@ -89,10 +89,10 @@
         </nav>
     </div>
 
-    <div class="border-t border-white/15">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4 text-sm text-white/70">
+    <div class="border-t border-sand-200">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4 text-sm text-gray-500">
             <span>&copy; {{ now()->year }} RZVG</span>
-            <span class="font-display">Roei- en Zeilvereniging Gouda</span>
+            <span class="font-display text-rzvg-600">Roei- en Zeilvereniging Gouda</span>
         </div>
     </div>
 </footer>

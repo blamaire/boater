@@ -168,7 +168,7 @@ class HomeSystemPageSeeder extends Seeder
                 [[BlockType::IconText, ['icon' => 'check-circle', 'title' => 'Student?', 'body' => 'Er is een speciaal studentlidmaatschap.']]],
             ]],
             [$white, [[
-                [BlockType::Button, ['label' => 'Welk lidmaatschap past bij mij?', 'href' => '/lid-worden', 'style' => 'donker']],
+                [BlockType::Button, ['label' => 'Welk lidmaatschap past bij mij?', 'href' => '/lid-worden', 'style' => 'secondary']],
             ]]],
 
             // 6. Leden aan het woord — een roeier én een zeiler

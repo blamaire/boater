@@ -33,6 +33,7 @@
     --color-sand-100: #f6f3ee;
     --color-sand-200: #e7e2da;
     --color-sand-300: #ddd6cb;
+    --color-sand-400: #c4baab;
 
     /* Donker: footer en donkere banden. Bewust één token, zodat de tint
        (nu bordeaux, gekozen in het homepage-ontwerp) op één plek wijzigt. */

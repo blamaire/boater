@@ -79,6 +79,8 @@
             ])>
                 @if ($cardImageUrl)
                     <img src="{{ $cardImageUrl }}" alt="" class="w-full aspect-[16/10] object-cover">
+                @else
+                    @include('cms.blocks.partials.photo-placeholder', ['aspect' => 'aspect-[16/10]'])
                 @endif
                 <span class="flex-1 flex flex-col gap-2 p-6">
                     <span class="font-display text-2xl md:text-[1.75rem] leading-tight">{{ $c['title'] ?? '' ?: '—' }}</span>
@@ -130,7 +132,9 @@
             @php($photoUrl = \App\Models\MediaAsset::resolveUrl($c['photo_media_asset_id'] ?? null, $c['photo_url'] ?? null))
             <figure class="h-full flex flex-col overflow-hidden rounded-2xl bg-white text-gray-900">
                 @if ($photoUrl)
-                    <img src="{{ $photoUrl }}" alt="" class="w-full aspect-[4/3] object-cover">
+                    <img src="{{ $photoUrl }}" alt="" class="w-full aspect-[16/10] object-cover">
+                @else
+                    @include('cms.blocks.partials.photo-placeholder', ['aspect' => 'aspect-[16/10]'])
                 @endif
                 <div class="flex flex-col gap-4 p-7">
                     <svg aria-hidden="true" class="h-9 w-9 text-rzvg-500" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 6C6.5 7 4.5 9.6 4.5 13v5h6v-6H7.6c.3-2 1.5-3.4 3.4-4.2L9.5 6Zm9 0c-3 1-5 3.6-5 7v5h6v-6h-2.9c.3-2 1.5-3.4 3.4-4.2L18.5 6Z"/></svg>
