@@ -26,7 +26,7 @@
                     </a>
                     <div class="flex items-center gap-3 text-sm">
                         <a href="{{ route('public.home') }}" class="inline-flex items-center px-3 py-1.5 rounded-md border border-rzvg-200 text-rzvg-700 hover:bg-rzvg-50">Openbare pagina</a>
-                        <div style="width: 10rem"></div>
+                        <x-search-box id="zoek-app" class="hidden sm:block w-48" />
                         <span class="text-gray-700 max-w-[10rem] truncate">{{ Auth::user()->name }}</span>
                         <button @click="sidebarOpen = ! sidebarOpen"
                             class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"

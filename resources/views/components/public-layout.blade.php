@@ -48,6 +48,8 @@
 
                     @include('public._nav', ['variant' => 'desktop'])
 
+                    <x-search-box id="zoek-header" class="hidden lg:block w-44 shrink-0" />
+
                     <div class="flex items-center gap-2 sm:gap-3 text-sm">
                         @auth
                             <a href="{{ route('dashboard') }}" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-md border border-rzvg-200 text-rzvg-700 hover:bg-rzvg-50">Ledenpagina</a>
@@ -76,6 +78,9 @@
 
                 <div id="mobiel-menu" x-show="menuOpen" x-cloak x-transition.origin.top @click.outside="menuOpen = false"
                     class="lg:hidden absolute inset-x-0 top-full bg-white border-b border-sand-200 shadow-lg">
+                    <div class="max-w-6xl mx-auto px-4 pt-4">
+                        <x-search-box id="zoek-mobiel" class="w-full" />
+                    </div>
                     @include('public._nav', ['variant' => 'mobile'])
                     @guest
                         {{-- Op smalle schermen past de Inloggen-knop niet in de header. --}}
