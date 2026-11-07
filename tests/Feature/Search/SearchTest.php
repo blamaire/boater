@@ -173,6 +173,22 @@ it('vindt tekst in de blokken van de gepubliceerde versie, niet in een conceptve
         ->and($service->search('sloepen', null))->toBe([]);
 });
 
+it('neemt link-adressen en stijlnamen van blokken niet mee in treffers of fragmenten', function () {
+    $page = searchPage($this->template, 'Proeflessen', bodyText: 'Kom een keer meevaren');
+    Block::create([
+        'band_id' => $page->publishedVersion->bands()->first()->id,
+        'column_index' => 0,
+        'sort_order' => 1,
+        'type' => BlockType::Button,
+        'content' => ['label' => 'Aanmelden', 'href' => '/contact', 'style' => 'primary'],
+    ]);
+
+    $service = app(SearchService::class);
+
+    expect($service->search('contact', null))->toBe([])
+        ->and($service->search('meevaren', null)[0]['results'][0]->snippet)->not->toContain('/contact');
+});
+
 it('vindt tekst met accenten in blokinhoud', function () {
     searchPage($this->template, 'Café', bodyText: 'Gezellig in het clubcafé');
 

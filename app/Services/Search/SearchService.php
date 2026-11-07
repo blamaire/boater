@@ -156,13 +156,27 @@ class SearchService
      */
     private function collectStrings(array $value, array &$into): void
     {
-        foreach ($value as $item) {
+        foreach ($value as $key => $item) {
             if (is_array($item)) {
                 $this->collectStrings($item, $into);
-            } elseif (is_string($item)) {
+            } elseif (is_string($item) && ! $this->isTechnicalKey($key)) {
                 $into[] = $item;
             }
         }
+    }
+
+    /**
+     * Blokvelden die geen leesbare tekst bevatten (link-adressen, beeld-URL's,
+     * stijl- en icoonnamen) — die horen niet in treffers of fragmenten.
+     */
+    private function isTechnicalKey(int|string $key): bool
+    {
+        if (! is_string($key)) {
+            return false;
+        }
+
+        return in_array($key, ['href', 'href2', 'url', 'embed_url', 'image_url', 'photo_url', 'icon', 'style', 'style2', 'variant', 'provider', 'image_side', 'size'], true)
+            || str_ends_with($key, '_href');
     }
 
     /**
