@@ -7,12 +7,13 @@
      banden met een rode of donkere achtergrond. --}}
 @php($buttonStyles = [
     'primary' => 'bg-rzvg-500 text-white hover:bg-rzvg-600',
-    'secondary' => 'bg-white border-2 border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50',
+    'secondary' => 'bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50',
     'donker' => 'bg-donker-900 text-white hover:bg-donker-700',
     'wit' => 'bg-white text-rzvg-600 hover:bg-rzvg-50',
-    'wit_omlijnd' => 'border-2 border-white text-white hover:bg-white/10',
+    'wit_omlijnd' => 'border border-white text-white hover:bg-white/10',
 ])
-@php($buttonBase = 'inline-flex items-center justify-center min-h-11 px-6 py-3 rounded-full font-semibold transition-colors')
+{{-- Bewust de vertrouwde, rustige CMS-knop (licht afgerond, compact). --}}
+@php($buttonBase = 'inline-flex items-center justify-center px-4 py-2 rounded-md transition-colors')
 @switch($block->type->value)
     @case('tekst')
         <div class="prose prose-lg max-w-prose band-ink">{!! $c['html'] ?? '<em class="text-gray-400">— leeg —</em>' !!}</div>
