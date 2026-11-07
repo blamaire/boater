@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
             LocalDevUserSeeder::class,
             // Idem alleen lokaal: hoofdmenu + lege sportpagina's voor de homepage-links.
             LocalPublicMenuSeeder::class,
+            // Idem alleen lokaal: testboten (roei- en zeilboten) voor de module Reserveren.
+            LocalBoatSeeder::class,
         ]);
     }
 }
