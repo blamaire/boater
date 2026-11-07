@@ -11,13 +11,19 @@
 # leven daarmee binnen het docker-volume-filesystem en zijn ~10× sneller om
 # te lezen. Consequentie: `composer install` en `npm install` moet je in de
 # container draaien; op de host zijn deze mappen leeg.
+#
+# Parallelle feature-stacks: er staan bewust geen vaste `container_name`s in
+# en de host-poorten zijn instelbaar (RZVG_WEB_PORT, RZVG_VITE_PORT,
+# RZVG_DB_PORT, RZVG_MAIL_PORT; standaard 8000/5173/3307/8025). Zo kan
+# `scripts/feature-stack.ps1` naast deze standaardstack extra stacks starten
+# voor een git-worktree, elk met een eigen projectnaam, poorten, volumes en
+# database. Zie de sectie "Parallelle features" in CLAUDE.md.
 
 services:
   app:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: rzvg-app
     env_file: .env.local
     volumes:
       - .:/var/www/html
@@ -30,9 +36,8 @@ services:
 
   web:
     image: nginx:1.27-alpine
-    container_name: rzvg-web
     ports:
-      - "8000:80"
+      - "${RZVG_WEB_PORT:-8000}:80"
     volumes:
       - .:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -41,7 +46,6 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: rzvg-db
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_USER: ${DB_USERNAME}
@@ -49,30 +53,32 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: "yes"
     volumes:
       - db-data:/var/lib/mysql
-    ports: ["3307:3306"]
+    ports: ["${RZVG_DB_PORT:-3307}:3306"]
 
   node:
     image: node:22-alpine
-    container_name: rzvg-node
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
       - app_node_modules:/var/www/html/node_modules
+    # Vite luistert in de container op dezelfde poort als op de host, zodat
+    # de URL's in public/hot en de HMR-verbinding kloppen (zie vite.config.js).
+    environment:
+      RZVG_WEB_PORT: ${RZVG_WEB_PORT:-8000}
+      RZVG_VITE_PORT: ${RZVG_VITE_PORT:-5173}
     ports:
-      - "5173:5173"
+      - "${RZVG_VITE_PORT:-5173}:${RZVG_VITE_PORT:-5173}"
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
   selenium:
     image: selenium/standalone-chromium:latest
-    container_name: rzvg-selenium
     shm_size: 2gb
     profiles: ["dusk"]
 
   mailpit:
     image: axllent/mailpit:v1.21
-    container_name: rzvg-mailpit
     ports:
-      - "8025:8025"
+      - "${RZVG_MAIL_PORT:-8025}:8025"
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
       MP_SMTP_AUTH_ALLOW_INSECURE: "true"
@@ -81,7 +87,6 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: rzvg-queue
     env_file: .env.local
     volumes:
       - .:/var/www/html
@@ -90,6 +95,9 @@ services:
       - app_bootstrap_cache:/var/www/html/bootstrap/cache
       - app_storage_framework:/var/www/html/storage/framework
     command: php artisan queue:work database --tries=3 --sleep=3
+    # Herstart vanzelf als de worker valt (bv. tijdens `composer db-reset`, of
+    # in een nieuwe feature-stack zolang `composer install` nog loopt).
+    restart: unless-stopped
     depends_on:
       - db
 
@@ -97,7 +105,6 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
-    container_name: rzvg-scheduler
     env_file: .env.local
     volumes:
       - .:/var/www/html
@@ -106,6 +113,7 @@ services:
       - app_bootstrap_cache:/var/www/html/bootstrap/cache
       - app_storage_framework:/var/www/html/storage/framework
     command: php artisan schedule:work
+    restart: unless-stopped
     depends_on:
       - db
 
