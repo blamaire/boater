@@ -38,11 +38,20 @@
         @break
     @case('knop')
         @if (! empty($c['label']))
-            <div class="flex flex-wrap gap-3">
-                <a href="{{ $c['href'] ?: '#' }}" class="{{ $buttonBase }} {{ $buttonStyles[$c['style'] ?? 'primary'] ?? $buttonStyles['primary'] }}">
-                    {{ $c['label'] }}
-                </a>
-                @if (! empty($c['label2']))
+            {{-- Stijl 'contact' = exact dezelfde "Bel/mail mij terug"-knop als
+                 rechtsonder in beeld (<x-contact-button>); label en URL
+                 worden dan genegeerd. --}}
+            <div class="flex flex-wrap items-center gap-3">
+                @if (($c['style'] ?? 'primary') === 'contact')
+                    <x-contact-button />
+                @else
+                    <a href="{{ $c['href'] ?: '#' }}" class="{{ $buttonBase }} {{ $buttonStyles[$c['style'] ?? 'primary'] ?? $buttonStyles['primary'] }}">
+                        {{ $c['label'] }}
+                    </a>
+                @endif
+                @if (($c['style2'] ?? '') === 'contact')
+                    <x-contact-button />
+                @elseif (! empty($c['label2']))
                     <a href="{{ $c['href2'] ?: '#' }}" class="{{ $buttonBase }} {{ $buttonStyles[$c['style2'] ?? 'secondary'] ?? $buttonStyles['secondary'] }}">
                         {{ $c['label2'] }}
                     </a>

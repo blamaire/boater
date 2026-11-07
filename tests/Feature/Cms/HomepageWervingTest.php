@@ -108,6 +108,27 @@ it('toont gasten een Lid worden-knop en een ledenstrook in de header, en ingelog
         ->assertSee('Ledenpagina');
 });
 
+it('zet de ledenstrook direct onder een openings-hero in plaats van boven de header', function () {
+    $page = pageWithBlocks([[BlockType::Hero, ['title' => 'Welkom op het water']]]);
+
+    $html = $this->get($page->publicUrl())->assertOk()->getContent();
+
+    expect(substr_count($html, 'Naar Mijn RZVG'))->toBe(1)
+        ->and(strpos($html, 'Naar Mijn RZVG'))->toBeGreaterThan(strpos($html, 'Welkom op het water'));
+});
+
+it('rendert knopstijl contact als de vaste Bel/mail mij terug-knop', function () {
+    $page = pageWithBlocks([
+        [BlockType::Button, ['label' => 'Proefles aanvragen', 'href' => '/contact', 'label2' => 'genegeerd', 'href2' => '/elders', 'style2' => 'contact']],
+    ]);
+
+    $html = $this->get($page->publicUrl())->assertOk()->getContent();
+
+    // Eén keer zwevend rechtsonder, één keer in het knopblok.
+    expect(substr_count($html, 'Bel/mail mij terug'))->toBe(2)
+        ->and($html)->not->toContain('genegeerd');
+});
+
 it('toont het hoofdmenu in header en footer', function () {
     $page = pageWithBlocks([[BlockType::Heading, ['text' => 'Hallo']]]);
     NavItem::create(['menu' => 'main', 'label' => 'Over de vereniging', 'href' => '/pagina/over-de-vereniging', 'sort_order' => 0, 'visible' => true]);

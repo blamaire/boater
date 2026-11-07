@@ -206,7 +206,7 @@ class HomeSystemPageSeeder extends Seeder
             [BandBackground::Red, [[
                 [BlockType::Heading, ['level' => 2, 'text' => 'Zin om het te proberen?']],
                 [BlockType::Text, ['html' => '<p>Vraag een proefles aan, dan nemen we je mee het water op. Of loop gewoon binnen op zaterdag- of zondagochtend.</p>']],
-                [BlockType::Button, ['label' => 'Proefles aanvragen', 'href' => '/contact', 'style' => 'wit', 'label2' => 'Bel 06 8340 4501', 'href2' => 'tel:+31683404501', 'style2' => 'wit_omlijnd']],
+                [BlockType::Button, ['label' => 'Proefles aanvragen', 'href' => '/contact', 'style' => 'wit', 'label2' => 'Bel/mail mij terug', 'href2' => '/contact', 'style2' => 'contact']],
             ]]],
         ];
     }

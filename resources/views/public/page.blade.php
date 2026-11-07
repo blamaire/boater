@@ -1,4 +1,11 @@
+@php
+    // Opent de pagina met een hero, dan staat de ledenstrook ("Al lid? …")
+    // direct onder die hero in plaats van boven de header.
+    $firstBand = $version->bands->first();
+    $heroFirst = $firstBand !== null && $firstBand->blocks->contains('type', \App\Enums\BlockType::Hero);
+@endphp
 <x-public-layout :title="$page->title" :preview-banner="$previewLabel ?? null"
+    :member-strip-inline="$heroFirst"
     :description="$version->meta_description"
     :og-title="$version->og_title"
     :og-description="$version->og_description"
@@ -85,6 +92,9 @@
                 @endfor
             </section>
             </div>
+            @if ($loop->first && $heroFirst)
+                @include('public._ledenstrook')
+            @endif
         @endforeach
     </article>
 </x-public-layout>

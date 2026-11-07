@@ -1,4 +1,4 @@
-@props(['title' => null, 'previewBanner' => null, 'description' => null, 'ogTitle' => null, 'ogDescription' => null, 'ogImage' => null, 'canonicalUrl' => null, 'page' => null, 'version' => null])
+@props(['title' => null, 'previewBanner' => null, 'description' => null, 'ogTitle' => null, 'ogDescription' => null, 'ogImage' => null, 'canonicalUrl' => null, 'page' => null, 'version' => null, 'memberStripInline' => false])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -37,18 +37,9 @@
             </div>
         @endif
         <div class="min-h-screen flex flex-col" x-data="{ sidebarOpen: false, menuOpen: false }">
-            @guest
-                {{-- Ledenstrook: leden vinden hun zelfservice na het inloggen;
-                     de rest van de header is gericht op nieuwe bezoekers. --}}
-                <div class="bg-sand-100 border-b border-sand-200 text-sm text-gray-700">
-                    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5 flex items-center justify-end gap-3">
-                        <span class="hidden sm:inline">Al lid? Reserveren, de agenda en je gegevens vind je na het inloggen.</span>
-                        <a href="{{ route('login') }}" class="inline-flex items-center gap-1 min-h-9 font-semibold text-rzvg-600 hover:text-rzvg-700">
-                            Naar Mijn RZVG <span aria-hidden="true">→</span>
-                        </a>
-                    </div>
-                </div>
-            @endguest
+            @unless ($memberStripInline)
+                @include('public._ledenstrook')
+            @endunless
             <header class="border-b border-sand-200 bg-white relative z-20">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
                     <a href="/" class="flex items-center gap-3 shrink-0">
