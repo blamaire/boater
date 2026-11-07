@@ -314,7 +314,7 @@
                 <p class="text-sm text-gray-500">Contactpersonen "In Case of Emergency" die de vereniging tijdens activiteiten kan bellen.</p>
             </div>
             <button type="button" wire:click="openIceForm"
-                class="text-sm px-3 py-1.5 rounded bg-rzvg-500 text-white hover:bg-rzvg-600">
+                class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
                 + Contact toevoegen
             </button>
         </div>
@@ -380,7 +380,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <button type="button" wire:click="saveIceContact"
-                        class="text-sm px-3 py-1.5 rounded bg-rzvg-500 text-white hover:bg-rzvg-600">
+                        class="text-sm px-3 py-1.5 rounded bg-rzvg-600 text-white hover:bg-rzvg-700">
                         Opslaan
                     </button>
                     <button type="button" wire:click="closeIceForm"
