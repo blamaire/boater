@@ -8,6 +8,7 @@ use App\Models\ObjectCategory;
 use App\Models\Person;
 use App\Models\ReservableObject;
 use App\Models\Reservation;
+use App\Rules\OpKwartier;
 use App\Services\Reservations\ReservationRuleEvaluator;
 use App\Services\Reservations\ReservationService;
 use App\Services\Reservations\ReservationSubmissionService;
@@ -46,6 +47,9 @@ class Reserveren extends Component
 
     public string $endsAt = '';
 
+    /** Wacht het rooster na een eerste klik (begin) op de klik voor het eindtijdstip? */
+    public bool $awaitingEnd = false;
+
     public ?int $selectedPersonId = null;
 
     public string $note = '';
@@ -80,17 +84,33 @@ class Reserveren extends Component
     }
 
     /**
-     * Klik op een kalendercel: object + starttijd voorvullen, eindtijd
-     * standaard +1 uur.
+     * Klik op een kwartiercel. Eerste klik = begintijdstip (object + start,
+     * voorlopig één kwartier); een tweede klik in dezelfde rij op of na dat
+     * begin = eindtijdstip (tot en met het aangeklikte kwartier). Een klik in
+     * een andere rij of vóór het begin start een nieuwe selectie.
      */
     public function pickSlot(int $objectId, string $isoStart): void
     {
+        $cell = Carbon::parse($isoStart);
+        $this->errorMessage = null;
+
+        if ($this->awaitingEnd
+            && $this->selectedObjectId === $objectId
+            && $this->startsAt !== ''
+            && $cell->greaterThanOrEqualTo(Carbon::parse($this->startsAt))) {
+            $this->endsAt = $cell->copy()->addMinutes(15)->format('Y-m-d\TH:i');
+            $this->awaitingEnd = false;
+            $this->recomputeLiveViolations();
+
+            return;
+        }
+
         $this->mode = 'object';
         $this->selectedObjectId = $objectId;
         $this->selectedCategoryId = null;
-        $this->startsAt = Carbon::parse($isoStart)->format('Y-m-d\TH:i');
-        $this->endsAt = Carbon::parse($isoStart)->addHour()->format('Y-m-d\TH:i');
-        $this->errorMessage = null;
+        $this->startsAt = $cell->format('Y-m-d\TH:i');
+        $this->endsAt = $cell->copy()->addMinutes(15)->format('Y-m-d\TH:i');
+        $this->awaitingEnd = true;
         $this->recomputeLiveViolations();
     }
 
@@ -106,11 +126,14 @@ class Reserveren extends Component
 
     public function updatedStartsAt(): void
     {
+        // Handmatig een tijd invullen beëindigt een half afgemaakte roosterselectie.
+        $this->awaitingEnd = false;
         $this->recomputeLiveViolations();
     }
 
     public function updatedEndsAt(): void
     {
+        $this->awaitingEnd = false;
         $this->recomputeLiveViolations();
     }
 
@@ -184,8 +207,8 @@ class Reserveren extends Component
         $this->errorMessage = null;
 
         $rules = [
-            'startsAt' => ['required', 'date'],
-            'endsAt' => ['required', 'date', 'after:startsAt'],
+            'startsAt' => ['required', 'date', new OpKwartier],
+            'endsAt' => ['required', 'date', 'after:startsAt', new OpKwartier],
             'selectedPersonId' => ['required', 'integer', 'exists:persons,id'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];

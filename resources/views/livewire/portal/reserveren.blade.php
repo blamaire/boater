@@ -72,7 +72,22 @@
             </div>
         </div>
 
-        <div class="text-sm text-gray-600">{{ $day->translatedFormat('l j F Y') }}</div>
+        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
+            <span>{{ $day->translatedFormat('l j F Y') }}</span>
+            {{-- Twee kliks: eerst het begin, dan het einde (zie Reserveren::pickSlot). --}}
+            <span @class(['text-rzvg-700 font-medium' => $awaitingEnd])>
+                @if ($awaitingEnd)
+                    Begin gekozen ({{ \Illuminate\Support\Carbon::parse($startsAt)->format('H:i') }}) — klik nu op het eindtijdstip in dezelfde rij.
+                @else
+                    Klik in het rooster op het begintijdstip en daarna op het eindtijdstip.
+                @endif
+            </span>
+        </div>
+        @php
+            // Huidige selectie, om in het rooster op te lichten.
+            $selStart = $mode === 'object' && $selectedObjectId !== null && $startsAt !== '' ? \Illuminate\Support\Carbon::parse($startsAt) : null;
+            $selEnd = $selStart !== null && $endsAt !== '' ? \Illuminate\Support\Carbon::parse($endsAt) : null;
+        @endphp
 
         @if ($objects->isEmpty())
             <p class="text-sm text-gray-500 italic">Geen objecten voor deze filter.</p>
@@ -82,8 +97,9 @@
                     <thead>
                         <tr>
                             <th class="sticky left-0 bg-white px-2 py-1 text-left font-medium text-gray-500 border-b border-gray-200 w-40">Object</th>
+                            {{-- Per uur één kop over vier kwartierkolommen. --}}
                             @foreach ($hours as $h)
-                                <th class="px-1 py-1 text-center font-medium text-gray-500 border-b border-gray-200 w-16">{{ sprintf('%02d:00', $h) }}</th>
+                                <th colspan="4" class="px-1 py-1 text-left font-medium text-gray-500 border-b border-l border-gray-200">{{ sprintf('%02d:00', $h) }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -101,19 +117,31 @@
                                     $reservationsForObject = $dayReservationsByObject->get($o->id, collect());
                                 @endphp
                                 @foreach ($hours as $h)
-                                    @php
-                                        $cellStart = $day->copy()->setTime($h, 0);
-                                        $cellEnd = $day->copy()->setTime($h, 59, 59);
-                                        $overlap = $reservationsForObject->first(fn ($r) => $r->starts_at < $cellEnd && $r->ends_at > $cellStart);
-                                    @endphp
-                                    <td class="border-b border-l border-gray-100 h-10 relative
-                                        @if ($overlap) bg-rzvg-100 @endif
-                                        @if (!$overlap && $o->status === \App\Enums\ReservableObjectStatus::Available) hover:bg-rzvg-50 cursor-pointer @endif"
-                                        @if (!$overlap && $o->status === \App\Enums\ReservableObjectStatus::Available)
-                                            wire:click="pickSlot({{ $o->id }}, '{{ $cellStart->toIso8601String() }}')"
-                                        @endif
-                                        title="{{ $overlap ? ($overlap->person->first_name.' '.$overlap->person->last_name.' · '.$overlap->starts_at->format('H:i').'–'.$overlap->ends_at->format('H:i')) : sprintf('Klik om te reserveren om %02d:00', $h) }}">
-                                    </td>
+                                    @foreach ([0, 15, 30, 45] as $m)
+                                        @php
+                                            $cellStart = $day->copy()->setTime($h, $m);
+                                            $cellEnd = $cellStart->copy()->addMinutes(15);
+                                            $overlap = $reservationsForObject->first(fn ($r) => $r->starts_at < $cellEnd && $r->ends_at > $cellStart);
+                                            $clickable = ! $overlap && $o->status === \App\Enums\ReservableObjectStatus::Available;
+                                            $selected = $selEnd !== null && $selectedObjectId === $o->id && $cellStart < $selEnd && $cellEnd > $selStart;
+                                            $endHint = $awaitingEnd && $selectedObjectId === $o->id && $cellStart >= $selStart;
+                                        @endphp
+                                        {{-- Kwartiercel; een lijn per heel uur, een stippellijn per kwartier. --}}
+                                        <td @class([
+                                                'border-b border-gray-100 h-10 w-4 min-w-4 relative',
+                                                'border-l border-l-gray-200' => $m === 0,
+                                                'border-l border-l-gray-100 border-dotted' => $m !== 0,
+                                                'bg-rzvg-100' => $overlap,
+                                                'bg-rzvg-400' => $selected && ! $overlap,
+                                                'hover:bg-rzvg-50 cursor-pointer' => $clickable && ! $selected,
+                                                'cursor-pointer' => $clickable && $selected,
+                                            ])
+                                            @if ($clickable)
+                                                wire:click="pickSlot({{ $o->id }}, '{{ $cellStart->toIso8601String() }}')"
+                                            @endif
+                                            title="{{ $overlap ? ($overlap->person->first_name.' '.$overlap->person->last_name.' · '.$overlap->starts_at->format('H:i').'–'.$overlap->ends_at->format('H:i')) : ($endHint ? 'Klik om te eindigen om '.$cellEnd->format('H:i') : 'Klik om te beginnen om '.$cellStart->format('H:i')) }}">
+                                        </td>
+                                    @endforeach
                                 @endforeach
                             </tr>
                         @endforeach
