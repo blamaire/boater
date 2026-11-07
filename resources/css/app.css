@@ -6,6 +6,7 @@
 @source '../views';
 @source '../../app/View/Components';
 @source '../../app/Http/Controllers';
+@source '../../app/Enums';
 
 /* Responsive kolomklassen worden binnen @class([...])-blade-syntax gebruikt;
    Tailwind's auto-detectie mist ze door de colon in de string-key. */
@@ -27,8 +28,37 @@
     --color-rzvg-800: #5a0f10;
     --color-rzvg-900: #2c0808;
 
+    /* Zand: rustige achtergrond voor afwisselende banden en foto-placeholders. */
+    --color-sand-50: #faf8f5;
+    --color-sand-100: #f6f3ee;
+    --color-sand-200: #e7e2da;
+    --color-sand-300: #ddd6cb;
+
+    /* Donker: footer en donkere banden. Bewust één token, zodat de tint
+       (nu bordeaux, gekozen in het homepage-ontwerp) op één plek wijzigt. */
+    --color-donker-50: #f7eded;
+    --color-donker-200: #e3c3c4;
+    --color-donker-700: #6b1a1e;
+    --color-donker-900: #4a1013;
+
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Alike', Georgia, ui-serif, serif;
+}
+
+/* Banden met een rode of donkere achtergrond (BandBackground::Red/Dark):
+   tekst wordt wit. Bewust buiten @layer, zodat dit de tekstkleur-utilities
+   van de blokken (bv. text-gray-900) overstemt zonder !important. */
+.band-inverted {
+    --tw-prose-body: #ffffff;
+    --tw-prose-headings: #ffffff;
+    --tw-prose-links: #ffffff;
+    --tw-prose-bold: #ffffff;
+}
+.band-inverted .band-ink {
+    color: inherit;
+}
+.band-inverted .band-ink-muted {
+    color: rgb(255 255 255 / 0.9);
 }
 
 /* WordPress-import (§25): vertaling van alignleft/alignright/aligncenter,

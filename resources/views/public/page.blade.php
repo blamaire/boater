@@ -19,9 +19,23 @@
         @endcan
     @endunless
 
+    @php
+        // Sectieritme: opeenvolgende banden met dezelfde achtergrond vormen
+        // samen één sectie (bv. een kop-band boven een band met drie kaarten).
+        // Alleen aan de buitenkant van zo'n groep komt ruime padding; daarbinnen
+        // een kleinere tussenruimte. Full-bleed-banden (hero e.d.) breken een groep.
+        $fullBleedBlockTypes = [\App\Enums\BlockType::Hero, \App\Enums\BlockType::Video, \App\Enums\BlockType::FeatureSection];
+        $bandList = $version->bands->values();
+        $bandGroupKeys = $bandList->map(
+            fn ($b) => $b->blocks->whereIn('type', $fullBleedBlockTypes)->isNotEmpty() ? null : $b->background->value
+        );
+    @endphp
     <article>
-        @foreach ($version->bands as $band)
+        @foreach ($bandList as $band)
             @php
+                $groupKey = $bandGroupKeys[$loop->index];
+                $samePrev = $groupKey !== null && ($bandGroupKeys[$loop->index - 1] ?? null) === $groupKey;
+                $sameNext = $groupKey !== null && ($bandGroupKeys[$loop->index + 1] ?? null) === $groupKey;
                 // Hero/video/feature-sectieblokken zijn "full-bleed": de band
                 // waar ze in staan vult bewust edge-to-edge de breedte van
                 // <main> (dus zonder de gecentreerde max-w-6xl-leesbreedte
@@ -34,15 +48,25 @@
                 $fullBleedTypes = [\App\Enums\BlockType::Hero, \App\Enums\BlockType::Video, \App\Enums\BlockType::FeatureSection];
                 $bandHasFullBleedBlock = $band->blocks->whereIn('type', $fullBleedTypes)->isNotEmpty();
             @endphp
+            {{-- De achtergrond (BandBackground) vult altijd de volle breedte;
+                 de inhoud blijft binnen de leesbreedte. Banden zonder
+                 full-bleed-blok krijgen een vast verticaal ritme, zodat
+                 opeenvolgende banden als rustige secties lezen. --}}
+            <div @class([
+                $band->background->sectionClasses(),
+                'pt-12 md:pt-20' => ! $bandHasFullBleedBlock && ! $samePrev,
+                'pb-12 md:pb-20' => ! $bandHasFullBleedBlock && ! $sameNext,
+                'pb-8 md:pb-10' => ! $bandHasFullBleedBlock && $sameNext,
+            ])>
             <section @class([
-                'grid',
+                'grid gap-6 md:gap-8',
                 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8' => ! $bandHasFullBleedBlock,
                 'grid-cols-1' => $band->layout->value === 1,
                 'md:grid-cols-2' => $band->layout->value === 2,
                 'md:grid-cols-3' => $band->layout->value === 3,
             ])>
                 @for ($col = 0; $col < $band->layout->columnCount(); $col++)
-                    <div>
+                    <div class="flex flex-col gap-4 min-w-0">
                         @foreach ($band->blocks->where('column_index', $col)->sortBy('sort_order') as $block)
                             @php($blockIsFullBleed = $bandHasFullBleedBlock && in_array($block->type, $fullBleedTypes, true))
                             @if ($bandHasFullBleedBlock && ! $blockIsFullBleed)
@@ -60,6 +84,7 @@
                     </div>
                 @endfor
             </section>
+            </div>
         @endforeach
     </article>
 </x-public-layout>

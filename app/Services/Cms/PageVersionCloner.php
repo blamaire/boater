@@ -30,6 +30,7 @@ class PageVersionCloner
                 'origin_band_id' => $band->origin_band_id ?? $band->id,
                 'zone' => $band->zone,
                 'layout' => $band->layout,
+                'background' => $band->background,
                 'sort_order' => $band->sort_order,
             ]);
 

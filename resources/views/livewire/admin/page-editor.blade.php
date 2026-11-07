@@ -148,7 +148,13 @@
     @endif
 
     @forelse ($version->bands as $band)
-        <div wire:key="band-{{ $band->id }}" class="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+        <div wire:key="band-{{ $band->id }}" @class([
+            'border border-gray-200 rounded-lg p-4 space-y-3',
+            'bg-white' => $band->background === \App\Enums\BandBackground::White,
+            'bg-sand-100' => $band->background === \App\Enums\BandBackground::Sand,
+            'bg-rzvg-50 border-rzvg-200' => $band->background === \App\Enums\BandBackground::Red,
+            'bg-donker-50 border-donker-200' => $band->background === \App\Enums\BandBackground::Dark,
+        ])>
             @if ($version->status->isEditable())
                 <div class="flex items-center justify-between text-sm text-gray-500">
                     <div class="flex items-center gap-2">
@@ -157,6 +163,11 @@
                             <option value="1" @selected($band->layout->value === 1)>1 kolom</option>
                             <option value="2" @selected($band->layout->value === 2)>2 kolommen</option>
                             <option value="3" @selected($band->layout->value === 3)>3 kolommen</option>
+                        </select>
+                        <select wire:change="setBandBackground({{ $band->id }}, $event.target.value)" class="text-xs border-gray-300 rounded" aria-label="Achtergrond van band {{ $loop->iteration }}">
+                            @foreach (\App\Enums\BandBackground::cases() as $bg)
+                                <option value="{{ $bg->value }}" @selected($band->background === $bg)>Achtergrond: {{ $bg->label() }}</option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="flex items-center gap-2">

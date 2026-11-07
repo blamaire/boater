@@ -65,7 +65,8 @@ class AppServiceProvider extends ServiceProvider
             app(ReservationProposalHandler::class),
         );
 
-        View::composer('public._nav', PublicNavComposer::class);
+        // De footer toont het hoofdmenu ook (kolom "Ontdek").
+        View::composer(['public._nav', 'public._footer'], PublicNavComposer::class);
         View::composer('public._footer', PublicFooterComposer::class);
         View::composer('layouts.navigation', BuildInfoComposer::class);
     }

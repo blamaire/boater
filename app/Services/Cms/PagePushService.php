@@ -100,6 +100,7 @@ class PagePushService
                 'bands' => $version->bands->sortBy('sort_order')->values()->map(fn ($band) => [
                     'zone' => $band->zone,
                     'layout' => $band->layout->value,
+                    'background' => $band->background->value,
                     'sort_order' => $band->sort_order,
                     'blocks' => $band->blocks->sortBy('sort_order')->values()->map(fn ($block) => [
                         'type' => $block->type->value,
