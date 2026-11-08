@@ -5,6 +5,11 @@ use App\Models\ContactRequest;
 use App\Models\ContactTopic;
 use App\Models\Person;
 use App\Notifications\ContactRequestSubmitted;
+use Database\Seeders\LocalContactTopicSeeder;
+use Database\Seeders\LocalDevUserSeeder;
+use Database\Seeders\MembershipTypeSeeder;
+use Database\Seeders\PermissionSeeder;
+use Database\Seeders\RoleSeeder;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
@@ -98,9 +103,30 @@ it('weigert indiening als geen enkele contactwijze is aangevinkt', function () {
         ->set('name', 'Jan Jansen')
         ->set('message', 'Bericht van voldoende lengte.')
         ->call('submit')
-        ->assertHasErrors('form');
+        ->assertHasErrors('contact_method');
 
     expect(ContactRequest::count())->toBe(0);
+});
+
+it('toont alle ontbrekende velden in één keer, inclusief contactwijze en onderwerp', function () {
+    Livewire::test(Contact::class)
+        ->call('submit')
+        ->assertHasErrors(['contact_topic_id', 'name', 'message', 'contact_method']);
+
+    expect(ContactRequest::count())->toBe(0);
+});
+
+it('zaait lokaal standaard contactonderwerpen met de dev-beheerder als verantwoordelijke', function () {
+    app()->detectEnvironment(fn () => 'local');
+    $this->seed(PermissionSeeder::class);
+    $this->seed(RoleSeeder::class);
+    $this->seed(MembershipTypeSeeder::class);
+    $this->seed(LocalDevUserSeeder::class);
+    $this->seed(LocalContactTopicSeeder::class);
+
+    expect(ContactTopic::query()->orderBy('sort_order')->pluck('name')->all())
+        ->toBe(['Lidmaatschap', 'Proefles', 'Roeien', 'Zeilen', 'Suppen', 'Jeugd', 'Overig'])
+        ->and(ContactTopic::query()->first()->responsible->account->email)->toBe('beheerder@rzvg.local');
 });
 
 it('weigert "bel me terug" zonder telefoonnummer', function () {
@@ -216,4 +242,15 @@ it('accepteert indiening (fail-open) als Turnstile onbereikbaar is', function ()
         ->assertHasNoErrors();
 
     expect(ContactRequest::count())->toBe(1);
+});
+
+it('selecteert het onderwerp voor via ?onderwerp= (hoofdletterongevoelig)', function () {
+    $person = Person::create(['first_name' => 'Ver', 'last_name' => 'Antwoordelijke', 'email' => 'v2@example.test']);
+    $topic = ContactTopic::create(['name' => 'Proefles', 'responsible_person_id' => $person->id]);
+
+    Livewire::withQueryParams(['onderwerp' => 'proefles'])->test(Contact::class)
+        ->assertSet('contact_topic_id', $topic->id);
+
+    Livewire::withQueryParams(['onderwerp' => 'bestaatniet'])->test(Contact::class)
+        ->assertSet('contact_topic_id', null);
 });

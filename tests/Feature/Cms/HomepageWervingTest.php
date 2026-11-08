@@ -166,3 +166,31 @@ it('zaait het lokale hoofdmenu alleen bij APP_ENV=local', function () {
     expect(NavItem::query()->orderBy('sort_order')->get()->map->displayLabel()->all())
         ->toBe(['Roeien', 'Zeilen', 'Suppen', 'Jeugd', 'Over de vereniging']);
 });
+
+it('toont gasten de vaste Proefles- en Lid worden-knoppen op home en CMS-pagina, ingelogden niet', function () {
+    $page = pageWithBlocks([[BlockType::Heading, ['text' => 'Hallo']]]);
+
+    $this->seed(HomeSystemPageSeeder::class);
+    foreach (['/', $page->publicUrl()] as $url) {
+        $this->get($url)->assertOk()
+            ->assertSee(route('contact', ['onderwerp' => 'proefles']), false)
+            ->assertSee('fixed inset-x-0 bottom-0', false)
+            ->assertSee('Proefles aanvragen');
+    }
+
+    $this->actingAs(User::factory()->create(['email_verified_at' => now()]));
+
+    $this->get($page->publicUrl())->assertOk()
+        ->assertDontSee(route('contact', ['onderwerp' => 'proefles']), false)
+        ->assertDontSee('fixed inset-x-0 bottom-0', false);
+});
+
+it('toont de publieke header als twee balken met naam en niet-wrappende knoppen', function () {
+    $page = pageWithBlocks([[BlockType::Heading, ['text' => 'Hallo']]]);
+
+    $this->get($page->publicUrl())->assertOk()
+        ->assertSee('Roei- en Zeilvereniging &quot;Gouda&quot;', false)
+        ->assertSee('flex flex-nowrap items-center', false)
+        ->assertSee('whitespace-nowrap', false)
+        ->assertSee('role="search"', false);
+});
