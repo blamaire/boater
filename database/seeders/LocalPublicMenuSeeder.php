@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Zaait voor lokale ontwikkeling het publieke hoofdmenu uit het homepage-
  * ontwerp (Roeien · Zeilen · Suppen · Jeugd · Over de vereniging), elk met
- * een eenvoudige gepubliceerde inhoudspagina, zodat de links op de homepage
+ * een gepubliceerde inhoudspagina (Roeien, Zeilen en Suppen met wervende
+ * inhoud uit {@see LocalSportPagesSeeder}, de rest eenvoudig), zodat de links op de homepage
  * en in header/footer ergens heen gaan. Alleen bij `APP_ENV=local`: op test
  * en productie richt een redacteur het menu zelf in.
  */
@@ -28,7 +29,7 @@ class LocalPublicMenuSeeder extends Seeder
     /** @var list<array{slug: string, title: string, intro: string}> */
     private const PAGES = [
         ['slug' => 'roeien', 'title' => 'Roeien', 'intro' => 'Alles over roeien bij RZVG: recreatief, wedstrijd, roeivalidatie en de Basis Roei Opleiding.'],
-        ['slug' => 'zeilen', 'title' => 'Zeilen', 'intro' => 'Alles over zeilen bij RZVG: zwaardboten, kielboten en de CWO-opleidingen.'],
+        ['slug' => 'zeilen', 'title' => 'Zeilen', 'intro' => 'Alles over zeilen bij RZVG: zwaardboten, kielboten en de zeilopleidingen.'],
         ['slug' => 'suppen', 'title' => 'Suppen', 'intro' => 'Alles over suppen bij RZVG.'],
         ['slug' => 'jeugd', 'title' => 'Jeugd', 'intro' => 'Jeugdroeien en jeugdzeilen: informatie voor kinderen, jongeren en hun ouders.'],
         ['slug' => 'over-de-vereniging', 'title' => 'Over de vereniging', 'intro' => 'Bestuur, commissies, sociëteit, statuten en reglementen.'],
@@ -39,6 +40,11 @@ class LocalPublicMenuSeeder extends Seeder
         if (app()->environment() !== 'local') {
             return;
         }
+
+        // Eerst de wervende inhoud van Roeien, Zeilen en Suppen; die pagina's
+        // hebben daarna een gepubliceerde versie en krijgen hieronder dus geen
+        // eenvoudige kop-plus-introversie meer.
+        $this->call(LocalSportPagesSeeder::class);
 
         if (NavItem::query()->where('menu', 'main')->exists()) {
             return;

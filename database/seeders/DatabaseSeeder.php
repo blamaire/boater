@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             // Alleen actief bij APP_ENV=local (interne guard); seed nooit
             // productie-tokens of test-users op andere omgevingen.
             LocalDevUserSeeder::class,
-            // Idem alleen lokaal: hoofdmenu + lege sportpagina's voor de homepage-links.
+            // Idem alleen lokaal: hoofdmenu + wervende sportpagina's (via LocalSportPagesSeeder) voor de homepage-links.
             LocalPublicMenuSeeder::class,
             // Idem alleen lokaal: testboten (roei- en zeilboten) voor de module Reserveren.
             LocalBoatSeeder::class,
