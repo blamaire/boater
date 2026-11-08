@@ -35,4 +35,39 @@ class AppVersionResolver
             return 'onbekend';
         }
     }
+
+    /**
+     * Naam van de uitgecheckte git-branch (alleen voor de lokale branch-balk);
+     * bij een detached HEAD de korte commit-hash, bij fouten null. Bewust niet
+     * gecachet: de branch kan tijdens de levensduur van de container wisselen.
+     */
+    public function currentBranch(): ?string
+    {
+        try {
+            $branch = $this->git(['rev-parse', '--abbrev-ref', 'HEAD']);
+
+            if ($branch === 'HEAD') {
+                return $this->git(['rev-parse', '--short', 'HEAD']);
+            }
+
+            return $branch;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  list<string>  $arguments
+     */
+    private function git(array $arguments): ?string
+    {
+        $process = new Process(['git', '-c', 'safe.directory=*', ...$arguments], base_path());
+        $process->run();
+
+        if (! $process->isSuccessful()) {
+            return null;
+        }
+
+        return trim($process->getOutput()) ?: null;
+    }
 }
