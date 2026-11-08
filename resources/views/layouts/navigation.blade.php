@@ -486,7 +486,7 @@
                         'block px-3 py-2 rounded-md hover:bg-rzvg-50',
                         'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('portal.mijn-lidmaatschap'),
                         'text-gray-700' => ! request()->routeIs('portal.mijn-lidmaatschap'),
-                    ])>Mijn lidmaatschap en gegevens</a>
+                    ])>Gegevens en lidmaatschap</a>
             </li>
             <li>
                 <form method="POST" action="{{ route('logout') }}">

@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MediaDownloadController;
 use App\Http\Controllers\Portal\ProposalDiffController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SitemapController;
@@ -83,11 +82,12 @@ Route::middleware(['auth', 'verified', 'can:damage_reports.create'])
     ->get('/schade-melden', SchadeMelden::class)
     ->name('portal.schade-melden');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+// De Breeze-profielpagina is opgegaan in "Gegevens en lidmaatschap"
+// (wachtwoord wijzigen staat daar; account verwijderen is vervallen —
+// stoppen loopt via het opzeggen van het lidmaatschap). Oude links blijven werken.
+Route::middleware('auth')
+    ->get('/profile', fn () => redirect()->route('portal.mijn-lidmaatschap'))
+    ->name('profile.edit');
 
 Route::middleware(['auth', 'verified'])
     ->prefix('beheer/paginas')

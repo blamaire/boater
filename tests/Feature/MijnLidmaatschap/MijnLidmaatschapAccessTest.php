@@ -27,7 +27,7 @@ it('rendert voor een ingelogd, geverifieerd lid met een gekoppelde persoon', fun
     $this->actingAs($user)
         ->get('/mijn/lidmaatschap')
         ->assertOk()
-        ->assertSee('Mijn lidmaatschap')
+        ->assertSee('Gegevens en lidmaatschap')
         ->assertSee('Iris');
 });
 
