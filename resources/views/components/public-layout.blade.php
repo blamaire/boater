@@ -31,6 +31,7 @@
         @livewireStyles
     </head>
     <body class="font-sans antialiased text-gray-900 bg-white">
+        <x-local-branch-bar />
         @if ($previewBanner)
             <div class="bg-red-200 text-red-900 text-sm text-center py-2 px-4 font-medium">
                 {{ $previewBanner }}
@@ -47,6 +48,8 @@
                     </a>
 
                     @include('public._nav', ['variant' => 'desktop'])
+
+                    <x-search-box id="zoek-header" class="hidden lg:block w-44 shrink-0" />
 
                     <div class="flex items-center gap-2 sm:gap-3 text-sm">
                         @auth
@@ -76,6 +79,9 @@
 
                 <div id="mobiel-menu" x-show="menuOpen" x-cloak x-transition.origin.top @click.outside="menuOpen = false"
                     class="lg:hidden absolute inset-x-0 top-full bg-white border-b border-sand-200 shadow-lg">
+                    <div class="max-w-6xl mx-auto px-4 pt-4">
+                        <x-search-box id="zoek-mobiel" class="w-full" />
+                    </div>
                     @include('public._nav', ['variant' => 'mobile'])
                     @guest
                         {{-- Op smalle schermen past de Inloggen-knop niet in de header. --}}

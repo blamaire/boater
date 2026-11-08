@@ -111,6 +111,30 @@ function Invoke-Compose([string] $dir, [string[]] $arguments) {
     }
 }
 
+# In een worktree is `.git` een bestand met een Windows-pad (gitdir: C:/…/.git/worktrees/…)
+# dat in de Linux-container niet bestaat, waardoor git daar stukloopt (o.a. AppVersionResolver
+# en de branch-balk). De override mount de .git van de hoofdrepo read-only en wijst GIT_DIR
+# naar de worktree-map daarbinnen. Docker compose laadt het bestand automatisch; het staat in .gitignore.
+function Write-ComposeOverride([string] $dir) {
+    $gitFile = Get-Content (Join-Path $dir '.git') -Raw
+    if ($gitFile -notmatch 'gitdir:\s*(.+?)\s*$') { throw "Kan gitdir niet lezen uit $dir\.git." }
+    $worktreeName = ($Matches[1] -replace '\\', '/').TrimEnd('/').Split('/')[-1]
+    $mainGit = ($gitCommonDir -replace '\\', '/').TrimEnd('/')
+
+    $services = foreach ($service in 'app', 'queue', 'scheduler') {
+@"
+  ${service}:
+    volumes:
+      - "${mainGit}:/var/www/html/.git-main:ro"
+    environment:
+      GIT_DIR: /var/www/html/.git-main/worktrees/$worktreeName
+      GIT_WORK_TREE: /var/www/html
+"@
+    }
+    $content = "# Gegenereerd door scripts/feature-stack.ps1 - niet committen.`nservices:`n" + ($services -join "`n") + "`n"
+    Set-Content -Path (Join-Path $dir 'docker-compose.override.yml') -Value $content -Encoding utf8NoBOM
+}
+
 switch ($Command) {
     'list' {
         $stacks = @(Get-Stacks)
@@ -167,7 +191,11 @@ switch ($Command) {
             Write-Host "Worktree $dir bestaat al; stack wordt (opnieuw) gestart."
         }
 
+        Write-ComposeOverride $dir
         Invoke-Compose $dir @('up', '-d', '--build')
+        # Wordt app opnieuw gemaakt (nieuw intern IP), dan blijft nginx het oude upstream-IP
+        # gebruiken en geeft de stack een 502; een herstart van web lost dat op.
+        Invoke-Compose $dir @('restart', 'web')
         # Queue en scheduler pas starten als vendor/ en de database klaar zijn
         # (anders crashen ze op een ontbrekende autoload of op migrate:fresh).
         Invoke-Compose $dir @('stop', 'queue', 'scheduler')
