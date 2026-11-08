@@ -62,14 +62,14 @@
     color: rgb(255 255 255 / 0.9);
 }
 
-/* Reserveringsrooster (§18.1): de gekozen periode lichtrood gearceerd, zodat
-   hij te onderscheiden is van bestaande (effen) reserveringen. */
-.selectie-arcering {
-    background-image: repeating-linear-gradient(
-        135deg,
-        var(--color-rzvg-200) 0 4px,
-        var(--color-rzvg-50) 4px 8px
-    );
+/* Reserveringsrooster (§18.1): het bereik van de nieuwe reservering in één
+   effen kleur. Twee namen met dezelfde kleur: `reservering-selectie` komt van
+   de server (begin, en na het kiezen van het einde het hele bereik),
+   `reservering-voorvertoning` zet Alpine onder de muis. Gescheiden, zodat
+   Alpine bij het opruimen van zijn :class nooit de serverklasse weghaalt. */
+.reservering-selectie,
+.reservering-voorvertoning {
+    background-color: var(--color-rzvg-300);
 }
 
 /* WordPress-import (§25): vertaling van alignleft/alignright/aligncenter,

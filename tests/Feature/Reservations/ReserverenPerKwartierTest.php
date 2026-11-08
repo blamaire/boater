@@ -61,7 +61,7 @@ it('kiest in het rooster eerst het begin en dan het einde per kwartier', functio
         ->assertSet('endsAt', '2027-03-01T11:30')
         ->assertSet('awaitingEnd', false)
         ->assertSet('selectionComplete', true)
-        ->assertSeeHtml('selectie-arcering')
+        ->assertSeeHtml('reservering-selectie')
         ->assertDontSeeHtml('@mouseenter="hover = ');
 });
 

@@ -144,26 +144,25 @@
                                             $clickable = $gridActive ? $inRange || ($isStart && $selectionComplete) : $available;
                                         @endphp
                                         {{-- Kwartiercel; een lijn per heel uur, een stippellijn per kwartier.
-                                             Tijdens een selectie: begin = lichtrood, kiesbare eindtijden blijven wit
-                                             en worden onder de muis tot die cel gearceerd (voorvertoning); na het
-                                             kiezen van het einde blijft de hele periode lichtrood gearceerd. --}}
+                                             Tijdens een selectie: het begin heeft de selectiekleur, kiesbare
+                                             eindtijden blijven wit en kleuren onder de muis mee tot die cel
+                                             (voorvertoning); na het kiezen van het einde houdt het hele bereik
+                                             de selectiekleur. --}}
                                         <td @class([
                                                 'border-b border-gray-100 h-10 w-4 min-w-4',
                                                 'border-l border-l-gray-200' => $m === 0,
                                                 'border-l border-l-gray-100 border-dotted' => $m !== 0,
                                                 'bg-rzvg-100' => $overlap,
-                                                'bg-rzvg-200' => $isStart && ! $selectionComplete,
-                                                'selectie-arcering' => $inSelection && ! $overlap,
+                                                'reservering-selectie' => ($isStart || $inSelection) && ! $overlap,
                                                 'bg-gray-100 opacity-60' => $dimmed && ! $overlap,
                                                 'hover:bg-rzvg-50' => ! $gridActive && $available,
                                                 'cursor-pointer' => $clickable,
                                             ])
                                             @if ($awaitingEnd && $inRange)
                                                 @mouseenter="hover = {{ $idx }}"
-                                                :class="hover !== null && {{ $idx }} <= hover ? 'selectie-arcering' : ''"
+                                                :class="hover !== null && {{ $idx }} <= hover ? 'reservering-voorvertoning' : ''"
                                             @elseif ($awaitingEnd && $isStart)
                                                 @mouseenter="hover = null"
-                                                :class="hover !== null ? 'selectie-arcering' : ''"
                                             @endif
                                             @if ($clickable)
                                                 wire:click="pickSlot({{ $o->id }}, '{{ $cellStart->toIso8601String() }}')"
