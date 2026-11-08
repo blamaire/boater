@@ -2,6 +2,7 @@
 
 use App\Enums\BandLayout;
 use App\Enums\BlockType;
+use App\Enums\FeedbackCategory;
 use App\Enums\PageVersionStatus;
 use App\Livewire\FeedbackWidget;
 use App\Models\Band;
@@ -92,6 +93,16 @@ it('slaat terugkoppeling zonder paginacontext op met lege page_id/page_version_i
     $feedback = Feedback::query()->firstOrFail();
     expect($feedback->page_id)->toBeNull()
         ->and($feedback->page_version_id)->toBeNull();
+});
+
+it('toont per categorie een knop in plaats van een keuzelijst', function () {
+    $component = Livewire::actingAs(feedbackTestUser())->test(FeedbackWidget::class);
+
+    $component->assertDontSeeHtml('<select');
+    foreach (FeedbackCategory::cases() as $category) {
+        $component->assertSeeHtml('type="radio" name="feedback-category" value="'.$category->value.'"')
+            ->assertSee($category->label());
+    }
 });
 
 it('weigert een lege categorie of leeg bericht', function () {
