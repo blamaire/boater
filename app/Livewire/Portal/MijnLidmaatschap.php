@@ -35,7 +35,7 @@ use Livewire\Component;
  *   - Zeg het huidige lidmaatschap op (status Cancelled + einddatum vandaag).
  *   - Beheer eigen ICE-contacten (aanmaken/wijzigen/verwijderen).
  */
-#[Layout('layouts.app', ['header' => 'Mijn lidmaatschap'])]
+#[Layout('layouts.app', ['header' => 'Mijn lidmaatschap en gegevens'])]
 class MijnLidmaatschap extends Component
 {
     /**

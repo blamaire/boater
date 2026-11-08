@@ -3,7 +3,6 @@
     $item = fn (?string $href, string $label, bool $active = false, bool $soon = false) => compact('href', 'label', 'active', 'soon');
     $items = [
         $item(route('dashboard'), 'Dashboard', request()->routeIs('dashboard')),
-        $item(route('portal.mijn-lidmaatschap'), 'Mijn lidmaatschap', request()->routeIs('portal.mijn-lidmaatschap')),
         $item(route('portal.beheerde-activiteiten'), 'Beheerde activiteiten', request()->routeIs('portal.beheerde-activiteiten')),
         auth()->user()?->can('reservations.create')
             ? $item(route('portal.reserveren'), 'Reserveren', request()->routeIs('portal.reserveren'))
@@ -482,12 +481,12 @@
         </div>
         <ul class="mt-2 space-y-1">
             <li>
-                <a href="{{ route('profile.edit') }}"
+                <a href="{{ route('portal.mijn-lidmaatschap') }}"
                     @class([
                         'block px-3 py-2 rounded-md hover:bg-rzvg-50',
-                        'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('profile.edit'),
-                        'text-gray-700' => ! request()->routeIs('profile.edit'),
-                    ])>Profiel</a>
+                        'bg-rzvg-100 text-rzvg-700 font-medium' => request()->routeIs('portal.mijn-lidmaatschap'),
+                        'text-gray-700' => ! request()->routeIs('portal.mijn-lidmaatschap'),
+                    ])>Mijn lidmaatschap en gegevens</a>
             </li>
             <li>
                 <form method="POST" action="{{ route('logout') }}">
