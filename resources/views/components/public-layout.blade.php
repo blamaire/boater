@@ -30,7 +30,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
-    <body class="font-sans antialiased text-gray-900 bg-white">
+    <body class="font-sans antialiased text-gray-900 bg-white @guest pb-20 md:pb-0 @endguest">
         <x-local-branch-bar />
         @if ($previewBanner)
             <div class="bg-red-200 text-red-900 text-sm text-center py-2 px-4 font-medium">
@@ -41,7 +41,7 @@
             @unless ($memberStripInline)
                 @include('public._ledenstrook')
             @endunless
-            <header class="border-b border-sand-200 bg-white relative z-20">
+            <header class="border-b border-sand-200 bg-white relative z-20 md:sticky md:top-0 md:z-40">
                 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
                     <a href="/" class="flex items-center gap-3 shrink-0">
                         <img src="{{ asset('img/branding/rzvg-logo.jpg') }}" alt="RZVG — Roei- en Zeilvereniging Gouda" class="h-12 w-auto">
@@ -64,7 +64,8 @@
                             </button>
                         @else
                             <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center px-4 py-2 rounded-md bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50">Inloggen</a>
-                            <a href="{{ route('lid-worden') }}" class="inline-flex items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
+                            <a href="{{ route('contact', ['onderwerp' => 'proefles']) }}" class="hidden md:inline-flex items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Proefles aanvragen</a>
+                            <a href="{{ route('lid-worden') }}" class="hidden md:inline-flex items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
                         @endauth
                         <button type="button" @click="menuOpen = ! menuOpen" :aria-expanded="menuOpen" aria-controls="mobiel-menu"
                             class="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-lg border border-sand-200 text-gray-900 hover:bg-sand-100"
@@ -124,7 +125,7 @@
                      deze knoppenrij mag nooit onzichtbaar staan te wachten daarop. Extra
                      hoog boven bottom-0 zodat de rij niet over de footer-onderbalk
                      ("Roei- en Zeilvereniging Gouda") heen valt bij volledig scrollen. --}}
-                <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: 4.5rem;">
+                <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: {{ auth()->check() ? '4.5rem' : '6rem' }};">
                     {{-- "Lid worden" staat voor gasten nu vast in de header; hier
                          alleen nog de contactknop. --}}
                     <x-contact-button />
@@ -135,6 +136,15 @@
             </div>
 
             @include('public._footer')
+
+            @guest
+                <div class="md:hidden fixed inset-x-0 bottom-0 z-40 bg-white border-t border-sand-200 pb-[env(safe-area-inset-bottom)]">
+                    <div class="flex gap-3 px-4 py-3">
+                        <a href="{{ route('contact', ['onderwerp' => 'proefles']) }}" class="flex-1 inline-flex items-center justify-center px-2 py-2 text-sm font-medium whitespace-nowrap rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Proefles aanvragen</a>
+                        <a href="{{ route('lid-worden') }}" class="flex-1 inline-flex items-center justify-center px-2 py-2 text-sm font-medium whitespace-nowrap rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
+                    </div>
+                </div>
+            @endguest
         </div>
         @livewireScripts
     </body>
