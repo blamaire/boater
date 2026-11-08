@@ -6,6 +6,7 @@ use App\Enums\ProposalStatus;
 use App\Models\Person;
 use App\Models\Proposal;
 use App\Models\ReservableObject;
+use App\Rules\OpKwartier;
 use App\Services\Proposals\Exceptions\ProposalStateException;
 use App\Services\Proposals\Handlers\ReservationProposalHandler;
 use App\Services\Proposals\ProposalEngine;
@@ -78,8 +79,8 @@ class ReserveringBewerken extends Component
         $this->errorMessage = null;
 
         $this->validate([
-            'startsAt' => ['required', 'date'],
-            'endsAt' => ['required', 'date', 'after:startsAt'],
+            'startsAt' => ['required', 'date', new OpKwartier],
+            'endsAt' => ['required', 'date', 'after:startsAt', new OpKwartier],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 

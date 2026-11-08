@@ -62,6 +62,16 @@
     color: rgb(255 255 255 / 0.9);
 }
 
+/* Reserveringsrooster (§18.1): het bereik van de nieuwe reservering in één
+   effen kleur. Twee namen met dezelfde kleur: `reservering-selectie` komt van
+   de server (begin, en na het kiezen van het einde het hele bereik),
+   `reservering-voorvertoning` zet Alpine onder de muis. Gescheiden, zodat
+   Alpine bij het opruimen van zijn :class nooit de serverklasse weghaalt. */
+.reservering-selectie,
+.reservering-voorvertoning {
+    background-color: var(--color-rzvg-300);
+}
+
 /* WordPress-import (§25): vertaling van alignleft/alignright/aligncenter,
    zie WordpressAlignmentClassSanitizer. Staat soms op een <img> (gepubliceerde
    pagina), soms op een wrapper-<span> (interactieve importvoorvertoning). */

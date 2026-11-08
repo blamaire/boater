@@ -24,12 +24,12 @@
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label class="block">
                 <span class="block text-sm font-medium text-gray-700">Start</span>
-                <input type="datetime-local" wire:model="startsAt" class="mt-1 block w-full rounded border-gray-300">
+                <input type="datetime-local" step="900" wire:model="startsAt" class="mt-1 block w-full rounded border-gray-300">
                 @error('startsAt') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
             </label>
             <label class="block">
                 <span class="block text-sm font-medium text-gray-700">Einde</span>
-                <input type="datetime-local" wire:model="endsAt" class="mt-1 block w-full rounded border-gray-300">
+                <input type="datetime-local" step="900" wire:model="endsAt" class="mt-1 block w-full rounded border-gray-300">
                 @error('endsAt') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
             </label>
         </div>
