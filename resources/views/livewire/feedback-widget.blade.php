@@ -26,18 +26,23 @@
                 <form wire:submit="submit" class="space-y-4">
                     <h2 class="font-display text-xl text-rzvg-600">Terugkoppeling geven</h2>
 
-                    <div>
-                        <label for="feedback-category" class="block text-xs font-semibold text-gray-500 uppercase mb-1">Categorie</label>
-                        <select id="feedback-category" wire:model="category" class="w-full border-gray-300 rounded-md shadow-sm text-sm">
-                            <option value="">— Kies een categorie —</option>
+                    {{-- Eén knop per categorie: radio-knoppen in knopvorm (toetsenbord en
+                         schermlezer werken als bij een gewone keuzelijst); de gekozen knop
+                         kleurt via `has-checked:` zonder extra serververzoek. --}}
+                    <fieldset>
+                        <legend class="block text-xs font-semibold text-gray-500 uppercase mb-1">Categorie</legend>
+                        <div class="flex flex-wrap gap-2">
                             @foreach ($categories as $option)
-                                <option value="{{ $option->value }}">{{ $option->label() }}</option>
+                                <label class="cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 has-checked:border-rzvg-600 has-checked:bg-rzvg-600 has-checked:text-white has-focus-visible:ring-2 has-focus-visible:ring-rzvg-500 has-focus-visible:ring-offset-1">
+                                    <input type="radio" name="feedback-category" value="{{ $option->value }}" wire:model="category" class="sr-only">
+                                    {{ $option->label() }}
+                                </label>
                             @endforeach
-                        </select>
+                        </div>
                         @error('category')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
-                    </div>
+                    </fieldset>
 
                     <div>
                         <label for="feedback-message" class="block text-xs font-semibold text-gray-500 uppercase mb-1">Je bericht</label>
