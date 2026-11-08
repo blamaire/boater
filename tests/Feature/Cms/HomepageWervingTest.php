@@ -184,3 +184,13 @@ it('toont gasten de vaste Proefles- en Lid worden-knoppen op home en CMS-pagina,
         ->assertDontSee(route('contact', ['onderwerp' => 'proefles']), false)
         ->assertDontSee('fixed inset-x-0 bottom-0', false);
 });
+
+it('toont de publieke header als twee balken met naam en niet-wrappende knoppen', function () {
+    $page = pageWithBlocks([[BlockType::Heading, ['text' => 'Hallo']]]);
+
+    $this->get($page->publicUrl())->assertOk()
+        ->assertSee('Roei- en Zeilvereniging &quot;Gouda&quot;', false)
+        ->assertSee('flex flex-nowrap items-center', false)
+        ->assertSee('whitespace-nowrap', false)
+        ->assertSee('role="search"', false);
+});

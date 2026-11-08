@@ -1,6 +1,6 @@
 {{-- Hoofdmenu van de publieke site, gevuld door PublicNavComposer (handmatige
      NavItems, anders automatisch uit de paginaboom). Twee weergaven:
-     - $variant 'desktop': horizontale lijst in de header (vanaf lg), met
+     - $variant 'desktop': horizontale lijst in de header (vanaf md), met
        uitklapmenu voor onderliggende pagina's;
      - $variant 'mobile': verticale lijst in het uitklapbare menupaneel;
      - $variant 'balk': horizontale balk op alle breedtes (ledenportaal,
@@ -23,15 +23,15 @@
 
 @if ($navItems->isNotEmpty())
     @if ($variant === 'desktop')
-        <nav aria-label="Hoofdmenu" class="hidden lg:block">
-            <ul class="flex items-center gap-1 text-[0.95rem] font-medium">
+        <nav aria-label="Hoofdmenu" class="hidden md:block min-w-0">
+            <ul class="flex flex-nowrap items-center gap-0 lg:gap-1 text-sm lg:text-[0.95rem] font-medium whitespace-nowrap">
                 @foreach ($navItems as $item)
                     <li class="relative" x-data="{ open: false }" @keydown.escape="open = false">
                         @if ($item['children'] === [])
-                            <a href="{{ $item['href'] ?? '#' }}" class="block px-3 py-2 rounded-md text-gray-900 hover:text-rzvg-600">{{ $item['label'] }}</a>
+                            <a href="{{ $item['href'] ?? '#' }}" class="block px-2 lg:px-3 py-2 rounded-md text-gray-900 hover:text-rzvg-600">{{ $item['label'] }}</a>
                         @else
                             <button type="button" @click="open = !open" :aria-expanded="open"
-                                class="inline-flex items-center gap-1 px-3 py-2 rounded-md text-gray-900 hover:text-rzvg-600">
+                                class="inline-flex items-center gap-1 px-2 lg:px-3 py-2 rounded-md text-gray-900 hover:text-rzvg-600">
                                 {{ $item['label'] }}
                                 <svg aria-hidden="true" class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                             </button>
