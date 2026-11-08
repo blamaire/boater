@@ -22,6 +22,7 @@ enum BlockType: string
     case Agenda = 'agenda';
     case Step = 'stap';
     case Price = 'prijs';
+    case Pathway = 'ontwikkelpad';
 
     public function label(): string
     {
@@ -44,6 +45,7 @@ enum BlockType: string
             self::Agenda => 'Agenda (activiteitenlijst)',
             self::Step => 'Stap (genummerd)',
             self::Price => 'Prijs (bedrag met toelichting)',
+            self::Pathway => 'Ontwikkelpad (stappen met pijlen)',
         };
     }
 
@@ -103,6 +105,8 @@ enum BlockType: string
             ],
             self::Step => ['number' => '1', 'title' => '', 'body' => ''],
             self::Price => ['label' => '', 'amount' => '', 'body' => ''],
+            // nodes: key/label/sub/href; edges: from/to (keys). Acyclisch.
+            self::Pathway => ['nodes' => [], 'edges' => []],
         };
     }
 }

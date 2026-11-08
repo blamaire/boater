@@ -10,8 +10,10 @@ use App\Models\Band;
 use App\Models\Block;
 use App\Models\MediaAsset;
 use App\Models\PageVersion;
+use App\Services\Cms\PathwayGraph;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use InvalidArgumentException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -172,7 +174,17 @@ class PageEditor extends Component
         // BlockObserver::saving() — en daarmee BlockContentSanitizer —
         // daadwerkelijk vuurt; een query-builder mass-update slaat Eloquent-
         // events over en zou de sanitisatie van vrije-HTML-velden omzeilen.
-        $block->update(['content' => $this->serializeOnSave($block->type, $this->editingContent)]);
+        $this->resetErrorBag('editingContent.pathway');
+
+        try {
+            $content = $this->serializeOnSave($block->type, $this->editingContent);
+        } catch (InvalidArgumentException $e) {
+            $this->addError('editingContent.pathway', $e->getMessage());
+
+            return;
+        }
+
+        $block->update(['content' => $content]);
 
         $this->editingBlockId = null;
         $this->editingContent = [];
@@ -198,6 +210,12 @@ class PageEditor extends Component
                 ->implode("\n");
         }
 
+        if ($block->type === BlockType::Pathway) {
+            $raw = app(PathwayGraph::class)->toRaw($content);
+            $content['steps_raw'] = $raw['steps'];
+            $content['edges_raw'] = $raw['edges'];
+        }
+
         return $content;
     }
 
@@ -215,6 +233,13 @@ class PageEditor extends Component
         if ($type === BlockType::Accordion) {
             $content['items'] = $this->parsePipeLines($content['items_raw'] ?? '', ['question', 'answer']);
             unset($content['items_raw']);
+        }
+
+        if ($type === BlockType::Pathway) {
+            $content = app(PathwayGraph::class)->parse(
+                (string) ($content['steps_raw'] ?? ''),
+                (string) ($content['edges_raw'] ?? ''),
+            );
         }
 
         return $content;

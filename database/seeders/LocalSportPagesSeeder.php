@@ -12,6 +12,7 @@ use App\Models\PageVersion;
 use App\Models\Template;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Zaait voor lokale ontwikkeling de wervende sportpagina's Roeien, Zeilen en
@@ -98,6 +99,31 @@ class LocalSportPagesSeeder extends Seeder
                 ['Volg de Basis Roei Opleiding', 'In één seizoen leer je roeien en sturen. Met je diploma roei je zelfstandig op de plassen.'],
             ),
 
+            // Ontwikkelpad
+            ...$this->pathway(
+                'Na de Basis Roei Opleiding bepaal je zelf welke kant je op gaat. Klik op een stap voor meer informatie.',
+                [
+                    ['Basis Roei Opleiding (BRO)', 'je eerste roeilessen, A-diploma'],
+                    ['Recreatief roeien', 'toertochten in gestuurde boten'],
+                    ['Voortgezette Roei Opleiding (VRO)', 'C-diploma'],
+                    ['Cursus Ongestuurd Roeien (COR)', 'boten zonder stuurman'],
+                    ['Marathonroeien', 'lange afstanden, C-diploma vereist'],
+                    ['Skiff 1-instructie', 'E-diploma, zelfstandig in smalle boten'],
+                    ['Skiff 2-instructie', 'F-diploma'],
+                    ['Wedstrijdroeien', 'in ploegverband'],
+                ],
+                [
+                    ['Basis Roei Opleiding (BRO)', 'Recreatief roeien'],
+                    ['Basis Roei Opleiding (BRO)', 'Voortgezette Roei Opleiding (VRO)'],
+                    ['Voortgezette Roei Opleiding (VRO)', 'Cursus Ongestuurd Roeien (COR)'],
+                    ['Voortgezette Roei Opleiding (VRO)', 'Marathonroeien'],
+                    ['Voortgezette Roei Opleiding (VRO)', 'Skiff 1-instructie'],
+                    ['Skiff 1-instructie', 'Skiff 2-instructie'],
+                    ['Skiff 1-instructie', 'Wedstrijdroeien'],
+                    ['Skiff 2-instructie', 'Wedstrijdroeien'],
+                ],
+            ),
+
             // Wat kost het?
             ...$this->prices(
                 'Contributie per jaar, tarieven 2026. Bij aanmelding betaal je eenmalig €35 entreegeld. De Basis Roei Opleiding kost [bedrag].',
@@ -106,19 +132,20 @@ class LocalSportPagesSeeder extends Seeder
                     ['Jeugd', '€165', 'Van 12 tot 21 jaar. Jonger dan 12? Dan word je aspirant-lid voor €105.'],
                     ['Student', '€165', 'Vanaf 21 jaar met een voltijdstudie en een geldige studentenkaart.'],
                 ],
+                $sand,
             ),
 
             // Varianten
-            [$sand, [[
+            [$white, [[
                 [BlockType::Heading, ['level' => 2, 'text' => 'Zo veel manieren om te roeien']],
                 [BlockType::Text, ['html' => '<p>Na je opleiding kies je zelf hoe je verder gaat: rustig toeren, lange tochten of wedstrijden.</p>']],
             ]]],
-            [$sand, [
+            [$white, [
                 [$this->variant('compass', 'Recreatief en toeren', 'Roei met je eigen ploegje, plan een tocht met de datumprikker of doe mee aan toer- en prestatietochten. In de winter houdt Fifty-Fit je fit.')],
                 [$this->variant('users', 'Wedstrijdroeien', 'Masters vanaf 27 jaar varen zo’n twintig wedstrijden per jaar, in achten tot skiffs. Van beginner tot oud-wereldkampioen.')],
                 [$this->variant('map-pin', 'Marathonroeien', 'Tochten van minstens 50 km, in binnen- en buitenland. Voor wie zijn roeiopleiding heeft afgerond en van lange afstanden houdt.')],
             ]],
-            [$sand, [
+            [$white, [
                 [$this->variant('heart', 'Roeivalidatie', 'Roeien met een beperking, in een extra brede, stabiele boot. Ervaren instructeurs roeien mee, van maart tot en met oktober.')],
                 [$this->variant('users', 'Jeugdroeien', 'Van 10 tot 17 jaar. Je leert roeien in een skiff, op woensdagmiddag of zaterdagochtend.', '/pagina/jeugd', 'Informatie voor ouders')],
                 [$this->variant('document', 'Verder leren', 'Na de Basis Roei Opleiding volgen de Voortgezette Roei Opleiding, ongestuurd roeien en skiff-instructie.')],
@@ -132,7 +159,7 @@ class LocalSportPagesSeeder extends Seeder
                 ['Wanneer begint de Basis Roei Opleiding?', '[Startdatum en lestijden van de Basis Roei Opleiding.]'],
                 ['Wat trek ik aan?', '[Advies over sportkleding voor je eerste roeiles.]'],
                 ['Ik roei bij een andere vereniging. Kan ik bij jullie komen roeien?', 'Zeker. Door de week kun je als gast een boot huren voor €10 per persoon per dag, inclusief koffie bij aankomst en een drankje na afloop. Word je lid, dan helpen we je een ploeg te vinden.'],
-            ]),
+            ], $sand),
 
             $this->closing(),
         ];
@@ -166,6 +193,24 @@ class LocalSportPagesSeeder extends Seeder
                 ['Haal je zeildiploma', 'Leer zeilen in de zwaardboot of de kielboot. Met je diploma vaar je zelfstandig in de boten van de club.'],
             ),
 
+            // Ontwikkelpad
+            ...$this->pathway(
+                'Van je eerste lessen tot de wedstrijdbaan: zo kun je als zeiler doorgroeien. Klik op een stap voor meer informatie.',
+                [
+                    ['Jeugdzeilen', '8–17 jaar, jeugdzeiltraining', '/pagina/jeugd'],
+                    ['Kielbootzeilen', 'instap voor volwassenen, diploma I–III'],
+                    ['Clubzeilen', 'zelfstandig varen met clubboten'],
+                    ['Zwaardbootzeilen', 'sneller en sportiever'],
+                    ['Wedstrijdzeilen', 'clubwedstrijden en regatta’s'],
+                ],
+                [
+                    ['Jeugdzeilen', 'Clubzeilen'],
+                    ['Kielbootzeilen', 'Clubzeilen'],
+                    ['Kielbootzeilen', 'Zwaardbootzeilen'],
+                    ['Zwaardbootzeilen', 'Wedstrijdzeilen'],
+                ],
+            ),
+
             // Wat kost het?
             ...$this->prices(
                 'Contributie per jaar, tarieven 2026. Bij aanmelding betaal je eenmalig €35 entreegeld. Een zeilopleiding kost [bedrag].',
@@ -174,19 +219,20 @@ class LocalSportPagesSeeder extends Seeder
                     ['Jeugd', '€165', 'Van 12 tot 21 jaar. Jonger dan 12? Dan word je aspirant-lid voor €105.'],
                     ['Student', '€165', 'Vanaf 21 jaar met een voltijdstudie en een geldige studentenkaart.'],
                 ],
+                $sand,
             ),
 
             // Varianten
-            [$sand, [[
+            [$white, [[
                 [BlockType::Heading, ['level' => 2, 'text' => 'Zo veel manieren om te zeilen']],
                 [BlockType::Text, ['html' => '<p>Rustig toeren over de plassen of de strijd aangaan op de wedstrijdbaan: jij kiest.</p>']],
             ]]],
-            [$sand, [
+            [$white, [
                 [$this->variant('sail', 'Zwaardboot', 'Wendbaar en sportief, alleen in de Laser of Splash of met z’n tweeën in de Laser Vago.')],
                 [$this->variant('sail', 'Kielboot', 'Stabiel en ruim. Vaar mee met het clubzeilen of de plassentocht met kielboten.')],
                 [$this->variant('compass', 'Recreatief zeilen', 'Clubzeilen, het Frieslandweekend en jachtzeilen op groot water. In de WhatsApp-groep zie je wie er meevaart.')],
             ]],
-            [$sand, [
+            [$white, [
                 [$this->variant('check-circle', 'Wedstrijdzeilen', 'Dinsdagavondwedstrijden, de Goudse Zeilweek met Pinksteren en wedstrijden door het hele land, in wedstrijdgetrimde clubboten.')],
                 [$this->variant('users', 'Jeugdzeilen', 'Les in de Optimist en de RS Feva, laagdrempelige wedstrijden in de Combi Rotterdam en vanaf april een wekelijkse jeugdtraining.', '/pagina/jeugd', 'Informatie voor ouders')],
                 [$this->variant('calendar', 'Zeilweken en -weekenden', 'De Minizeilweek, de Zeilinstructieweek, YOUNG ONES voor Optimisten en het Zeilweekend Zeeland.')],
@@ -200,7 +246,7 @@ class LocalSportPagesSeeder extends Seeder
                 ['Wat heb ik aan een zeildiploma?', 'Je mag ermee in de boten van de club varen. En huur je elders in Nederland een boot, dan laat je er je zeilervaring mee zien.'],
                 ['Kan ik eerst proberen?', 'Ja. Vraag een proefles zeilen aan, of kom kennismaken op zaterdag- of zondagochtend.'],
                 ['Wanneer zijn de zeillessen?', '[Startdata en lestijden van de zeilopleidingen.]'],
-            ]),
+            ], $sand),
 
             $this->closing(),
         ];
@@ -272,6 +318,34 @@ class LocalSportPagesSeeder extends Seeder
         ];
     }
 
+    /**
+     * "Jouw ontwikkelpad": kop, korte intro en het Pathway-blok, op wit.
+     *
+     * @param  list<array{0: string, 1: string}|array{0: string, 1: string, 2: string}>  $steps  label, toelichting, optioneel link
+     * @param  list<array{0: string, 1: string}>  $arrows  label van, label naar
+     * @return list<array{0: BandBackground, 1: list<list<array{0: BlockType, 1: array<string, mixed>}>>}>
+     */
+    private function pathway(string $intro, array $steps, array $arrows): array
+    {
+        $nodes = array_map(fn (array $s): array => [
+            'key' => Str::slug($s[0]),
+            'label' => $s[0],
+            'sub' => $s[1],
+            'href' => $s[2] ?? null,
+        ], $steps);
+        $edges = array_map(fn (array $a): array => ['from' => Str::slug($a[0]), 'to' => Str::slug($a[1])], $arrows);
+
+        return [
+            [BandBackground::White, [[
+                [BlockType::Heading, ['level' => 2, 'text' => 'Jouw ontwikkelpad']],
+                [BlockType::Text, ['html' => '<p>'.e($intro).'</p>']],
+            ]]],
+            [BandBackground::White, [[
+                [BlockType::Pathway, ['nodes' => $nodes, 'edges' => $edges]],
+            ]]],
+        ];
+    }
+
     /** @return array{0: BandBackground, 1: list<list<array{0: BlockType, 1: array<string, mixed>}>>} */
     private function hero(string $kicker, string $title, string $subtitle): array
     {
@@ -317,12 +391,11 @@ class LocalSportPagesSeeder extends Seeder
      * een knop naar het aanmeldformulier.
      *
      * @param  list<array{0: string, 1: string, 2: string}>  $prices
+     * @param  BandBackground  $white  achtergrond van alle prijsbanden (zand na het ontwikkelpad)
      * @return list<array{0: BandBackground, 1: list<list<array{0: BlockType, 1: array<string, mixed>}>>}>
      */
-    private function prices(string $intro, array $prices): array
+    private function prices(string $intro, array $prices, BandBackground $white = BandBackground::White): array
     {
-        $white = BandBackground::White;
-
         return [
             [$white, [[
                 [BlockType::Heading, ['level' => 2, 'text' => 'Wat kost het?']],
@@ -353,9 +426,9 @@ class LocalSportPagesSeeder extends Seeder
      * @param  list<array{0: string, 1: string}>  $items
      * @return array{0: BandBackground, 1: list<list<array{0: BlockType, 1: array<string, mixed>}>>}
      */
-    private function faq(array $items): array
+    private function faq(array $items, BandBackground $background = BandBackground::White): array
     {
-        return [BandBackground::White, [[
+        return [$background, [[
             [BlockType::Heading, ['level' => 2, 'text' => 'Veelgestelde vragen']],
             [BlockType::Accordion, ['items' => array_map(
                 fn (array $item): array => ['question' => $item[0], 'answer' => $item[1]],

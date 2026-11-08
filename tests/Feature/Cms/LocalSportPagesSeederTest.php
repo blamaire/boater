@@ -57,3 +57,26 @@ it('is idempotent en laat jeugd eenvoudig', function () {
         ->where('type', BlockType::Hero)
         ->exists())->toBeFalse();
 });
+
+it('toont op roeien en zeilen het ontwikkelpad', function (string $slug, string $label) {
+    $this->seed(TemplateSeeder::class);
+    app()->detectEnvironment(fn () => 'local');
+    $this->seed(LocalPublicMenuSeeder::class);
+
+    $page = Page::query()->where('slug', $slug)->firstOrFail();
+    $pathway = Block::query()
+        ->whereHas('band', fn ($q) => $q->where('page_version_id', $page->published_version_id))
+        ->where('type', BlockType::Pathway)
+        ->firstOrFail();
+
+    expect($pathway->content['nodes'])->not->toBeEmpty()
+        ->and($pathway->content['edges'])->not->toBeEmpty();
+
+    $this->get($page->publicUrl())->assertOk()
+        ->assertSee('Jouw ontwikkelpad')
+        ->assertSee($label, false)
+        ->assertSee('<svg', false);
+})->with([
+    ['roeien', 'Voortgezette Roei Opleiding (VRO)'],
+    ['zeilen', 'Kielbootzeilen'],
+]);
