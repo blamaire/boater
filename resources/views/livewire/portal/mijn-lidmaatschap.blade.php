@@ -1,6 +1,6 @@
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
     <p class="text-sm text-gray-500">
-        Beheer hier je persoonlijke gegevens, adres, lidmaatschap, zichtbaarheid en ICE-contacten.
+        Beheer hier je persoonlijke gegevens, adres, lidmaatschap, zichtbaarheid, ICE-contacten en wachtwoord.
     </p>
 
     @if ($statusMessage)
@@ -391,4 +391,6 @@
             </div>
         @endif
     </section>
+
+    @include('livewire.portal.partials.wachtwoord-wijzigen')
 </div>

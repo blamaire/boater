@@ -12,6 +12,7 @@ use App\Models\MembershipType;
 use App\Models\Person;
 use App\Models\PersonFieldVisibility;
 use App\Models\Proposal;
+use App\Models\User;
 use App\Services\Audit\AuditLogger;
 use App\Services\Membership\BagAddressLookup;
 use App\Services\Proposals\Handlers\PersonFieldUpdateHandler;
@@ -35,7 +36,7 @@ use Livewire\Component;
  *   - Zeg het huidige lidmaatschap op (status Cancelled + einddatum vandaag).
  *   - Beheer eigen ICE-contacten (aanmaken/wijzigen/verwijderen).
  */
-#[Layout('layouts.app', ['header' => 'Mijn lidmaatschap'])]
+#[Layout('layouts.app', ['header' => 'Gegevens en lidmaatschap'])]
 class MijnLidmaatschap extends Component
 {
     /**
@@ -156,6 +157,12 @@ class MijnLidmaatschap extends Component
             $newValue = $this->trimOrNull($this->person[$field] ?? null);
 
             $this->validatePersonField($field, $newValue);
+
+            if ($field === 'email' && $person->account !== null) {
+                $this->saveLinkedEmail($person, $person->account, $newValue, $audit);
+
+                return;
+            }
 
             $before = [$field => $person->{$field}];
             if ($person->{$field} === $newValue) {
@@ -282,6 +289,12 @@ class MijnLidmaatschap extends Component
     {
         foreach (self::PERSON_DIRECT_FIELDS as $field) {
             $this->saveDirect('person', $field, $audit);
+
+            // Stop bij een fout: de validatie van het volgende veld zou de
+            // foutmelding (bv. "e-mailadres al in gebruik") anders wissen.
+            if ($this->getErrorBag()->isNotEmpty()) {
+                return;
+            }
         }
     }
 
@@ -687,6 +700,59 @@ class MijnLidmaatschap extends Component
      * Livewire's eigen mechaniek zodat foutmeldingen op de juiste key
      * (`person.email` etc.) terechtkomen.
      */
+    /**
+     * Het e-mailadres van een persoon met account is ook het inlogadres: beide
+     * wijzigen samen. Een nieuw inlogadres moet opnieuw bevestigd worden
+     * (`email_verified_at` = null + bevestigingsmail), net als voorheen op de
+     * profielpagina.
+     */
+    private function saveLinkedEmail(Person $person, User $account, ?string $newValue, AuditLogger $audit): void
+    {
+        if ($newValue === null) {
+            $this->addError('person.email', 'Je e-mailadres is ook je inlogadres en mag niet leeg zijn.');
+
+            return;
+        }
+
+        if (User::query()->where('email', $newValue)->whereKeyNot($account->id)->exists()) {
+            $this->addError('person.email', 'Dit e-mailadres is al in gebruik voor een ander account.');
+
+            return;
+        }
+
+        $personChanged = $person->email !== $newValue;
+        $accountChanged = $account->email !== $newValue;
+        if (! $personChanged && ! $accountChanged) {
+            return;
+        }
+
+        DB::transaction(function () use ($person, $account, $newValue, $personChanged, $accountChanged, $audit): void {
+            if ($personChanged) {
+                $before = $person->email;
+                $person->email = $newValue;
+                $person->save();
+                $audit->log('person.field_updated', $person, before: ['email' => $before], after: ['email' => $newValue], context: ['direct' => true, 'field' => 'email']);
+            }
+
+            if ($accountChanged) {
+                $before = $account->email;
+                $account->email = $newValue;
+                $account->email_verified_at = null;
+                $account->save();
+                $audit->log('user.email_updated', $account, before: ['email' => $before], after: ['email' => $newValue], context: ['via' => 'mijn-lidmaatschap']);
+            }
+        });
+
+        if ($accountChanged) {
+            $account->sendEmailVerificationNotification();
+            $this->statusMessage = 'Je gegevens zijn opgeslagen. Dit adres is voortaan ook je inlogadres; bevestig het via de mail die we je net hebben gestuurd.';
+
+            return;
+        }
+
+        $this->statusMessage = 'Je gegevens zijn opgeslagen.';
+    }
+
     private function validatePersonField(string $field, ?string $value): void
     {
         $key = "person.{$field}";
