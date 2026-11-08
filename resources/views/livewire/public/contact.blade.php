@@ -60,6 +60,7 @@
                         <span>Mail me terug</span>
                     </label>
                 </div>
+                @error('contact_method') <span class="text-sm text-red-600">{{ $message }}</span> @enderror
             </fieldset>
 
             @if ($contact_by_phone || $contact_by_email)
