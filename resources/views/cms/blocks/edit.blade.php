@@ -375,6 +375,24 @@
         </div>
         @break
 
+    @case('ontwikkelpad')
+        <div>
+            <x-input-label for="pathway-steps" value="Stappen (één per regel: Label | toelichting | link)" />
+            <textarea id="pathway-steps" wire:model="editingContent.steps_raw" rows="7" placeholder="Jeugdzeilen | 8–17 jaar | /pagina/jeugd&#10;Clubzeilen | zelfstandig varen"
+                class="block mt-1 w-full border-gray-300 rounded-md font-mono text-sm"></textarea>
+            <p class="text-xs text-gray-500 mt-1">Toelichting en link zijn optioneel. Een link begint met <code>/</code> of <code>https://</code>.</p>
+        </div>
+        <div>
+            <x-input-label for="pathway-edges" value="Pijlen (één per regel: Label A -> Label B)" />
+            <textarea id="pathway-edges" wire:model="editingContent.edges_raw" rows="6" placeholder="Jeugdzeilen -> Clubzeilen"
+                class="block mt-1 w-full border-gray-300 rounded-md font-mono text-sm"></textarea>
+            <p class="text-xs text-gray-500 mt-1">Gebruik exact de labels uit de stappen. Pijlen mogen niet in een cirkel teruglopen.</p>
+            @error('editingContent.pathway')
+                <p class="text-sm text-red-600 mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+        @break
+
     @case('agenda')
         <div>
             <x-input-label for="agenda-title" value="Titel boven de lijst (optioneel)" />

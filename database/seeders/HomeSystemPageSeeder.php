@@ -3,14 +3,11 @@
 namespace Database\Seeders;
 
 use App\Enums\BandBackground;
-use App\Enums\BandLayout;
 use App\Enums\BlockType;
 use App\Enums\PageType;
 use App\Enums\PageVersionStatus;
 use App\Enums\PageVisibility;
 use App\Http\Controllers\PublicPageController;
-use App\Models\Band;
-use App\Models\Block;
 use App\Models\Page;
 use App\Models\PageVersion;
 use App\Models\Template;
@@ -34,6 +31,8 @@ use Illuminate\Support\Facades\DB;
  */
 class HomeSystemPageSeeder extends Seeder
 {
+    use BuildsPageBands;
+
     public function run(): void
     {
         // Idempotent: als hij al bestaat, niets doen.
@@ -69,28 +68,7 @@ class HomeSystemPageSeeder extends Seeder
                 'meta_description' => 'Roeien, zeilen en suppen bij de Roei- en Zeilvereniging Gouda. Leer het van ervaren leden, voor jong en oud.',
             ]);
 
-            foreach ($this->bands() as $sortOrder => [$background, $columns]) {
-                $band = Band::query()->create([
-                    'page_version_id' => $version->id,
-                    'zone' => 'hoofd',
-                    'layout' => BandLayout::from(count($columns)),
-                    'background' => $background,
-                    'sort_order' => $sortOrder,
-                ]);
-
-                foreach ($columns as $columnIndex => $blocks) {
-                    foreach ($blocks as $blockOrder => [$type, $content]) {
-                        Block::query()->create([
-                            'band_id' => $band->id,
-                            'column_index' => $columnIndex,
-                            'sort_order' => $blockOrder,
-                            'type' => $type,
-                            'content' => array_merge($type->defaultContent(), $content),
-                            'visibility' => PageVisibility::Public,
-                        ]);
-                    }
-                }
-            }
+            $this->createBands($version, $this->bands());
 
             $page->update(['published_version_id' => $version->id]);
         });

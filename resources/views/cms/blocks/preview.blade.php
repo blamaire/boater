@@ -314,6 +314,9 @@
             @endif
         </div>
         @break
+    @case('ontwikkelpad')
+        @include('cms.blocks.partials.pathway', ['content' => $c, 'block' => $block])
+        @break
     @default
         <em class="text-gray-400">Onbekend bloktype.</em>
 @endswitch

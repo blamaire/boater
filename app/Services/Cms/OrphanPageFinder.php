@@ -95,6 +95,7 @@ class OrphanPageFinder
                     BlockType::Card => [(string) ($content['href'] ?? '')],
                     BlockType::Hero => [(string) ($content['cta_href'] ?? ''), (string) ($content['cta2_href'] ?? '')],
                     BlockType::FeatureSection => [(string) ($content['cta_href'] ?? '')],
+                    BlockType::Pathway => array_map(fn (mixed $n): string => is_array($n) ? (string) ($n['href'] ?? '') : '', (array) ($content['nodes'] ?? [])),
                     default => [],
                 });
             }
