@@ -31,6 +31,7 @@
         @livewireStyles
     </head>
     <body class="font-sans antialiased text-gray-900 bg-white">
+        <x-local-branch-bar />
         @if ($previewBanner)
             <div class="bg-red-200 text-red-900 text-sm text-center py-2 px-4 font-medium">
                 {{ $previewBanner }}

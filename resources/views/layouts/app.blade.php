@@ -14,6 +14,7 @@
         @livewireStyles
     </head>
     <body class="font-sans antialiased text-gray-900 bg-gray-50">
+        <x-local-branch-bar />
         <div class="min-h-screen flex flex-col" x-data="{ sidebarOpen: window.innerWidth >= 768 }">
             {{-- Top-bar: logo links, rechts de wisselknop naar de openbare
                  pagina + gebruikersnaam + hamburger. Zelfde plaatsing als de

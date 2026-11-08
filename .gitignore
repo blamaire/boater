@@ -31,3 +31,6 @@ Thumbs.db
 
 # Docker
 /docker/data
+
+# Gegenereerd door scripts/feature-stack.ps1
+docker-compose.override.yml
