@@ -32,6 +32,9 @@
                                     · voor {{ $r->person->first_name }} {{ $r->person->last_name }}
                                 @endif
                             </div>
+                            @if (filled($r->note))
+                                <div class="mt-0.5 text-xs text-gray-600 italic">{{ $r->note }}</div>
+                            @endif
                             @if ($r->object->status === \App\Enums\ReservableObjectStatus::OutOfService)
                                 <div class="mt-1 inline-flex items-center rounded-full bg-yellow-50 border border-yellow-200 px-2 py-0.5 text-xs text-yellow-800">
                                     Let op: object is nu buiten gebruik — controleer voor je gaat
@@ -72,28 +75,31 @@
             </div>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
-            <span>{{ $day->translatedFormat('l j F Y') }}</span>
-            {{-- Twee kliks: eerst het begin, dan het einde (zie Reserveren::pickSlot). --}}
-            <span @class(['text-rzvg-700 font-medium' => $awaitingEnd])>
-                @if ($awaitingEnd)
-                    Begin gekozen ({{ \Illuminate\Support\Carbon::parse($startsAt)->format('H:i') }}) — klik nu op het eindtijdstip in dezelfde rij.
-                @else
-                    Klik in het rooster op het begintijdstip en daarna op het eindtijdstip.
-                @endif
-            </span>
-        </div>
+        <div class="text-sm text-gray-600">{{ $day->translatedFormat('l j F Y') }}</div>
         @php
-            // Huidige selectie, om in het rooster op te lichten.
-            $selStart = $mode === 'object' && $selectedObjectId !== null && $startsAt !== '' ? \Illuminate\Support\Carbon::parse($startsAt) : null;
-            $selEnd = $selStart !== null && $endsAt !== '' ? \Illuminate\Support\Carbon::parse($endsAt) : null;
+            // Lopende roosterselectie: begin, einde, en hoe ver het einde mag
+            // (eerstvolgende reservering) — in kwartier-indexen vanaf het eerste uur.
+            $gridActive = ($awaitingEnd || $selectionComplete) && $selectedObjectId !== null && $startsAt !== '';
+            $selStart = $gridActive ? \Illuminate\Support\Carbon::parse($startsAt) : null;
+            $selEnd = $gridActive && $endsAt !== '' ? \Illuminate\Support\Carbon::parse($endsAt) : null;
+            $firstHour = $hours[0];
+            $totalCells = count($hours) * 4;
+            $toIdx = fn (\Illuminate\Support\Carbon $t) => ($t->hour - $firstHour) * 4 + intdiv($t->minute, 15);
+            $startIdx = $selStart !== null ? $toIdx($selStart) : null;
+            $endIdx = $selectionComplete && $selEnd !== null ? $toIdx($selEnd) - 1 : null;
+            $limitIdx = $selectionLimit !== null && $selStart !== null
+                ? ($selectionLimit->isSameDay($selStart) ? $toIdx($selectionLimit) : $totalCells)
+                : null;
         @endphp
 
         @if ($objects->isEmpty())
             <p class="text-sm text-gray-500 italic">Geen objecten voor deze filter.</p>
         @else
             <div class="overflow-x-auto">
-                <table class="min-w-full text-xs border-separate" style="border-spacing:0">
+                {{-- `hover` = kwartier-index onder de muis; arceert na het kiezen van het begin
+                     de periode tot die cel als voorvertoning van de eindtijd. --}}
+                <table class="min-w-full text-xs border-separate" style="border-spacing:0"
+                    x-data="{ hover: null }" @mouseleave="hover = null">
                     <thead>
                         <tr>
                             <th class="sticky left-0 bg-white px-2 py-1 text-left font-medium text-gray-500 border-b border-gray-200 w-40">Object</th>
@@ -116,34 +122,100 @@
                                 @php
                                     $reservationsForObject = $dayReservationsByObject->get($o->id, collect());
                                 @endphp
+                                @php
+                                    $activeRow = $gridActive && $selectedObjectId === $o->id;
+                                @endphp
                                 @foreach ($hours as $h)
                                     @foreach ([0, 15, 30, 45] as $m)
                                         @php
                                             $cellStart = $day->copy()->setTime($h, $m);
                                             $cellEnd = $cellStart->copy()->addMinutes(15);
+                                            $idx = ($h - $firstHour) * 4 + intdiv($m, 15);
                                             $overlap = $reservationsForObject->first(fn ($r) => $r->starts_at < $cellEnd && $r->ends_at > $cellStart);
-                                            $clickable = ! $overlap && $o->status === \App\Enums\ReservableObjectStatus::Available;
-                                            $selected = $selEnd !== null && $selectedObjectId === $o->id && $cellStart < $selEnd && $cellEnd > $selStart;
-                                            $endHint = $awaitingEnd && $selectedObjectId === $o->id && $cellStart >= $selStart;
+                                            $available = ! $overlap && $o->status === \App\Enums\ReservableObjectStatus::Available;
+
+                                            // Rol van deze cel in de lopende selectie.
+                                            $isStart = $activeRow && $idx === $startIdx;
+                                            $isEnd = $activeRow && $endIdx !== null && $idx === $endIdx;
+                                            $inRange = $activeRow && $limitIdx !== null && $idx > $startIdx && $idx < $limitIdx;
+                                            $inSelection = $activeRow && $endIdx !== null && $idx >= $startIdx && $idx <= $endIdx;
+                                            $dimmed = $gridActive && ! $isStart && ! $inRange;
+
+                                            $clickable = $gridActive ? $inRange || ($isStart && $selectionComplete) : $available;
                                         @endphp
-                                        {{-- Kwartiercel; een lijn per heel uur, een stippellijn per kwartier. --}}
+                                        {{-- Kwartiercel; een lijn per heel uur, een stippellijn per kwartier.
+                                             Tijdens een selectie: begin = lichtrood, kiesbare eindtijden blijven wit
+                                             en worden onder de muis tot die cel gearceerd (voorvertoning); na het
+                                             kiezen van het einde blijft de hele periode lichtrood gearceerd. --}}
                                         <td @class([
-                                                'border-b border-gray-100 h-10 w-4 min-w-4 relative',
+                                                'border-b border-gray-100 h-10 w-4 min-w-4',
                                                 'border-l border-l-gray-200' => $m === 0,
                                                 'border-l border-l-gray-100 border-dotted' => $m !== 0,
                                                 'bg-rzvg-100' => $overlap,
-                                                'bg-rzvg-400' => $selected && ! $overlap,
-                                                'hover:bg-rzvg-50 cursor-pointer' => $clickable && ! $selected,
-                                                'cursor-pointer' => $clickable && $selected,
+                                                'bg-rzvg-200' => $isStart && ! $selectionComplete,
+                                                'selectie-arcering' => $inSelection && ! $overlap,
+                                                'bg-gray-100 opacity-60' => $dimmed && ! $overlap,
+                                                'hover:bg-rzvg-50' => ! $gridActive && $available,
+                                                'cursor-pointer' => $clickable,
                                             ])
+                                            @if ($awaitingEnd && $inRange)
+                                                @mouseenter="hover = {{ $idx }}"
+                                                :class="hover !== null && {{ $idx }} <= hover ? 'selectie-arcering' : ''"
+                                            @elseif ($awaitingEnd && $isStart)
+                                                @mouseenter="hover = null"
+                                                :class="hover !== null ? 'selectie-arcering' : ''"
+                                            @endif
                                             @if ($clickable)
                                                 wire:click="pickSlot({{ $o->id }}, '{{ $cellStart->toIso8601String() }}')"
                                             @endif
-                                            title="{{ $overlap ? ($overlap->person->first_name.' '.$overlap->person->last_name.' · '.$overlap->starts_at->format('H:i').'–'.$overlap->ends_at->format('H:i')) : ($endHint ? 'Klik om te eindigen om '.$cellEnd->format('H:i') : 'Klik om te beginnen om '.$cellStart->format('H:i')) }}">
+                                            @if ($overlap)
+                                                title="{{ $overlap->person->first_name.' '.$overlap->person->last_name.' · '.$overlap->starts_at->format('H:i').'–'.$overlap->ends_at->format('H:i').(filled($overlap->note) ? ' · '.$overlap->note : '') }}"
+                                            @else
+                                                aria-label="{{ $o->name }} {{ $cellStart->format('H:i') }}"
+                                            @endif>
                                         </td>
                                     @endforeach
                                 @endforeach
                             </tr>
+                            @if ($activeRow)
+                                {{-- Reserveringsregel onder de rij, vanaf het kiezen van het begin:
+                                     periode, opmerking, Reserveren (pas na het kiezen van het einde) en Annuleren. --}}
+                                <tr wire:key="confirm-{{ $o->id }}">
+                                    <td class="sticky left-0 bg-white border-b border-gray-100"></td>
+                                    @if ($startIdx > 0)
+                                        <td colspan="{{ $startIdx }}" class="border-b border-gray-100"></td>
+                                    @endif
+                                    <td colspan="{{ $totalCells - $startIdx }}" class="border-b border-gray-100 py-2 pr-2">
+                                        <div class="flex flex-wrap items-center gap-2 whitespace-nowrap">
+                                            <span class="font-medium text-gray-900">
+                                                {{ $o->name }} · {{ $selStart->format('H:i') }}–{{ $selectionComplete ? $selEnd->format('H:i') : '…' }}
+                                            </span>
+                                            <label class="sr-only" for="grid-note">Opmerking</label>
+                                            <input id="grid-note" type="text" wire:model="note" maxlength="1000"
+                                                placeholder="Opmerking (optioneel)"
+                                                @if ($selectionComplete) wire:keydown.enter="confirmGridReservation" @endif
+                                                class="w-64 rounded-md border-gray-300 text-sm" />
+                                            <button type="button" wire:click="confirmGridReservation"
+                                                @disabled(! $selectionComplete)
+                                                class="px-3 py-1.5 rounded bg-rzvg-600 text-sm text-white hover:bg-rzvg-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rzvg-600">
+                                                {{ $liveViolations !== [] && $selectionComplete ? 'Indienen voor goedkeuring' : 'Reserveren' }}
+                                            </button>
+                                            <button type="button" wire:click="cancelGridSelection"
+                                                class="px-3 py-1.5 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50">
+                                                Annuleren
+                                            </button>
+                                        </div>
+                                        @if ($liveViolations !== [] && $selectionComplete)
+                                            <p class="mt-1 text-xs text-amber-700 whitespace-normal">Deze periode overschrijdt een reserveringsregel; je aanvraag gaat via goedkeuring.</p>
+                                        @endif
+                                        @if ($errorMessage)
+                                            <p class="mt-1 text-xs text-red-600 whitespace-normal">{{ $errorMessage }}</p>
+                                        @endif
+                                        @error('startsAt') <p class="mt-1 text-xs text-red-600 whitespace-normal">{{ $message }}</p> @enderror
+                                        @error('endsAt') <p class="mt-1 text-xs text-red-600 whitespace-normal">{{ $message }}</p> @enderror
+                                    </td>
+                                </tr>
+                            @endif
                         @endforeach
                     </tbody>
                 </table>

@@ -62,6 +62,16 @@
     color: rgb(255 255 255 / 0.9);
 }
 
+/* Reserveringsrooster (§18.1): de gekozen periode lichtrood gearceerd, zodat
+   hij te onderscheiden is van bestaande (effen) reserveringen. */
+.selectie-arcering {
+    background-image: repeating-linear-gradient(
+        135deg,
+        var(--color-rzvg-200) 0 4px,
+        var(--color-rzvg-50) 4px 8px
+    );
+}
+
 /* WordPress-import (§25): vertaling van alignleft/alignright/aligncenter,
    zie WordpressAlignmentClassSanitizer. Staat soms op een <img> (gepubliceerde
    pagina), soms op een wrapper-<span> (interactieve importvoorvertoning). */
