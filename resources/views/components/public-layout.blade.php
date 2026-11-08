@@ -30,7 +30,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
-    <body class="font-sans antialiased text-gray-900 bg-white">
+    <body class="font-sans antialiased text-gray-900 bg-white @guest pb-20 md:pb-0 @endguest">
         <x-local-branch-bar />
         @if ($previewBanner)
             <div class="bg-red-200 text-red-900 text-sm text-center py-2 px-4 font-medium">
@@ -41,17 +41,17 @@
             @unless ($memberStripInline)
                 @include('public._ledenstrook')
             @endunless
-            <header class="border-b border-sand-200 bg-white relative z-20">
-                <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-                    <a href="/" class="flex items-center gap-3 shrink-0">
-                        <img src="{{ asset('img/branding/rzvg-logo.jpg') }}" alt="RZVG — Roei- en Zeilvereniging Gouda" class="h-12 w-auto">
+            <header class="border-b border-sand-200 bg-white relative z-20 md:sticky md:top-0 md:z-40">
+                <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 md:h-16 flex items-center justify-between gap-4">
+                    <a href="/" class="flex items-center gap-3 min-w-0">
+                        <img src="{{ asset('img/branding/rzvg-logo.jpg') }}" alt="RZVG — Roei- en Zeilvereniging Gouda" class="h-12 md:h-10 w-auto shrink-0">
+                        <span class="font-display text-rzvg-600 text-xl lg:text-2xl whitespace-nowrap">
+                            <span class="sm:hidden md:inline lg:hidden">RZVG</span>
+                            <span class="hidden sm:inline md:hidden lg:inline">Roei- en Zeilvereniging &quot;Gouda&quot;</span>
+                        </span>
                     </a>
 
-                    @include('public._nav', ['variant' => 'desktop'])
-
-                    <x-search-box id="zoek-header" class="hidden lg:block w-44 shrink-0" />
-
-                    <div class="flex items-center gap-2 sm:gap-3 text-sm">
+                    <div class="flex flex-nowrap items-center gap-2 sm:gap-3 text-sm shrink-0 whitespace-nowrap">
                         @auth
                             <a href="{{ route('dashboard') }}" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-md border border-rzvg-200 text-rzvg-700 hover:bg-rzvg-50">Ledenpagina</a>
                             <span class="hidden xl:inline text-gray-700 max-w-[10rem] truncate">{{ Auth::user()->name }}</span>
@@ -63,11 +63,12 @@
                                 </svg>
                             </button>
                         @else
-                            <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center px-4 py-2 rounded-md bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50">Inloggen</a>
-                            <a href="{{ route('lid-worden') }}" class="inline-flex items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
+                            <a href="{{ route('login') }}" class="hidden sm:inline-flex shrink-0 items-center px-4 py-2 rounded-md bg-white border border-rzvg-500 text-rzvg-600 hover:bg-rzvg-50">Inloggen</a>
+                            <a href="{{ route('contact', ['onderwerp' => 'proefles']) }}" class="hidden md:inline-flex shrink-0 items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Proefles aanvragen</a>
+                            <a href="{{ route('lid-worden') }}" class="hidden md:inline-flex shrink-0 items-center px-4 py-2 rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
                         @endauth
                         <button type="button" @click="menuOpen = ! menuOpen" :aria-expanded="menuOpen" aria-controls="mobiel-menu"
-                            class="lg:hidden inline-flex items-center justify-center h-11 w-11 rounded-lg border border-sand-200 text-gray-900 hover:bg-sand-100"
+                            class="md:hidden inline-flex items-center justify-center h-11 w-11 rounded-lg border border-sand-200 text-gray-900 hover:bg-sand-100"
                             aria-label="Hoofdmenu openen/sluiten">
                             <svg aria-hidden="true" class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                 <path x-show="! menuOpen" stroke-linecap="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16" />
@@ -77,8 +78,15 @@
                     </div>
                 </div>
 
+                <div class="hidden md:block border-t border-sand-200">
+                    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex flex-nowrap items-center justify-between gap-4">
+                        @include('public._nav', ['variant' => 'desktop'])
+                        <x-search-box id="zoek-header" class="w-44 shrink-0 ms-auto" />
+                    </div>
+                </div>
+
                 <div id="mobiel-menu" x-show="menuOpen" x-cloak x-transition.origin.top @click.outside="menuOpen = false"
-                    class="lg:hidden absolute inset-x-0 top-full bg-white border-b border-sand-200 shadow-lg">
+                    class="md:hidden absolute inset-x-0 top-full bg-white border-b border-sand-200 shadow-lg">
                     <div class="max-w-6xl mx-auto px-4 pt-4">
                         <x-search-box id="zoek-mobiel" class="w-full" />
                     </div>
@@ -124,7 +132,7 @@
                      deze knoppenrij mag nooit onzichtbaar staan te wachten daarop. Extra
                      hoog boven bottom-0 zodat de rij niet over de footer-onderbalk
                      ("Roei- en Zeilvereniging Gouda") heen valt bij volledig scrollen. --}}
-                <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: 4.5rem;">
+                <div class="fixed right-4 z-40 flex flex-wrap items-center justify-end gap-3" style="bottom: {{ auth()->check() ? '4.5rem' : '6rem' }};">
                     {{-- "Lid worden" staat voor gasten nu vast in de header; hier
                          alleen nog de contactknop. --}}
                     <x-contact-button />
@@ -135,6 +143,15 @@
             </div>
 
             @include('public._footer')
+
+            @guest
+                <div class="md:hidden fixed inset-x-0 bottom-0 z-40 bg-white border-t border-sand-200 pb-[env(safe-area-inset-bottom)]">
+                    <div class="flex gap-3 px-4 py-3">
+                        <a href="{{ route('contact', ['onderwerp' => 'proefles']) }}" class="flex-1 inline-flex items-center justify-center px-2 py-2 text-sm font-medium whitespace-nowrap rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Proefles aanvragen</a>
+                        <a href="{{ route('lid-worden') }}" class="flex-1 inline-flex items-center justify-center px-2 py-2 text-sm font-medium whitespace-nowrap rounded-md bg-rzvg-500 text-white hover:bg-rzvg-600">Lid worden</a>
+                    </div>
+                </div>
+            @endguest
         </div>
         @livewireScripts
     </body>

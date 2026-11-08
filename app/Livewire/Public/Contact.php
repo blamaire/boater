@@ -46,6 +46,19 @@ class Contact extends Component
 
     public bool $submitted = false;
 
+    /** Voorselectie via `/contact?onderwerp=proefles` (naam, hoofdletterongevoelig). */
+    public function mount(): void
+    {
+        $naam = request()->query('onderwerp');
+        if (! is_string($naam) || $naam === '') {
+            return;
+        }
+
+        $this->contact_topic_id = ContactTopic::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($naam)])
+            ->value('id');
+    }
+
     public function submit(ContactRequestService $service, TurnstileVerifier $turnstile): void
     {
         if ($this->website !== '') {

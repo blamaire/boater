@@ -243,3 +243,14 @@ it('accepteert indiening (fail-open) als Turnstile onbereikbaar is', function ()
 
     expect(ContactRequest::count())->toBe(1);
 });
+
+it('selecteert het onderwerp voor via ?onderwerp= (hoofdletterongevoelig)', function () {
+    $person = Person::create(['first_name' => 'Ver', 'last_name' => 'Antwoordelijke', 'email' => 'v2@example.test']);
+    $topic = ContactTopic::create(['name' => 'Proefles', 'responsible_person_id' => $person->id]);
+
+    Livewire::withQueryParams(['onderwerp' => 'proefles'])->test(Contact::class)
+        ->assertSet('contact_topic_id', $topic->id);
+
+    Livewire::withQueryParams(['onderwerp' => 'bestaatniet'])->test(Contact::class)
+        ->assertSet('contact_topic_id', null);
+});
