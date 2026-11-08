@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             LocalPublicMenuSeeder::class,
             // Idem alleen lokaal: testboten (roei- en zeilboten) voor de module Reserveren.
             LocalBoatSeeder::class,
+            // Idem alleen lokaal: standaard contactonderwerpen (na LocalDevUserSeeder: verantwoordelijke).
+            LocalContactTopicSeeder::class,
         ]);
     }
 }

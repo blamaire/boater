@@ -7,6 +7,7 @@ use App\Services\Contact\ContactRequestService;
 use App\Services\Contact\TurnstileVerifier;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -62,31 +63,25 @@ class Contact extends Component
             return;
         }
 
-        $data = $this->validate([
+        // Alle fouten in één keer tonen, inclusief de verplichte contactwijze
+        // (minimaal één van bellen/mailen) en het bijbehorende nummer/adres.
+        $data = $this->withValidator(function ($validator): void {
+            $validator->after(function ($validator): void {
+                if (! $this->contact_by_phone && ! $this->contact_by_email) {
+                    $validator->errors()->add('contact_method', 'Kies minimaal één manier waarop we contact met je opnemen.');
+                }
+            });
+        })->validate([
             'contact_topic_id' => ['required', 'integer', 'exists:contact_topics,id'],
             'name' => ['required', 'string', 'max:150'],
-            'phone' => ['nullable', 'string', 'max:30'],
-            'email' => ['nullable', 'email', 'max:200'],
+            'phone' => [Rule::requiredIf($this->contact_by_phone), 'nullable', 'string', 'max:30'],
+            'email' => [Rule::requiredIf($this->contact_by_email), 'nullable', 'email', 'max:200'],
             'message' => ['required', 'string', 'min:10', 'max:2000'],
+        ], [
+            'contact_topic_id.required' => 'Kies een onderwerp.',
+            'phone.required' => 'Vul een telefoonnummer in als je gebeld wilt worden.',
+            'email.required' => 'Vul een e-mailadres in als je gemaild wilt worden.',
         ]);
-
-        if (! $this->contact_by_phone && ! $this->contact_by_email) {
-            $this->addError('form', 'Kies of je gebeld en/of gemaild wilt worden.');
-
-            return;
-        }
-
-        if ($this->contact_by_phone && blank($data['phone'])) {
-            $this->addError('phone', 'Vul een telefoonnummer in als je gebeld wilt worden.');
-
-            return;
-        }
-
-        if ($this->contact_by_email && blank($data['email'])) {
-            $this->addError('email', 'Vul een e-mailadres in als je gemaild wilt worden.');
-
-            return;
-        }
 
         if (! $turnstile->verify($this->turnstileToken, request()->ip())) {
             $this->addError('form', 'De verificatie is mislukt. Probeer het opnieuw.');
