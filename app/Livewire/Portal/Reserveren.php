@@ -8,6 +8,7 @@ use App\Models\ObjectCategory;
 use App\Models\Person;
 use App\Models\ReservableObject;
 use App\Models\Reservation;
+use App\Rules\OpKwartier;
 use App\Services\Reservations\ReservationRuleEvaluator;
 use App\Services\Reservations\ReservationService;
 use App\Services\Reservations\ReservationSubmissionService;
@@ -46,6 +47,12 @@ class Reserveren extends Component
 
     public string $endsAt = '';
 
+    /** Wacht het rooster na een eerste klik (begin) op de klik voor het eindtijdstip? */
+    public bool $awaitingEnd = false;
+
+    /** Zijn begin én einde in het rooster gekozen, klaar om te bevestigen? */
+    public bool $selectionComplete = false;
+
     public ?int $selectedPersonId = null;
 
     public string $note = '';
@@ -80,18 +87,107 @@ class Reserveren extends Component
     }
 
     /**
-     * Klik op een kalendercel: object + starttijd voorvullen, eindtijd
-     * standaard +1 uur.
+     * Klik op een kwartiercel in het rooster.
+     *
+     * Zonder lopende selectie = begintijdstip (object + start, voorlopig één
+     * kwartier). Tijdens een selectie telt alleen een klik in de rij van die
+     * boot, op of na het begin en vóór de eerstvolgende reservering: die zet
+     * het eindtijdstip (tot en met het aangeklikte kwartier). Daarna bevestigt
+     * de gebruiker met {@see confirmGridReservation()} of annuleert met
+     * {@see cancelGridSelection()}. Alle andere kliks worden genegeerd — de
+     * view maakt die cellen ook niet klikbaar.
      */
     public function pickSlot(int $objectId, string $isoStart): void
     {
+        $cell = Carbon::parse($isoStart);
+        $this->errorMessage = null;
+        $this->statusMessage = null;
+
+        if ($this->awaitingEnd || $this->selectionComplete) {
+            $start = Carbon::parse($this->startsAt);
+            $limit = $this->selectionLimit();
+            $cellEnd = $cell->copy()->addMinutes(15);
+
+            if ($objectId !== $this->selectedObjectId || $cell->lessThan($start) || $limit === null || $cellEnd->greaterThan($limit)) {
+                return;
+            }
+
+            $this->endsAt = $cellEnd->format('Y-m-d\TH:i');
+            $this->awaitingEnd = false;
+            $this->selectionComplete = true;
+            $this->recomputeLiveViolations();
+
+            return;
+        }
+
+        $occupied = Reservation::query()
+            ->where('reservable_object_id', $objectId)
+            ->where('status', ReservationStatus::Confirmed->value)
+            ->where('starts_at', '<', $cell->copy()->addMinutes(15))
+            ->where('ends_at', '>', $cell)
+            ->exists();
+        if ($occupied) {
+            return;
+        }
+
         $this->mode = 'object';
         $this->selectedObjectId = $objectId;
         $this->selectedCategoryId = null;
-        $this->startsAt = Carbon::parse($isoStart)->format('Y-m-d\TH:i');
-        $this->endsAt = Carbon::parse($isoStart)->addHour()->format('Y-m-d\TH:i');
-        $this->errorMessage = null;
+        $this->startsAt = $cell->format('Y-m-d\TH:i');
+        $this->endsAt = $cell->copy()->addMinutes(15)->format('Y-m-d\TH:i');
+        $this->note = '';
+        $this->awaitingEnd = true;
+        $this->selectionComplete = false;
         $this->recomputeLiveViolations();
+    }
+
+    /** Het ×-knopje bij het begintijdstip: roosterselectie ongedaan maken. */
+    public function cancelGridSelection(): void
+    {
+        $this->awaitingEnd = false;
+        $this->selectionComplete = false;
+        $this->selectedObjectId = null;
+        $this->note = '';
+        $this->liveViolations = [];
+    }
+
+    /** Het ✓-knopje bij het eindtijdstip: de geselecteerde periode reserveren. */
+    public function confirmGridReservation(ReservationSubmissionService $service): void
+    {
+        if (! $this->selectionComplete) {
+            return;
+        }
+
+        $this->reserve($service);
+
+        if ($this->errorMessage === null) {
+            $this->awaitingEnd = false;
+            $this->selectionComplete = false;
+        }
+    }
+
+    /**
+     * Uiterste eindtijd voor de lopende roosterselectie: de start van de
+     * eerstvolgende bevestigde reservering van die boot, maar nooit later dan
+     * het einde van het rooster op die dag.
+     */
+    private function selectionLimit(): ?Carbon
+    {
+        if ($this->selectedObjectId === null || $this->startsAt === '') {
+            return null;
+        }
+
+        $start = Carbon::parse($this->startsAt);
+        $gridEnd = $start->copy()->setTime(max($this->calendarHours()) + 1, 0);
+
+        $next = Reservation::query()
+            ->where('reservable_object_id', $this->selectedObjectId)
+            ->where('status', ReservationStatus::Confirmed->value)
+            ->where('starts_at', '>=', $start)
+            ->orderBy('starts_at')
+            ->value('starts_at');
+
+        return $next !== null && Carbon::parse($next)->lessThan($gridEnd) ? Carbon::parse($next) : $gridEnd;
     }
 
     public function updatedSelectedObjectId(): void
@@ -106,11 +202,16 @@ class Reserveren extends Component
 
     public function updatedStartsAt(): void
     {
+        // Handmatig een tijd invullen beëindigt een roosterselectie.
+        $this->awaitingEnd = false;
+        $this->selectionComplete = false;
         $this->recomputeLiveViolations();
     }
 
     public function updatedEndsAt(): void
     {
+        $this->awaitingEnd = false;
+        $this->selectionComplete = false;
         $this->recomputeLiveViolations();
     }
 
@@ -184,8 +285,8 @@ class Reserveren extends Component
         $this->errorMessage = null;
 
         $rules = [
-            'startsAt' => ['required', 'date'],
-            'endsAt' => ['required', 'date', 'after:startsAt'],
+            'startsAt' => ['required', 'date', new OpKwartier],
+            'endsAt' => ['required', 'date', 'after:startsAt', new OpKwartier],
             'selectedPersonId' => ['required', 'integer', 'exists:persons,id'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];
@@ -317,6 +418,7 @@ class Reserveren extends Component
             'myReservations' => $myReservations,
             'day' => $day,
             'hours' => $this->calendarHours(),
+            'selectionLimit' => $this->awaitingEnd || $this->selectionComplete ? $this->selectionLimit() : null,
             'dayReservationsByObject' => $dayReservations,
         ]);
     }
